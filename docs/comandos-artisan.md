@@ -14,7 +14,7 @@ El comando puede ejecutarse sin argumentos (usando el año actual por defecto) o
 
 ```bash
 # Opción 1: Usar el año actual (ej: si es 2025, crea GALILEO_2025_2027)
-php artisan db:crear-curso
+php artisan db:crear-proyecto
 
 # Opción 2: Especificar el año de inicio (Crea GALILEO_2026_2028)
-php artisan db:crear-curso 2026
+php artisan db:crear-proyecto 2026
