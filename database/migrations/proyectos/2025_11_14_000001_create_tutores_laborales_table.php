@@ -19,7 +19,7 @@ return new class extends Migration
             
             // Definición de la clave foránea
             $table->foreign('empresa_id')
-                  ->references('UUID')// Apunta al campo 'UUID' de la tabla empresas
+                  ->references('id_empresa')// Apunta al campo 'UUID' de la tabla empresas
                   ->on('empresas')// De la tabla 'empresas'
                   ->onDelete('set null');// Si se borra la empresa, el tutor laboral se desvincula
             $table->timestamps();
