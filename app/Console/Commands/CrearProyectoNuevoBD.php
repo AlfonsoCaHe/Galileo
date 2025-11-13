@@ -33,8 +33,19 @@ class CrearProyectoNuevoBD extends Command
         $this->info("Intentando crear la base de datos: {$newDbName}...");
         
         try {
-            DB::connection('mysql')->statement("CREATE DATABASE IF NOT EXISTS {$newDbName}");
-            $this->info("Base de datos '{$newDbName}' creada con éxito.");
+            // Verificar si la BD ya existe para evitar duplicidades
+            $dbExists = DB::connection('mysql')->select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$newDbName}'");
+            
+            if (!empty($dbExists)) {
+                // Si la BD YA existe, TERMINAMOS para evitar duplicados e inconsistencias.
+                $this->error("ERROR: La base de datos '{$newDbName}' ya existe. No es posible continuar.");
+                return 0; // Termina la ejecución con éxito (código 0)
+            } else {
+                // Si la BD NO existe, la creamos
+                DB::connection('mysql')->statement("CREATE DATABASE {$newDbName}");
+                $this->info("Base de datos '{$newDbName}' creada con éxito.");
+            }
+            
         } catch (\Exception $e) {
             $this->error("Error al crear la BD del proyecto. Mensaje: " . $e->getMessage());
             return 1;
