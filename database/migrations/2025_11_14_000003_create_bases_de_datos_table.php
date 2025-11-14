@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('bases_de_datos', function (Blueprint $table) {
             $table->uuid('id_base_de_datos')->primary();
-            $table->string('proyecto', 19)->unique;
-            $table->string('conexion', 45)->unique;
+            $table->string('proyecto', 19)->unique();
+            $table->string('conexion', 45)->unique();
             $table->timestamps();
         });
     }

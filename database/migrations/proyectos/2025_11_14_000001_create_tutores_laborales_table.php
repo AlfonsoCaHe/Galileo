@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id_tutor_laboral')->primary();
             $table->string('nombre', 70);
             $table->string('email', 70);
-            $table->uuid('empresa_id')->nullable(); 
+            $table->uuid('empresa_id')->nullable()->index(); 
             
             // Definición de la clave foránea
             $table->foreign('empresa_id')
