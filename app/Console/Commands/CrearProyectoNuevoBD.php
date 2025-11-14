@@ -27,7 +27,7 @@ class CrearProyectoNuevoBD extends Command
         $yearEnd = $yearStart + 2; 
         
         $newDbName = "proyecto_{$yearStart}_{$yearEnd}";
-        $connectionName = "proyecto_{$yearStart}"; 
+        $connectionName = "proyecto_{$yearStart}_{$yearEnd}"; 
 
         // 3. Crea la base de datos físicamente en MySQL
         $this->info("Intentando crear la base de datos: {$newDbName}...");
@@ -54,7 +54,7 @@ class CrearProyectoNuevoBD extends Command
         // 4. Registra el proyecto en la tabla de gestión 'Bases_de_Datos'
         try {
             DB::connection('mysql')->table('bases_de_datos')->insert([
-                'id' => (string) Str::uuid(),
+                'id_base_de_datos' => (string) Str::uuid(),
                 'proyecto' => $newDbName,
                 'conexion' => $connectionName,
                 'created_at' => now(),

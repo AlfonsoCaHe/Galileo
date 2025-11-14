@@ -37,11 +37,13 @@ class Alumno extends Model
     }
 
     /**
-     * Obtiene el tutor docente (que siempre será un Profesor) asociado al alumno (FK: tutor_docente_id).
+     * Obtiene el tutor docente (que siempre será un Profesor) asociado al alumno.
+     * La consulta debe forzarse a la BD principal (Galileo).
      */
     public function tutorDocente(): BelongsTo
     {
-        return $this->belongsTo(Profesor::class, 'tutor_docente_id', 'id_profesor');
+        return $this->belongsTo(Profesor::class, 'tutor_docente_id', 'id_profesor')
+                    ->on('mysql'); // O .on('galileo') si así se llama tu conexión principal
     }
 
     /**

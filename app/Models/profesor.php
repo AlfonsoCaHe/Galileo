@@ -21,4 +21,11 @@ class Profesor extends Model
     protected $keyType = 'string';
 
     public $timestamps = true;
+
+    /**
+     * Define la conexión a la base de datos principal (Galileo).
+     * Asumiendo que 'mysql' es tu conexión principal por defecto.
+     * @var string
+     */
+    protected $connection = 'mysql';
 }

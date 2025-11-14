@@ -28,10 +28,12 @@ class Modulo extends Model
     //-- Declaración de relaciones
 
     /**
-     * Obtiene el profesor asociado al modulo (FK: modulo_id).
+     * Obtiene el profesor asociado al módulo.
+     * La consulta debe forzarse a la BD principal (Galileo).
      */
     public function profesor(): BelongsTo{
-        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor');
+        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor')
+                    ->on('mysql'); // O .on('galileo')
     }
 
     /**

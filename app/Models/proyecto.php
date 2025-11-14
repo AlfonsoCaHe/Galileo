@@ -12,7 +12,7 @@ class Proyecto extends Model
 
     protected $table = "bases_de_datos";
     
-    protected $primaryKey = 'id_proyecto';
+    protected $primaryKey = 'id_base_de_datos';
 
     protected $fillable = [
         'proyecto',
