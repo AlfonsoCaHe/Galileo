@@ -12,16 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('profesor_modulo', function (Blueprint $table) {
-            $table->uuid('profesor_id'); 
+            $table->uuid('profesor_id'); //No se puede referenciar al ser de bases de datos diferentes, se deberá hacer en el modelo
             $table->uuid('modulo_id'); 
 
             $table->primary(['profesor_id', 'modulo_id']); 
 
             //Claves foraneas
-            $table->foreign('profesor_id')
-                ->references('id_profesor')
-                ->on('profesores')
-                ->onDelete('cascade'); 
             
             $table->foreign('modulo_id')
                 ->references('id_modulo')

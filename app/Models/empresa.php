@@ -9,6 +9,8 @@ class Empresa extends Model
 {
     use HasUuids;
 
+    protected $connection = 'mysql';
+
     protected $table = "empresas";
     
     protected $primaryKey = 'id_empresa';

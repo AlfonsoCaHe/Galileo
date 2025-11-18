@@ -7,14 +7,29 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
-use Throwable; 
+
+use Throwable;
 
 class CrearProyectoNuevoBD extends Command
 {
+    /**
+     * El nombre y la firma del comando de consola.
+     * Añadimos 'db:crear-proyecto' para crear bases de datos dinámicamente.
+     *
+     * @var string
+     */
     protected $signature = 'db:crear-proyecto {year_start?}';
 
+    /**
+     * La descripción del comando de consola.
+     *
+     * @var string
+     */
     protected $description = 'Crea una nueva base de datos para un proyecto bianual (ej. proyecto_2026_2028). En caso de no introducir un año inicial como argumento, se generará con el año actual.';
 
+    /**
+     * Ejecuta el comando desde consola.
+     */
     public function handle()
     {
         // 1. VERIFICACIÓN DE LA BD PRINCIPAL (en nuestro caso galileo)
@@ -23,29 +38,27 @@ class CrearProyectoNuevoBD extends Command
         }
 
         // 2. Definimos los años y el nombre de la BD
-        $yearStart = $this->argument('year_start') ?? now()->year;
-        $yearEnd = $yearStart + 2; 
-        
+        $yearStart = $this->argument('year_start') ?? now()->year;//Si no hay argumento se toma el año actual
+        $yearEnd = $yearStart + 2;
         $newDbName = "proyecto_{$yearStart}_{$yearEnd}";
-        $connectionName = "proyecto_{$yearStart}"; 
+        $connectionName = "proyecto_{$yearStart}_{$yearEnd}";
 
         // 3. Crea la base de datos físicamente en MySQL
         $this->info("Intentando crear la base de datos: {$newDbName}...");
-        
+
         try {
             // Verificar si la BD ya existe para evitar duplicidades
             $dbExists = DB::connection('mysql')->select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$newDbName}'");
-            
+
             if (!empty($dbExists)) {
                 // Si la BD YA existe, TERMINAMOS para evitar duplicados e inconsistencias.
                 $this->error("ERROR: La base de datos '{$newDbName}' ya existe. No es posible continuar.");
-                return 0; // Termina la ejecución con éxito (código 0)
+                return 1; // Termina la ejecución con éxito (código 0)
             } else {
                 // Si la BD NO existe, la creamos
                 DB::connection('mysql')->statement("CREATE DATABASE {$newDbName}");
                 $this->info("Base de datos '{$newDbName}' creada con éxito.");
             }
-            
         } catch (\Exception $e) {
             $this->error("Error al crear la BD del proyecto. Mensaje: " . $e->getMessage());
             return 1;
@@ -54,9 +67,10 @@ class CrearProyectoNuevoBD extends Command
         // 4. Registra el proyecto en la tabla de gestión 'Bases_de_Datos'
         try {
             DB::connection('mysql')->table('bases_de_datos')->insert([
-                'id' => (string) Str::uuid(),
+                'id_base_de_datos' => (string) Str::uuid(),
                 'proyecto' => $newDbName,
                 'conexion' => $connectionName,
+                'finalizado' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -67,20 +81,20 @@ class CrearProyectoNuevoBD extends Command
         }
 
         // 5. Configura la conexión dinámicamente para las migraciones
-        $newConfig = Config::get('database.connections.course_template'); 
+        $newConfig = Config::get('database.connections.course_template');
         $newConfig['database'] = $newDbName;
-        
+
         Config::set("database.connections.{$connectionName}", $newConfig);
-        
+
         // 6. Ejecuta las migraciones en la nueva BD
         $this->info("Ejecutando solo las migraciones específicas del proyecto en '{$connectionName}'...");
 
         Artisan::call('migrate', [
-            '--database' => $connectionName, 
-            '--path' => 'database/migrations/proyectos', 
-            '--force' => true 
+            '--database' => $connectionName,
+            '--path' => 'database/migrations/proyectos',
+            '--force' => true
         ]);
-        
+
         $this->info(Artisan::output());
         $this->info("Base de datos y tablas de {$newDbName} creadas. Proceso finalizado");
         return 0;
@@ -129,10 +143,8 @@ class CrearProyectoNuevoBD extends Command
 
                 // Ejecutamos el comando migrate para crear todas las tablas de gestión.
                 Artisan::call('migrate', [], $this->output);
-                
                 $this->info("Migraciones de gestión completadas con éxito.");
             }
-            
             return true;
         } catch (Throwable $e3) {
             $this->error("Error al ejecutar migraciones de gestión. Mensaje: " . $e3->getMessage());

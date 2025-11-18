@@ -11,6 +11,8 @@ class Modulo extends Model
 {
     use HasUuids;
 
+    //protected $connection = 'mysql';
+
     protected $table = "modulos";
     
     protected $primaryKey = 'id_modulo';
@@ -28,10 +30,12 @@ class Modulo extends Model
     //-- Declaración de relaciones
 
     /**
-     * Obtiene el profesor asociado al modulo (FK: modulo_id).
+     * Obtiene el profesor asociado al módulo.
+     * La consulta debe forzarse a la BD principal (Galileo).
      */
     public function profesor(): BelongsTo{
-        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor');
+        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor')
+                    ->on('mysql'); // O .on('galileo')
     }
 
     /**
@@ -39,11 +43,20 @@ class Modulo extends Model
      */
     public function alumnos(): BelongsToMany
     {
+        // return $this->belongsToMany(
+        //     Alumno::class, 
+        //     'alumnos_modulos', 
+        //     'modulo_id',       
+        //     'alumno_id'        
+        // )->withTimestamps();
+
         return $this->belongsToMany(
             Alumno::class, 
             'alumnos_modulos', 
-            'modulo_id',       
-            'alumno_id'        
-        )->withTimestamps();
+            'modulo_id',       // 1. FK de este modelo (Modulo) en la tabla pivote
+            'alumno_id',       // 2. FK del modelo relacionado (Alumno) en la tabla pivote
+            'id_modulo',       // 3. Clave local (PK de Modulo)
+            'id_alumno'        // 4. Clave del modelo relacionado (PK de Alumno)
+        );
     }
 }

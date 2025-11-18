@@ -4,19 +4,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Proyecto extends Model
+class Ras extends Model
 {
     use HasUuids;
 
-    protected $table = "bases_de_datos";
+    protected $table = "ras";
     
-    protected $primaryKey = 'id_base_de_datos';
+    protected $primaryKey = 'id_ras';
 
     protected $fillable = [
-        'proyecto',
-        'conexion'
+        'nombre'
     ];
 
     public $incrementing = false;

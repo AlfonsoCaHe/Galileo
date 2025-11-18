@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('criterios', function (Blueprint $table) {
-            $table->uuid('id_criterio')->primary();
-            $table->string('nombre', 70);
-            $table->string('descripcion', 255);
+        Schema::create('ras', function (Blueprint $table) {
+            $table->uuid('id_ras')->primary();
+            $table->string('nombre')->nullable()->index();
             $table->timestamps();
         });
     }
@@ -24,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('criterios');
+        Schema::dropIfExists('ras');
     }
 };

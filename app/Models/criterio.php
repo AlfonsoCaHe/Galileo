@@ -4,6 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Criterio extends Model
 {
@@ -15,11 +16,20 @@ class Criterio extends Model
 
     protected $fillable = [
         'nombre',
-        'descripcion'
+        'descripcion',
+        'ras_id'
     ];
 
     public $incrementing = false;
     protected $keyType = 'string';
 
     public $timestamps = true;
+
+    /**
+     * Obtiene el ras asociado al criterio (FK: ras_id).
+     */
+    public function ras(): BelongsTo
+    {
+        return $this->belongsTo(Alumno::class, 'ras_id', 'id_ras');
+    }
 }
