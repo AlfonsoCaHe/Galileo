@@ -10,6 +10,8 @@ class TutorLaboral extends Model
 {
     use HasUuids;
 
+    protected $connection = 'mysql';
+
     protected $table = "tutores_laborales";
     
     protected $primaryKey = 'id_tutor_laboral';
@@ -30,7 +32,7 @@ class TutorLaboral extends Model
     /**
      * Obtiene la empresa asociada al tutor_laboral (FK: empresa_id).
      */
-    public function tutorLaboral(): BelongsTo
+    public function Empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class, 'empresa_id', 'id_empresa');
     }

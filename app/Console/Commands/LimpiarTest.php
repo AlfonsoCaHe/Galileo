@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Models\Proyecto;
 use App\Models\Profesor;
+use App\Models\Empresa;
+use App\Models\TutorLaboral;
 
 class LimpiarTest extends Command
 {
@@ -68,6 +70,12 @@ class LimpiarTest extends Command
             // b) Vaciar tabla profesores
             Profesor::truncate();
             $this->info("Tabla 'profesores' vaciada.");
+
+            Empresa::truncate();
+            $this->info("Tabla 'empresas' vaciada.");
+
+            TutorLaboral::truncate();
+            $this->info("Tabla 'tutores laborales' vaciada.");
 
             // Reactivar las FK
             DB::connection($conexionPrincipal)->statement('SET FOREIGN_KEY_CHECKS=1;');

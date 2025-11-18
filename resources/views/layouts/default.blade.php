@@ -9,10 +9,9 @@
 </head>
 <body>
     <div id="app" class="py-4">
-        {{-- Aquí se inyecta el contenido de las vistas hijas --}}
         @yield('content') 
     </div>
-    {{-- Opcional: Scripts --}}
+    {{-- Scripts --}}
     {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script> --}}
 </body>
 </html>

@@ -28,7 +28,7 @@ class CrearProyectoNuevoBD extends Command
     protected $description = 'Crea una nueva base de datos para un proyecto bianual (ej. proyecto_2026_2028). En caso de no introducir un año inicial como argumento, se generará con el año actual.';
 
     /**
-     * Ejecuta el comando de consola.
+     * Ejecuta el comando desde consola.
      */
     public function handle()
     {
@@ -38,7 +38,7 @@ class CrearProyectoNuevoBD extends Command
         }
 
         // 2. Definimos los años y el nombre de la BD
-        $yearStart = $this->argument('year_start') ?? now()->year;
+        $yearStart = $this->argument('year_start') ?? now()->year;//Si no hay argumento se toma el año actual
         $yearEnd = $yearStart + 2;
         $newDbName = "proyecto_{$yearStart}_{$yearEnd}";
         $connectionName = "proyecto_{$yearStart}_{$yearEnd}";
@@ -53,7 +53,7 @@ class CrearProyectoNuevoBD extends Command
             if (!empty($dbExists)) {
                 // Si la BD YA existe, TERMINAMOS para evitar duplicados e inconsistencias.
                 $this->error("ERROR: La base de datos '{$newDbName}' ya existe. No es posible continuar.");
-                return 0; // Termina la ejecución con éxito (código 0)
+                return 1; // Termina la ejecución con éxito (código 0)
             } else {
                 // Si la BD NO existe, la creamos
                 DB::connection('mysql')->statement("CREATE DATABASE {$newDbName}");
@@ -70,6 +70,7 @@ class CrearProyectoNuevoBD extends Command
                 'id_base_de_datos' => (string) Str::uuid(),
                 'proyecto' => $newDbName,
                 'conexion' => $connectionName,
+                'finalizado' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

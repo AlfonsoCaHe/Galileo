@@ -29,7 +29,8 @@ class ProfesorController extends Controller
         $config_base = config('database.connections.' . config('database.default'));
         
         // 2. Obtener todas las bases de datos de proyecto registradas
-        $proyectos = Proyecto::all();
+        //$proyectos = Proyecto::all();
+        $proyectos = Proyecto::where('finalizado', 0)->get();
 
         foreach ($proyectos as $proyecto) {
             // Asegúrate de que id_base_de_datos es el nombre correcto de la PK de Proyecto
@@ -40,7 +41,6 @@ class ProfesorController extends Controller
             config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
 
             // 2.b. Forzar el modelo Alumno a usar la BD del proyecto actual
-            // LÍNEA CORREGIDA (antes era Alumno::setConnection(...))
             Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre); 
             
             // 3. Consulta de Alumnos en la BD actual
@@ -77,7 +77,6 @@ class ProfesorController extends Controller
         }
 
         // 5. Devolver la conexión de Alumno a la principal (limpieza)
-        // LÍNEA CORREGIDA (antes era Alumno::setConnection(...))
         Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
 
         return view('profesor.alumnos', [

@@ -11,6 +11,8 @@ class Modulo extends Model
 {
     use HasUuids;
 
+    //protected $connection = 'mysql';
+
     protected $table = "modulos";
     
     protected $primaryKey = 'id_modulo';
@@ -41,11 +43,20 @@ class Modulo extends Model
      */
     public function alumnos(): BelongsToMany
     {
+        // return $this->belongsToMany(
+        //     Alumno::class, 
+        //     'alumnos_modulos', 
+        //     'modulo_id',       
+        //     'alumno_id'        
+        // )->withTimestamps();
+
         return $this->belongsToMany(
             Alumno::class, 
             'alumnos_modulos', 
-            'modulo_id',       
-            'alumno_id'        
-        )->withTimestamps();
+            'modulo_id',       // 1. FK de este modelo (Modulo) en la tabla pivote
+            'alumno_id',       // 2. FK del modelo relacionado (Alumno) en la tabla pivote
+            'id_modulo',       // 3. Clave local (PK de Modulo)
+            'id_alumno'        // 4. Clave del modelo relacionado (PK de Alumno)
+        );
     }
 }

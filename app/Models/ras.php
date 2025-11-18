@@ -5,21 +5,16 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Empresa extends Model
+class Ras extends Model
 {
     use HasUuids;
 
-    protected $connection = 'mysql';
-
-    protected $table = "empresas";
+    protected $table = "ras";
     
-    protected $primaryKey = 'id_empresa';
+    protected $primaryKey = 'id_ras';
 
     protected $fillable = [
-        'cif_nif',
-        'nombre',
-        'nombre_gerente',
-        'nif_gerente'
+        'nombre'
     ];
 
     public $incrementing = false;
