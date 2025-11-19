@@ -10,7 +10,7 @@ class AdminController extends Controller
 {
     public function crearProyecto(Request $request)
     {
-        // Obtener el año, si se pasa desde el formulario
+        // Obtenemos el año si se pasa desde el formulario
         $yearStart = $request->input('year_start'); 
         
         $arguments = $yearStart ? ['year_start' => $yearStart] : [];
@@ -35,7 +35,7 @@ class AdminController extends Controller
                 return redirect()->route('admin.panel')->with('error', trim($errorMessage));
             }
             
-            // Éxito:
+            // Si no hay duplicidad creamos la base de datos y volvemos a la vista:
             return redirect()->route('admin.panel')->with('success', 'La nueva base de datos del proyecto ha sido creada y migrada correctamente.');
 
         } catch (\Exception $e) {

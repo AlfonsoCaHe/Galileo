@@ -16,7 +16,7 @@ class DatabaseDesplegable extends Component
      */
     public function __construct()
     {
-        // Consulta el modelo para obtener los datos necesarios
+        // Consulta el modelo Proyecto para obtener los datos necesarios
         $this->databases = Proyecto::all(['proyecto', 'conexion']);
     }
 
