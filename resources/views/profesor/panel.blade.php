@@ -1,11 +1,10 @@
 @extends('layouts.default')
 
 @section('content')
-<div class="container mt-5">
-    <h2>Herramientas de Administración de BD</h2>
-    <hr>
-    <a href="{{ route('admin.proyectos') }}">Ir al Panel de Administración</a>
-
+<div class="container">
+    <h1 class="text-center">
+        PANEL DE CONTROL DE PROFESOR
+    </h1>
     <!-- Formulario de Logout -->
     <div class="d-grid gap-2 col-6 mx-auto mt-5">
         <form action="{{ route('logout') }}" method="POST">
@@ -15,6 +14,5 @@
             </button>
         </form>
     </div>
-    {{-- Podrías añadir otros formularios de gestión aquí, como db:setup-test o db:clean-test --}}
 </div>
-@endsection 
+@endsection

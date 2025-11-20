@@ -8,6 +8,7 @@ use App\Models\Proyecto;
 use App\Models\Profesor;
 use App\Models\Empresa;
 use App\Models\TutorLaboral;
+use App\Models\User;
 
 class LimpiarTest extends Command
 {
@@ -76,6 +77,9 @@ class LimpiarTest extends Command
 
             TutorLaboral::truncate();
             $this->info("Tabla 'tutores laborales' vaciada.");
+
+            User::truncate();
+            $this->info("Tabla 'users' vaciada.");
 
             // Reactivar las FK
             DB::connection($conexionPrincipal)->statement('SET FOREIGN_KEY_CHECKS=1;');

@@ -13,10 +13,4 @@
     <button type="submit" class="btn btn-primary" onclick="this.disabled=true; this.innerText='Procesando...'; this.form.submit();">
         Crear Nueva Base de Datos de Proyecto
     </button>
-
-    @if(session('success'))
-        <div class="alert alert-success mt-3">
-            {{ session('success') }}
-        </div>
-    @endif
 </form>

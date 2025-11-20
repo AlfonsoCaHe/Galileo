@@ -12,6 +12,7 @@ use App\Models\Proyecto;
 use App\Models\Tarea;
 use App\Models\Criterio;
 use App\Models\Ras;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -198,6 +199,35 @@ class PruebaRelacionesSeeder extends Seeder
         foreach ($modelos_locales as $modelClass) {
             $modelClass::getConnectionResolver()->setDefaultConnection($conexion_principal);
         }
+
+        // --- PARTE 5: CREACIÓN DE PERFILES DE USUARIO ---
+        $this->command->info('Creando perfiles de usuario...');
+        User::create([
+            'name' => 'Alumno Proyecto',
+            'email' => 'alumno@ies.galileo.com',
+            'password' => 'alumno',
+            'rol' => 'alumno',
+        ]);
+
+        $this->command->info('Usuario Alumno Creado: alumno@ies.galileo.com / alumno');
+
+        User::create([
+            'name' => 'Profesor Proyecto',
+            'email' => 'profesor@ies.galileo.com',
+            'password' => 'profesor',
+            'rol' => 'profesor',
+        ]);
+
+        $this->command->info('Usuario Profesor Creado: profesor@ies.galileo.com / profesor');
+
+        User::create([
+            'name' => 'Tutor Laboral Proyecto',
+            'email' => 'tutor_laboral@ies.galileo.com',
+            'password' => 'tutor',
+            'rol' => 'tutor_laboral',
+        ]);
+
+        $this->command->info('Usuario Tutor Laboral Creado: tutor_laboral@ies.galileo.com / tutor');
 
         $this->command->info("\n--- Prueba de Arquitectura Híbrida Completa ---");
     }

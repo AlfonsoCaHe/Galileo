@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Http\Request;
+use App\Models\Proyecto;
 //use App\Jobs\RunArtisanCommand; // Para creación de bases de datos mediante asincronía #DESACTIVADO
 
 class AdminController extends Controller
@@ -32,19 +33,25 @@ class AdminController extends Controller
                 $errorMessage = Artisan::output();
                 // Limpiamos la salida para no contaminar futuras llamadas.
 
-                return redirect()->route('admin.panel')->with('error', trim($errorMessage));
+                return redirect()->route('admin.proyectos')->with('error', trim($errorMessage));
             }
             
             // Si no hay duplicidad creamos la base de datos y volvemos a la vista:
-            return redirect()->route('admin.panel')->with('success', 'La nueva base de datos del proyecto ha sido creada y migrada correctamente.');
+            return redirect()->route('admin.proyectos')->with('success', 'La nueva base de datos del proyecto ha sido creada y migrada correctamente.');
 
         } catch (\Exception $e) {
             // Error:
             $errorMessage = "Error al ejecutar el comando: " . $e->getMessage();
             
-            return redirect()->route('admin.panel')->with('error', $errorMessage);
+            return redirect()->route('admin.proyectos')->with('error', $errorMessage);
         }
 
-        return redirect()->route('admin.panel')->with('success', 'La creación del proyecto ha sido iniciada en segundo plano...');
+        return redirect()->route('admin.proyectos')->with('success', 'La creación del proyecto ha sido iniciada en segundo plano...');
+    }
+
+    public function listadoProyectos()
+    {
+        $proyectos = Proyecto::orderBy('proyecto', 'asc')->get();
+        return view('admin.proyectos', compact('proyectos'));
     }
 }

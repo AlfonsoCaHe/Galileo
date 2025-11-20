@@ -1,7 +1,7 @@
 <div class="form-group">
     <label for="database-select">Seleccionar Base de Datos:</label>
     
-    <select name="database_id" id="database-select" class="form-control">
+    <select name="database_id" id="database-select" class="form-control w-25">
         <option value="">Elige un Proyecto</option>
         
         @foreach ($databases as $db)

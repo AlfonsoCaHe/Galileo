@@ -6,26 +6,16 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Middleware\AdminCheck;
+use App\Http\Middleware\AlumnoCheck;
+use App\Http\Middleware\ProfesorCheck;
+use App\Http\Middleware\TutorLaboralCheck;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('usuarios.welcome');
+    return view('usuarios.login');
 });
 
-Route::get('/listado-bases-de-datos', [ProyectoController::class, 'index'])->name('proyectos.listado');
-
-Route::get('/profesores', [ProfesorController::class, 'indexProfesores'])->name('profesor.index');
-Route::get('/profesor/{profesor_id}/alumnos', [ProfesorController::class, 'mostrarAlumnos'])->name('profesor.alumnos');
-
-Route::get('/alumnos', [AlumnoController::class, 'indexAlumno'])->name('alumno.index');
-Route::get('/alumno/{alumno_id}', [AlumnoController::class, 'showAlumno'])->name('alumno.show');
-
-Route::get('/admin/panel', function () {return view('admin.panel');})->name('admin.panel');
-
-//Ruta para crear una nueva base de datos pulsando el componente /resources/views/admin/crear-proyecto-form.blade.php
-Route::post('/admin/crear-proyecto', [AdminController::class, 'crearProyecto'])->name('admin.crear.proyecto');
-
-// --------------------------------Rutas de acceso de usuarios-------------------------------------------//
+// --------------------------------Rutas genéricas de usuarios-------------------------------------------//
 // Muestra el formulario de login
 Route::get('/login', [UsuariosController::class, 'showLoginForm'])->name('login');
 // Procesa el login
@@ -33,25 +23,59 @@ Route::post('/login', [UsuariosController::class, 'login']);
 // Cierra la sesión
 Route::post('/logout', [UsuariosController::class, 'logout'])->name('logout');
 
-
-//----------------------------------Rutas restringidas----------------------------------------------------//
-// Grupo de rutas que requiere autenticación (para todos los usuarios)
+// --------------------------------Rutas Protegidas (Requieren Rol)------------------------------------//
 Route::middleware(['auth'])->group(function () {
-    // Ruta de inicio genérica para usuarios logueados
-    Route::get('/home', function () {
-        // En una aplicación real, aquí redirigirías según el rol.
-        return '¡Estás logueado! Esta es la página HOME.';
-    })->name('home');
+    
+    // Redirige al panel específico según el rol.
+    Route::get('/home', [UsuariosController::class, 'redirectToPanel'])->name('home');
+
+    Route::get('/alumno/{alumno_id}', [AlumnoController::class, 'showAlumno'])->name('alumno.show');
+
+    //Rutas sin ordenar todavía
+    Route::get('/profesores', [ProfesorController::class, 'indexProfesores'])->name('profesor.index');
+    Route::get('/profesor/{profesor_id}/alumnos', [ProfesorController::class, 'mostrarAlumnos'])->name('profesor.alumnos');
+});
+//----------------------------------Rutas alumnos----------------------------------------------------//
+Route::middleware(['auth', AlumnoCheck::class])->group(function () {
+    Route::get('/alumnos/panel', function () {
+        // En una aplicación real, aquí retornarías la vista específica del alumno
+        return view('alumno.panel'); 
+    })->name('alumno.panel'); 
+
+});
+
+//----------------------------------Rutas profesores----------------------------------------------------//
+Route::middleware(['auth', ProfesorCheck::class])->group(function () {
+    Route::get('/profesor/panel', function () {
+        return view('profesor.panel'); 
+    })->name('profesor.panel'); 
+
 });
 
 
-// Ruta protegida para ADMINISTRADORES
+//----------------------------------Rutas tutores laborales--------------------------------------------//
+Route::middleware(['auth', TutorLaboralCheck::class])->group(function () {
+    Route::get('/tutores/panel', function () {
+        return view('tutores.panel'); 
+    })->name('tutores.panel'); 
+
+});
+
+
+//----------------------------------Rutas administrador----------------------------------------------------//
+// Rutas solo será accesibles si el usuario está logueado Y tiene rol='admin'
 Route::middleware(['auth', AdminCheck::class])->group(function () {
+    Route::get('/admin/panel', function () {return view('admin.panel');})->name('admin.panel');// Muestra la vista admin/panel.blade.php
     
-    // Esta ruta ahora solo será accesible si el usuario está logueado Y tiene rol='admin'
-    Route::get('/admin/panel', function () {
-        return view('admin.panel'); // Muestra la vista admin/panel.blade.php
-    })->name('admin.panel');
-    
-    // Aquí puedes añadir más rutas exclusivas para administradores
+    Route::get('/listado-proyectos', [AdminController::class, 'listadoProyectos'])->name('admin.proyectos');
+
+    //Ruta para crear una nueva base de datos pulsando el componente /resources/views/admin/crear-proyecto-form.blade.php
+    Route::post('/admin/crear-proyecto', [AdminController::class, 'crearProyecto'])->name('admin.crear.proyecto');
+
+    //Ruta para ver el listado total de alumnos de los proyectos visibles
+    Route::get('/alumnos', [AlumnoController::class, 'listadoVisibles'])->name('alumno.listadoVisibles');
+
+    //Ruta para ver el listado de alumnos de un proyecto concreto
+    Route::get('alumnos/{proyecto_id}/alumnos', [AlumnoController::class, 'listadoAlumnosProyecto'])->name('admin.alumnosProyecto');
+
 });

@@ -18,10 +18,9 @@
                         </p>
                     @endif
 
-                    <p class="text-center mt-4">
-                        Este es el dashboard general. 
-                        Los usuarios con rol de **admin** serán redirigidos a su panel especial al iniciar sesión.
-                    </p>
+                    <h1 class="text-center mt-4 text-primary">
+                        GALILEO
+                    </h1>
 
                     <!-- Formulario de Logout -->
                     <div class="d-grid gap-2 col-6 mx-auto mt-5">

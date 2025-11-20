@@ -16,7 +16,7 @@ class AlumnoController extends Controller
     /**
      * Listamos todos los alumnos de las bases de datos activas
      */
-    public function indexAlumno()
+    public function listadoVisibles()
     {
         $proyectos = Proyecto::where('finalizado', 0)->get();
 
@@ -51,6 +51,38 @@ class AlumnoController extends Controller
 
         // Renombramos la variable para el compact
         $alumnos = $alumnos_totales;
+
+        return view('alumno.index', compact('alumnos'));
+    }
+
+    /**
+     * Listamos todos los alumnos de las bases de datos activas
+     */
+    public function listadoAlumnosProyecto(Request $request, $proyecto_id)
+    {
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->get()->first();
+        
+        $conexion = $proyecto->conexion;
+        $dbName = $proyecto->proyecto; // El campo 'proyecto' guarda el nombre de la BD
+            
+        try {
+            // Configuramos la conexión dinámica
+            $baseConfig = config('database.connections.mysql');
+            $newConfig = $baseConfig;
+            $newConfig['database'] = $dbName; // Usamos el nombre de la BD del proyecto
+
+            // Sobrescribimos o añadir la conexión dinámica a la configuración
+            // Esto permite que 'Alumno::on($conexion)' funcione.
+            Config::set("database.connections.{$conexion}", $newConfig); 
+                
+            $alumnos = Alumno::on($conexion)->get();
+
+        } catch (\Exception $e) {
+            // Si la conexión falla (BD no existe/credenciales erróneas), no detenemos la ejecución, sino que ignoramos este proyecto.
+        } finally {
+            // Hay que limpiar la configuración dinámica después de usarla para no interferir con el resto de la aplicación.
+            Config::offsetUnset("database.connections.{$conexion}");
+        }
 
         return view('alumno.index', compact('alumnos'));
     }

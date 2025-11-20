@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminCheck
+class TutorLaboralCheck
 {
     /**
      * Handle an incoming request.
@@ -22,13 +22,13 @@ class AdminCheck
             return redirect('/login');
         }
 
-        // 2. Verificar si el usuario tiene el rol de 'admin' usando el método del modelo User
-        if (Auth::user()->isAdmin()) {
-            // Si es 'admin', permitir que continúe la solicitud
+        // 2. Verificar si el usuario tiene el rol de 'tutor_laboral' usando el modelo User
+        if (Auth::user()->isTutorLaboral()) {
+            // Si es 'tutor_laboral', permitir que continúe la solicitud
             return $next($request);
         }
 
-        // 3. Si está autenticado pero NO es 'admin', redirigir con un error 403 (Prohibido)
-        abort(403, 'Acceso denegado. Se requiere rol de Administrador.');
+        // 3. Si está autenticado pero NO es 'tutor_laboral', redirigir con un error 403 (Prohibido)
+        abort(403, 'Acceso denegado. Se requiere rol de Tutor Laboral.');
     }
 }

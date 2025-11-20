@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Builder; // Importar Builder
+use Illuminate\Database\Eloquent\Builder; // Importar Builder de consultas (Extensor de coletillas)
 
 /**
  * Agregamos este DocBlock para que el IDE (Intelephense) reconozca 
@@ -28,6 +28,8 @@ class User extends Authenticatable
 {
     // Habilitamos el uso de UUIDs como clave primaria
     use HasApiTokens, HasFactory, Notifiable, HasUuids;
+
+    protected $connection = 'mysql';
 
     protected $primaryKey = 'id';
     public $incrementing = false;
@@ -65,7 +67,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'rolable_id' => 'string', // Aseguramos el casting a string para UUID
-        // CRÍTICO: Se elimina 'password' => 'hashed' para evitar el doble cifrado
+        'password' => 'hashed'
     ];
 
     // --- Relación Polimórfica ---
