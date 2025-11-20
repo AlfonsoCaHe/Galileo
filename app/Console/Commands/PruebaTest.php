@@ -56,6 +56,14 @@ class PruebaTest extends Command
         ], $this->output);
         
         $this->info("Seeder completado. El profesor, módulos, y alumnos han sido creados en las BDs correspondientes.");
+
+        $this->comment("\n4. Añadiendo usuario administrador...");
+        Artisan::call('db:seed', [
+            '--class' => 'AdminUserSeeder',
+            '--force' => true
+        ], $this->output);
+
+        $this->info("Administrador admin@ies.galileo.com añadido.");
         $this->info("\n--- Configuración de Pruebas Completa. Listo para probar ---");
 
         return 0;
