@@ -51,20 +51,11 @@ class Alumno extends Model
      */
     public function modulos(): BelongsToMany
     {
-        // return $this->belongsToMany(
-        //     Modulo::class, 
-        //     'alumnos_modulos', // Nombre de la tabla pivote
-        //     'alumno_id',       // FK de este modelo en la pivote
-        //     'modulo_id'        // FK del modelo relacionado en la pivote
-        // )->withTimestamps(); // Añadir si la tabla pivote tiene timestamps
-
         return $this->belongsToMany(
             Modulo::class, 
-            'alumnos_modulos', 
-            'alumno_id',       // 1. FK de este modelo (Alumno) en la tabla pivote
-            'modulo_id',       // 2. FK del modelo relacionado (Modulo) en la tabla pivote
-            'id_alumno',       // 3. Clave local (PK de Alumno)
-            'id_modulo'        // 4. Clave del modelo relacionado (PK de Modulo)
+            'alumnos_modulos', // Nombre de la tabla pivote
+            'alumno_id', // FK de este modelo en la pivote
+            'modulo_id',  // FK del modelo relacionado en la pivote
         );  
     }
 

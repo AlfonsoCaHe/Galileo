@@ -12,8 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Builder; // Importar Builder de consultas (Extensor de coletillas)
 
 /**
- * Agregamos este DocBlock para que el IDE (Intelephense) reconozca 
- * los métodos personalizados que hemos añadido.
+ * Agregamos este DocBlock para que el IDE (Intelephense) reconozca los métodos personalizados que hemos añadido y no encuentra de otra forma.
  *
  * @property string $rol // Nombre del campo en español
  * @method static \Illuminate\Database\Eloquent\Builder|User admin()
@@ -69,16 +68,6 @@ class User extends Authenticatable
         'rolable_id' => 'string', // Aseguramos el casting a string para UUID
         'password' => 'hashed'
     ];
-
-    // --- Relación Polimórfica ---
-
-    /**
-     * Obtiene el modelo padre (TutorLaboral, Profesor, Alumno) al que pertenece el usuario.
-     */
-    public function rolable(): MorphTo
-    {
-        return $this->morphTo();
-    }
 
     // --- Métodos de Ayuda para Roles (en Inglés) ---
 

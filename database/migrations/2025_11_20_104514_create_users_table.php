@@ -18,16 +18,11 @@ return new class extends Migration
             $table->uuid('id')->primary(); 
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             
             // CAMPOS DE AUTORIZACIÓN:
             // 1. Campo de enum 'rol' para la verificación rápida de perfiles
             $table->enum('rol', ['admin', 'alumno', 'profesor', 'tutor_laboral']); 
-            
-            // 2. Clave polimórfica para enlazar a la entidad específica (Alumno, Profesor, etc.)
-            $table->uuid('rolable_id')->nullable(); 
-            $table->string('rolable_type')->nullable(); 
             
             $table->rememberToken();
             $table->timestamps();

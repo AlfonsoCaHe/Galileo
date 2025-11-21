@@ -11,15 +11,15 @@ class AdminController extends Controller
 {
     public function crearProyecto(Request $request)
     {
-        // Obtenemos el año si se pasa desde el formulario
+        // Obtenemos el año si se pasa desde el formulario, si no, por defecto es el año actual
         $yearStart = $request->input('year_start'); 
         
         $arguments = $yearStart ? ['year_start' => $yearStart] : [];
         
         try {
-            //Ejecución ASÍNCRONA (Recomendado para comandos largos o de inserción en bases de datos)
+            //EJECUCIÓN ASÍNCRONA (Recomendado para comandos largos o de inserción en bases de datos)
             //No se utiliza por un problema en la retroalimentación, y dado que supuestamente solo se crearán las bases de datos en local, no debe haber problema
-            // Encola la ejecución del comando. Esto requiere tener configurada una cola (Queue).
+            //Encola la ejecución del comando. Esto requiere tener configurada una cola (Queue).
             /**
              * RunArtisanCommand::dispatch('db:crear-proyecto', $arguments);
              */

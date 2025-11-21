@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\ProyectoController;
 use App\Http\Controllers\ProfesorController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlumnoController;
@@ -78,4 +77,20 @@ Route::middleware(['auth', AdminCheck::class])->group(function () {
     //Ruta para ver el listado de alumnos de un proyecto concreto
     Route::get('alumnos/{proyecto_id}/alumnos', [AlumnoController::class, 'listadoAlumnosProyecto'])->name('admin.alumnosProyecto');
 
+    //Ruta para ver el formulario para agregar un nuevo usuario
+    Route::get('usuarios/crear', [UsuariosController::class, 'create'])->name('usuarios.crear');
+    //Ruta para insertar un nuevo usuario
+    Route::post('usuarios/store', [UsuariosController::class, 'store'])->name('usuarios.store');
+    //Ruta para mostrar el listado de usuarios del sistema
+    Route::get('usuarios/show', [UsuariosController::class, 'show'])->name('usuarios.show');
+
+    //Ruta para mostrar el listado de usuarios mediante DataTable
+    Route::post('/usuarios/showDataTable',[UsuariosController::class, 'showDataTable'])->name('usuarios.showDataTable');
+    //Ruta para eliminar un usuario
+    Route::post('/usuarios/eliminar', [UsuariosController::class, 'eliminar'])->name('usuarios.eliminar');
+
+    // Ruta para mostrar el formulario de edición de usuario
+    Route::get('usuarios/{id}/edit', [UsuariosController::class, 'edit'])->name('usuarios.editar');
+    // Ruta para procesar la actualización del usuario
+    Route::post('usuarios/{id}/update', [UsuariosController::class, 'update'])->name('usuarios.update');
 });
