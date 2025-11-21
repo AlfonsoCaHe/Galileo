@@ -77,6 +77,21 @@ return [
             'engine' => null,
         ],
 
+        // El middleware SetProjectConnection clonará esta configuración y solo establecerá el valor 'database'.
+        'mysql_base_project' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => null, // El middleware sobrescribirá la base de datos con el nombre del proyecto al que pertenece.
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

@@ -86,4 +86,18 @@ class ProfesorController extends Controller
             'filtro' => $filtro
         ]);
     }
+
+    /**
+     * Crea un profesor a partir de un formulario
+     */
+    public function createProfesor(Request $request){
+        
+    }
+
+    /**
+     * Modifica los datos de un profesor
+     */
+    public function updateProfesor(Request $request){
+        
+    }
 }

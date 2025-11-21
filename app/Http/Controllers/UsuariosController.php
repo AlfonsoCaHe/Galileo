@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Rules\ValidarTexto;
+use App\Rules\ValidarEmail;
+use Illuminate\Validation\Rule;
 
 class UsuariosController extends Controller
 {
@@ -57,30 +61,50 @@ class UsuariosController extends Controller
     }
 
     /**
-     * Procesa la solicitud de login.
+     * Procesa el intento de login y establece el contexto de la base de datos.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function login(Request $request)
     {
-        // 1. Validar los datos del formulario
+        // 1. Validamos las credenciales
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // 2. Intentar autenticar al usuario
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            
-            // Regenerar la sesión para prevenir ataques de fijación de sesión
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+            
+            //Cargamos el usuario logueado y sus datos de sesión
+            $user = Auth::user();
 
-            // Redirige a red
-            return redirect()->route('home');
+            if ($user->isAdmin()) {//Si es admin no hay que buscar su conexión
+                Session::forget('DB_PROJECT_ID'); // Aseguramos que no haya un contexto residual de la sesión
+                return redirect()->intended(route('admin.panel'));
+            }
+
+            // 2. Cargamos el perfil específico (rolable)
+            $rolable = $user->rolable;
+
+            // 3. Verificamos si el perfil está asociado a una ID de base de datos
+            // Esta ID será que usaremos para cambiar la conexión.
+            if ($rolable && property_exists($rolable, 'id_base_de_datos')) {
+                // Almacenamos el ID de la base de datos en la sesión para no tener que buscarlo cada vez que realicemos una acción
+                Session::put('DB_PROJECT_ID', $rolable->id_base_de_datos);
+            } else {
+                // Si el perfil no tiene id_base_de_datos (ej: Profesor sin proyecto asignado) eliminamos la sesión
+                Session::forget('DB_PROJECT_ID');
+            }
+
+            return redirect()->intended(route('home'));
+
         }
 
-        // 3. Si la autenticación falla, lanzar una excepción de validación
-        throw ValidationException::withMessages([
-            'email' => [trans('auth.failed')],
-        ]);
+        return back()->withErrors([
+            'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
+        ])->onlyInput('email');
     }
 
     /**
@@ -93,6 +117,44 @@ class UsuariosController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        Session::forget('DB_PROJECT_ID');//Borramos el ID de la base de datos de conexión al cerrar la sesión
+
         return redirect('/');
+    }
+
+    /**
+     * Redirige a la página de creación de usuario
+     */
+    public function create(){
+        return view('usuarios.create');
+    }
+
+    /**
+     * Almacena los datos de un nuevo usuario en la base de datos
+     */
+    public function store(Request $request){
+        $datos = $request->validate([
+            'name' => ['required', 'max:255', new ValidarTexto],
+            'email' => ['required', 'max:255', new ValidarEmail],
+            'password' => 'required',
+            'rol' => ['required', 'string', Rule::in(['admin', 'alumno', 'profesor', 'tutor_laboral'])],
+            'rolableid',
+            'rolable_type'
+        ]);
+        
+        User::create($datos);
+
+        return redirect()->route('usuarios.show')->with('success', 'Nuevo usuario creado correctamente.');
+    }
+
+    /**
+     * Borrar usuario
+     */
+    public function eliminarUsuario(Request $request) {
+
+        $user_id = User::find($request->id);
+        $user_id->delete();
+
+        return response()->json(['success'=>true]);
     }
 }

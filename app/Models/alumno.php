@@ -12,6 +12,8 @@ class Alumno extends Model
 {
     use HasUuids;
 
+    protected $connection = 'mysql_project';
+
     protected $table = "alumnos";
     
     protected $primaryKey = 'id_alumno';
