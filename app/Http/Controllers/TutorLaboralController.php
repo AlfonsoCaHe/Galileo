@@ -265,7 +265,7 @@ class TutorLaboralController extends Controller
             return redirect()->back()->withInput()->withErrors('Error al crear el tutor/usuario: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Tutor Laboral y Usuario creados con éxito.');
+        return redirect('/gestion/empresas')->with('success', 'Tutor Laboral y Usuario creados con éxito.');
     }
 
     /**
@@ -273,18 +273,19 @@ class TutorLaboralController extends Controller
      */
     public function updateTutor(Request $request, $tutor_id)
     {
-        $tutor = TutorLaboral::with('user')->findOrFail($tutor_id);
+        // 1. Buscar el perfil de Tutor Laboral y su Usuario
+        $tutor = TutorLaboral::findOrFail($tutor_id);
         $user = $tutor->user;
 
-        // 1. Validación de datos
+        // Reglas de Validación: El email debe ser único en la tabla 'users', pero ignorando al usuario actual ($user->id).
         $request->validate([
-            'nombre' => 'required|max:255',
-            'email' => 'required|email|max:255|unique:users',
+            'nombre' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed', 
         ]);
 
         try {
-            DB::transaction(function () use ($request, $tutor, $user) {
+            DB::connection(config('database.default'))->transaction(function () use ($request, $tutor, $user) {
                 
                 // 2. Actualizar el perfil TutorLaboral
                 $tutor->update([
@@ -298,9 +299,9 @@ class TutorLaboralController extends Controller
                     'email' => $request->email,
                 ];
                 
-                // Solo si el campo 'password' fue rellenado, lo incluimos. 
+                // Solo si el campo 'password' fue rellenado, lo incluimos (Laravel lo hashea automáticamente si se usa 'update')
                 if ($request->filled('password')) {
-                    $userData['password'] = $request->password; 
+                    $userData['password'] = $request->password;
                 }
 
                 $user->update($userData);
@@ -311,7 +312,7 @@ class TutorLaboralController extends Controller
             return redirect()->back()->withInput()->withErrors('Error al actualizar el tutor/usuario: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Tutor Laboral y Usuario actualizados con éxito.');
+        return redirect()->route('gestion.empresas.edit', ['empresa_id' => $tutor->empresa_id])->with('success', 'Tutor Laboral y Usuario actualizados con éxito.');
     }
 
     /**
@@ -324,4 +325,181 @@ class TutorLaboralController extends Controller
         
         return view('gestion.tutores.create', compact('empresa'));
     }
+
+    /**
+     * Elimina el perfil de Tutor Laboral y su Usuario asociado, pero solo si no tiene Alumnos o Tareas asociados en NINGÚN proyecto.
+     */
+    public function destroyTutor($tutor_id)
+    {
+        // 1. Encontrar el perfil del Tutor Laboral (BD Galileo)
+        $tutor = TutorLaboral::findOrFail($tutor_id);
+        $tutor_laboral_id = $tutor->id_tutor_laboral;
+        
+        $alumnosTotales = collect();
+        $config_base = config('database.connections.' . config('database.default'));
+        
+        // --- 2. VALIDACIÓN DE REFERENCIAS CRUZADAS EN PROYECTOS ---
+        
+        // Obtenemos todas las bases de datos de proyecto registradas
+        $proyectos = Proyecto::where('finalizado', 0)->get(); 
+
+        foreach ($proyectos as $proyecto) {
+            $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
+            
+            // Configurar y forzar la conexión dinámica
+            $config_base['database'] = $proyecto->conexion;
+            config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
+
+            // Establecer temporalmente la conexión para los modelos locales
+            Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre);
+            
+            // 2a. Buscar alumnos asociados en la BD actual
+            $alumnos = Alumno::query()
+                ->where('tutor_laboral_id', $tutor_laboral_id)
+                ->get();
+            
+            if ($alumnos->isNotEmpty()) {
+                // Devolver la conexión de Alumno a la principal (limpieza)
+                Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+
+                return redirect()->back()->withErrors("No se puede eliminar al tutor **{$tutor->nombre}**. Tiene **{$alumnos->count()} alumno(s)** asociado(s) en el proyecto **{$proyecto->proyecto}**.");
+            }
+            
+            // 2b. Opcional: Podrías añadir una comprobación de Tareas aquí si el modelo Tarea tiene una FK directa a TutorLaboral.
+            // Actualmente, Tarea solo tiene FK a Alumno (y Modulo/Criterio), por lo que si el alumno está bien, la tarea también lo está.
+        }
+        
+        // Devolver la conexión de Alumno a la principal (limpieza)
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+
+        // --- 3. ELIMINACIÓN SEGURA (Si pasa la validación) ---
+        
+        $user = $tutor->user;
+
+        try {
+            DB::connection(config('database.default'))->transaction(function () use ($tutor, $user) {
+                
+                // Eliminar el Tutor Laboral (perfil)
+                $tutor->delete();
+
+                // Eliminar el registro de Usuario (cuenta de acceso)
+                if ($user) {
+                    $user->delete();
+                }
+            });
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error al eliminar el tutor y su usuario: ' . $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Tutor Laboral y Usuario eliminados con éxito.');
+    }
+
+    /**
+     * Elimina el perfil de Empresa, pero solo si ningún tutor asociado 
+     * tiene alumnos en CUALQUIER base de datos de proyecto (finalizada o no).
+     */
+    public function destroyEmpresa($empresa_id)
+    {
+        // 1. Encontrar la Empresa (BD Galileo)
+        $empresa = Empresa::findOrFail($empresa_id);
+        
+        // 2. Obtener todos los tutores asociados a esta empresa
+        $tutores = $empresa->tutores;
+
+        // --- 3. VALIDACIÓN DE INTEGRIDAD REFERENCIAL ---
+        
+        // Si hay tutores, debemos verificar que ninguno tenga alumnos asociados
+        if ($tutores->isNotEmpty()) {
+            
+            // Obtener TODOS los proyectos (finalizados o no) para la verificación completa
+            $proyectos = Proyecto::all(); 
+            $config_base = config('database.connections.' . config('database.default'));
+            
+            $tutorConAlumno = null; 
+            $proyectoConAlumno = null;
+
+            foreach ($tutores as $tutor) {
+                $tutor_id = $tutor->id_tutor_laboral;
+
+                foreach ($proyectos as $proyecto) {
+                    $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
+                    
+                    // Configurar la conexión dinámica temporal
+                    $config_base['database'] = $proyecto->conexion;
+                    config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
+
+                    // Forzar el modelo Alumno a usar la conexión dinámica actual
+                    Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre);
+                    
+                    // Buscar alumnos asociados en la BD del proyecto actual
+                    $alumnosCount = Alumno::query()
+                        ->where('tutor_laboral_id', $tutor_id)
+                        ->count();
+                    
+                    if ($alumnosCount > 0) {
+                        $tutorConAlumno = $tutor;
+                        $proyectoConAlumno = $proyecto;
+                        
+                        // Restaurar conexión de Alumno a la principal antes de salir
+                        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+                        
+                        // Salir de ambos bucles
+                        break 2; 
+                    }
+                }
+            }
+
+            // Si se encontró un tutor con alumnos, retornar error
+            if ($tutorConAlumno) {
+                $nombre_tutor = $tutorConAlumno->nombre;
+                $nombre_proyecto = $proyectoConAlumno->proyecto;
+                
+                return redirect()->back()->withErrors("No se puede eliminar la empresa **{$empresa->nombre}**. El tutor **{$nombre_tutor}** aún tiene alumno(s) asociado(s) en el proyecto **{$nombre_proyecto}**. Desvincula o elimina al alumno primero.");
+            }
+        }
+        
+        // --- 4. ELIMINACIÓN SEGURA ---
+        try {
+            DB::connection(config('database.default'))->transaction(function () use ($empresa, $tutores) {
+                
+                // 4a. Eliminar los usuarios asociados a los tutores (MorphOne no tiene CASCADE)
+                foreach ($tutores as $tutor) {
+                    $user = $tutor->user;
+                    if ($user) {
+                        $user->delete();
+                    }
+                }
+                
+                // 4b. Eliminar los perfiles de Tutor Laboral
+                // Esto borrará todos los tutores
+                $empresa->tutores()->delete();
+                
+                // 4c. Eliminar la Empresa
+                $empresa->delete();
+            });
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error crítico al eliminar la empresa: ' . $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Empresa, Tutores Laborales asociados y Usuarios eliminados con éxito.');
+    }
+
+    /**
+     * Muestra el formulario para editar un Tutor Laboral existente.
+     */
+    public function editTutor($tutor_id)
+    {
+        // 1. Busca el perfil de Tutor Laboral (BD Galileo)
+        $tutor = TutorLaboral::findOrFail($tutor_id);
+        
+        // 2. Obtiene el usuario asociado a través de la relación polimórfica inversa
+        $user = $tutor->user; 
+        
+        // Retornamos la vista con el perfil del tutor y su usuario
+        return view('gestion.tutores.edit', ['tutor' => $tutor, 'user' => $user,]);
+    }
+
+    
 }

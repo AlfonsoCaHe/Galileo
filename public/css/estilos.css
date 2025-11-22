@@ -5,3 +5,8 @@
 body{
     background-color: var(--color_background) !important;
 }
+
+.oculto{
+    visibility: hidden;
+    height: 0px;
+}

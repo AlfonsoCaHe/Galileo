@@ -2,6 +2,7 @@
 
 namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -28,4 +29,12 @@ class Profesor extends Model
      * @var string
      */
     protected $connection = 'mysql';
+
+    /**
+     * Para crear la relación polimórfica
+     */
+    public function user(): MorphOne
+    {
+        return $this->morphOne(User::class, 'rolable');
+    }
 }

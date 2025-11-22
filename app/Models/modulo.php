@@ -43,13 +43,6 @@ class Modulo extends Model
      */
     public function alumnos(): BelongsToMany
     {
-        // return $this->belongsToMany(
-        //     Alumno::class, 
-        //     'alumnos_modulos', 
-        //     'modulo_id',       
-        //     'alumno_id'        
-        // )->withTimestamps();
-
         return $this->belongsToMany(
             Alumno::class, 
             'alumnos_modulos', 
@@ -58,5 +51,18 @@ class Modulo extends Model
             'id_modulo',       // 3. Clave local (PK de Modulo)
             'id_alumno'        // 4. Clave del modelo relacionado (PK de Alumno)
         );
+    }
+
+    /**
+     * Obtiene los ras del modulo (Tabla Pivote: modulos_ras).
+     */
+    public function ras(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Ras::class, 
+            'modulo_ras',    // Nombre de la tabla pivot
+            'modulo_id',     // FK de este modelo en la pivot
+            'ras_id'         // FK del modelo relacionado en la pivot
+        );  
     }
 }

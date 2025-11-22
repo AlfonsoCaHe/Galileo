@@ -106,10 +106,17 @@ class UsuariosController extends Controller
     }
 
     /**
-     * Método que redirige a la vista de creación de usuarios
+     * Método que redirige a la vista de creación de profesores
      */
-    public function create(){
-        return view('usuarios.crear');
+    public function createProfesor(){
+        return view('gestion.profesor.crear');
+    }
+
+    /**
+     * Método que redirige a la vista de creación de alumnos
+     */
+    public function createAlumno(){
+        return view('gestion.alumno.crear');
     }
 
     /**
@@ -152,7 +159,24 @@ class UsuariosController extends Controller
                     'rolable_type' => Profesor::class, 
                 ]);
 
-            } 
+            }
+            // Añadimos a la tabla del Rol Específico
+            if ($user->rol === 'alumno') {
+                
+                // a. Crear el registro en la tabla 'alumnos'
+                $alumno = Alumno::create([
+                    'nombre' => $user->name, // Usamos el nombre del User para el Alumno
+                    'database_id' => $request->database_id,
+                ]);
+                
+                // b. Actualizamos el registro del User con el enlace polimórfico
+                // Usamos la clave primaria del profesor ('id_alumno') y la clase del modelo.
+                $user->update([
+                    'rolable_id' => $alumno->id_alumno, 
+                    'rolable_type' => Alumno::class, 
+                ]);
+
+            }
             // TODO: Se pueden añadir aquí bloques 'else if' para 'alumno', 'tutor_laboral', etc.
 
             // 5. Confirmar la transacción

@@ -51,6 +51,18 @@
         </a>
     </div>
 
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h4 class="alert-heading">¡Error al eliminar la Empresa!</h4>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
@@ -94,13 +106,23 @@
                         
                         {{-- Acciones --}}
                         <td>
-                            <a href="{{ route('gestion.empresas.edit', ['empresa_id' => $empresa->id_empresa]) }}" class="btn btn-sm btn-info" title="Editar Empresa y sus Tutores">
+                            <a href="{{ route('gestion.empresas.edit', ['empresa_id' => $empresa->id_empresa]) }}" 
+                               class="btn btn-sm btn-info" 
+                               title="Ver/Editar Empresa y sus Tutores">
                                 Ver
                             </a>
                             
-                            <a href="{{ route('gestion.tutores.create', ['empresa_id' => $empresa->id_empresa]) }}" class="btn btn-sm btn-success" title="Añadir un nuevo tutor a esta empresa">
-                                Tutor
-                            </a>
+                            {{-- Eliminar Empresa --}}
+                            <form action="{{ route('gestion.empresas.destroy', ['empresa_id' => $empresa->id_empresa]) }}" 
+                                  method="POST" 
+                                  style="display:inline-block;"
+                                  onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta empresa y todos los tutores laborales asociados? Esta acción es irreversible y solo procederá si NINGÚN tutor tiene alumnos asociados.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar Empresa">
+                                    Eliminar
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 @endforeach

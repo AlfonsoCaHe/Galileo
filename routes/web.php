@@ -66,17 +66,6 @@ Route::middleware(['auth', TutorLaboralCheck::class])->group(function () {
     Route::get('/tutores/alumnos', [TutorLaboralController::class, 'mostrarAlumnos'])->name('tutores.alumnos');
 
 });
-// Route::middleware(['auth', TutorLaboralCheck::class])->group(function () {
-//     Route::get('/tutores/panel', [TutorLaboralController::class, 'indexAlumnosTutorizados'])->name('tutores.panel');
-
-//     Route::get('/tutores', [TutorLaboralController::class, 'indexTutoresLaborales'])->name('tutores.index');
-
-//     // Ruta para ver los alumnos del tutor
-//     //Aprovecha la vista alumnos.index
-//     Route::get('/tutores/{tutorLaboral_id}/alumnos', [TutorLaboralController::class, 'mostrarAlumnos'])->name('tutores.alumnos');
-
-// });
-
 
 //----------------------------------Rutas administrador----------------------------------------------------//
 // Rutas solo será accesibles si el usuario está logueado Y tiene rol='admin'
@@ -94,8 +83,10 @@ Route::middleware(['auth', AdminCheck::class])->group(function () {
     //Ruta para ver el listado de alumnos de un proyecto concreto
     Route::get('alumnos/{proyecto_id}/alumnos', [AlumnoController::class, 'listadoAlumnosProyecto'])->name('admin.alumnosProyecto');
 
-    //Ruta para ver el formulario para agregar un nuevo usuario
-    Route::get('usuarios/crear', [UsuariosController::class, 'create'])->name('usuarios.crear');
+    //Ruta para ver el formulario para agregar un nuevo profesor
+    Route::get('gestion/profesor/crear', [UsuariosController::class, 'createProfesor'])->name('gestion.profesor.crear');
+    //Ruta para ver el formulario para agregar un nuevo alumno
+    Route::get('gestion/alumno/crear', [UsuariosController::class, 'createAlumno'])->name('gestion.alumno.crear');
     //Ruta para insertar un nuevo usuario
     Route::post('usuarios/store', [UsuariosController::class, 'store'])->name('usuarios.store');
     //Ruta para mostrar el listado de usuarios del sistema
@@ -126,9 +117,15 @@ Route::middleware(['auth', AdminCheck::class])->group(function () {
     // Ruta para actualizar la modificación de la empresa
     Route::put('/empresas/{empresa_id}', [TutorLaboralController::class, 'updateEmpresa'])
         ->name('gestion.empresas.update');
+    // Ruta para eliminar una empresa
+    Route::delete('/gestion/empresas/{empresa_id}', [TutorLaboralController::class, 'destroyEmpresa'])
+        ->name('gestion.empresas.destroy');
     // Ruta para añadir un nuevo tutor a la empresa desde datatable
     Route::post('/gestion/empresas/{empresa_id}/tutores', [TutorLaboralController::class, 'storeTutor'])
         ->name('gestion.tutores.store');
+    // Ruta que muestra el formulario para editar un tutor
+    Route::get('/gestion/tutores/{tutor_id}/edit', [TutorLaboralController::class, 'editTutor'])
+        ->name('gestion.tutores.edit');
     // Ruta para actualizar un tutor existente desde datatable
     Route::put('/gestion/tutores/{tutor_id}', [TutorLaboralController::class, 'updateTutor'])
         ->name('gestion.tutores.update');

@@ -76,7 +76,7 @@
     <hr class="my-5">
 
     <h3>Tutores Laborales Asociados</h3>
-    <a href="#" class="btn btn-success mb-3 float-end">Añadir Nuevo Tutor</a>
+    <a href="{{ route('gestion.tutores.create', ['empresa_id' => $empresa->id_empresa]) }}" class="btn btn-success mb-3 float-end">Añadir Nuevo Tutor</a>
     
     <table id="tutores-datatable" class="table table-striped table-bordered" style="width:100%">
         <thead>
@@ -92,11 +92,19 @@
                     <td>{{ $tutor->nombre }}</td>
                     <td>{{ $tutor->email }}</td>
                     <td>
-                        <a href="#" class="btn btn-sm btn-warning">Editar</a>
-                        <form action="#" method="POST" style="display:inline-block;">
+                        <a href="{{ route('gestion.tutores.edit', ['tutor_id' => $tutor->id_tutor_laboral]) }}" 
+                           class="btn btn-sm btn-warning">
+                            Editar
+                        </a>
+                        <form action="{{ route('gestion.tutores.destroy', ['tutor_id' => $tutor->id_tutor_laboral]) }}" 
+                              method="POST" 
+                              style="display:inline-block;"
+                              onsubmit="return confirm('¿Estás seguro de que deseas eliminar a este tutor y su usuario asociado? Esta acción es irreversible.');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                Eliminar
+                            </button>
                         </form>
                     </td>
                 </tr>

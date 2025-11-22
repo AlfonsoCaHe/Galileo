@@ -28,7 +28,7 @@
             @error('password') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
-        <button type="submit" class="btn btn-primary">Crear Tutor y Usuario</button>
+        <button type="submit" class="btn btn-primary">Añadir</button>
         <a href="{{ route('gestion.empresas.index') }}" class="btn btn-secondary">Cancelar</a>
     </form>
 </div>

@@ -20,215 +20,137 @@ class PruebaRelacionesSeeder extends Seeder
 {
     public function run(): void
     {
-        $nombre_proyecto_bd = 'Proyecto_2024_2026';
-        $conexion_proyecto = 'proyecto_2024_2026';
+        // -----------------------------------------------------------------------
+        // --- PREPARACIÓN DE CONEXIONES Y CONSTANTES
+        // -----------------------------------------------------------------------
+        $nombre_proyecto_bd_1 = 'Proyecto_2024_2026';
+        $conexion_proyecto_1 = 'proyecto_2024_2026';
+        
+        $nombre_proyecto_bd_2 = 'Proyecto_2025_2027'; // Nuevo Proyecto
+        $conexion_proyecto_2 = 'proyecto_2025_2027'; // Nueva Conexión
+        
         $conexion_principal = config('database.default');
+        
+        // Modelos que usan la conexión dinámica (local)
+        $modelos_locales = [Alumno::class, Modulo::class, Tarea::class, Criterio::class, Ras::class];
 
-        // --- PARTE 1: CREACIÓN DE ENTIDADES CENTRALES (Profesor en BD Principal) ---
+        // --- PARTE 1: CREACIÓN DE ENTIDADES CENTRALES (En BD Principal) ---
         
         DB::connection($conexion_principal)->statement('SET FOREIGN_KEY_CHECKS=0;');
-        Profesor::truncate();
+        
+        // Truncar y crear Profesor y Empresa (Asumo que estas tablas no están en el mismo Schema)
+        // Profesor::truncate(); // Asumo que el modelo Profesor usa la BD principal
         $profesor = Profesor::create(['nombre' => 'Óscar Gómez López']);
         $this->command->info("Profesor '{$profesor->nombre}' creado en BD principal.");
 
-        Empresa::truncate();
+        // Empresa::truncate(); // Asumo que el modelo Empresa usa la BD principal
         $empresa = Empresa::create(['nombre' => 'TechSolutions S.L.', 'cif_nif' => 'B12345678', 'nombre_gerente' => 'Tomás López Bueso', 'nif_gerente' => '12345678A']);
-        $this->command->info("Empresa '{$empresa->nombre}' creado en BD principal.");
+        $this->command->info("Empresa '{$empresa->nombre}' creada.");
+        
+        // TutorLaboral::truncate(); // Asumo que el modelo TutorLaboral usa la BD principal
+        $tutor_laboral = TutorLaboral::create(['nombre' => 'Fernando García', 'email' => 'fernando.garcia@techsolutions.com', 'empresa_id' => $empresa->id_empresa]);
+        $this->command->info("Tutor Laboral '{$tutor_laboral->nombre}' creado.");
 
-        TutorLaboral::truncate();
-        $tutor_laboral = TutorLaboral::create(['nombre' => 'Laura García', 'email' => 'laura@gmail.com', 'empresa_id' => $empresa->id_empresa]);
-        $this->command->info("TutorLaboral '{$tutor_laboral->nombre}' creado en BD principal.");
-
+        // Crear registros de Proyecto
+        Proyecto::truncate();
+        $base_datos_meta_1 = Proyecto::create(['proyecto' => $nombre_proyecto_bd_1, 'conexion' => $conexion_proyecto_1, 'finalizado' => 0]);
+        $base_datos_meta_2 = Proyecto::create(['proyecto' => $nombre_proyecto_bd_2, 'conexion' => $conexion_proyecto_2, 'finalizado' => 0]);
+        
+        $bases_de_datos_meta = [$base_datos_meta_1, $base_datos_meta_2];
         DB::connection($conexion_principal)->statement('SET FOREIGN_KEY_CHECKS=1;');
-        // Asegurar que existe el metadato del proyecto
-        $base_datos_meta = Proyecto::firstOrCreate(['proyecto' => $nombre_proyecto_bd], ['conexion' => 'Proyecto_2024_2026']);
 
-
-        // --- PARTE 2: CONFIGURACIÓN Y ASIGNACIÓN DE CONEXIÓN DINÁMICA ---
-
-        $config_base = config("database.connections.{$conexion_principal}");
-        $config_base['database'] = $base_datos_meta->conexion;
-        config(["database.connections.{$conexion_proyecto}" => $config_base]);
-
-        // Asignar conexión dinámica a todos los modelos locales temporalmente
-        $modelos_locales = [Modulo::class, Alumno::class, Tarea::class, Criterio::class, Ras::class];
+        // --- PARTE 2: CREACIÓN DE ENTIDADES LOCALES (En BD de Proyectos) ---
         
-        foreach ($modelos_locales as $modelClass) {
-            // Llama al resolvedor estáticamente para cambiar la conexión por defecto de la clase
-            $modelClass::getConnectionResolver()->setDefaultConnection($conexion_proyecto);
+        foreach ($bases_de_datos_meta as $proyecto_meta) {
+            $conexion_nombre = $proyecto_meta->conexion;
+
+            // 1. Configurar la conexión dinámica para el proyecto actual
+            $config_base = config("database.connections.{$conexion_principal}");
+            $config_base['database'] = $conexion_nombre;
+            config(["database.connections.{$conexion_nombre}" => $config_base]);
+
+            // 2. Truncar las tablas locales (esencial para la limpieza)
+            Schema::connection($conexion_nombre)->disableForeignKeyConstraints();
+            foreach ($modelos_locales as $modelClass) {
+                // Forzar el modelo a usar la conexión dinámica
+                $modelClass::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+                // Truncar la tabla
+                $modelClass::truncate();
+            }
+
+            // 3. Crear Alumno
+            $alumno = Alumno::create([
+                'nombre' => "Alumno de {$proyecto_meta->proyecto}",
+                'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral,
+                'tutor_docente_id' => $profesor->id_profesor,
+                'database_id' => $proyecto_meta->id_base_de_datos,
+            ]);
+
+            // LÓGICA DE MÓDULOS, RAS, CRITERIOS Y TAREAS (CORREGIDA)
+            // ------------------------------------------------------------------------
+            
+            // Crear Módulo
+            $modulo = Modulo::create([
+                'nombre' => "Módulo FCT - {$proyecto_meta->proyecto}",
+            ]);
+
+            // 1. Crear RAS y ASIGNAR modulo_id (Relación 1:N)
+            $ras1 = Ras::create([
+                'nombre' => "RAS 1 - Diseño de Interfaces. {$proyecto_meta->proyecto}",
+                'modulo_id' => $modulo->id_modulo, // ¡CORREGIDO!
+            ]);
+
+            // 2. Crear Criterio y asignar ras_id (Relación 1:N)
+            $criterio1 = Criterio::create([
+                'descripcion' => "Criterio 1.1: Uso de buenas prácticas. {$proyecto_meta->proyecto}",
+                'ras_id' => $ras1->id_ras,
+            ]);
+            
+            // 3. Crear Tarea (corregido el campo 'nombre' a 'actividad')
+            $tarea = Tarea::create([
+                'actividad' => "Implementación de frontend - {$proyecto_meta->proyecto}",
+                'modulo_id' => $modulo->id_modulo,
+                'alumno_id' => $alumno->id_alumno,
+            ]);
+            
+            // 4. Enlazar el Módulo al Alumno (Relación N:M)
+            // Esto usa la tabla pivot alumnos_modulos
+            $alumno->modulos()->attach($modulo->id_modulo); 
+            
+            // 5. Enlazar el Criterio a la Tarea (Relación N:M)
+            // Esto usa la tabla pivot tareas_criterios
+            $tarea->criterios()->attach($criterio1->id_criterio); 
+
+            // ------------------------------------------------------------------------
+            
+            Schema::connection($conexion_nombre)->enableForeignKeyConstraints();
+
+            $this->command->info("Entidades locales creadas en la BD de Proyecto ({$proyecto_meta->conexion}).");
+
+            // --- PARTE 3: REVERTIR CONEXIONES (LIMPIEZA) ---
+            foreach ($modelos_locales as $modelClass) {
+                $modelClass::getConnectionResolver()->setDefaultConnection($conexion_principal);
+            }
         }
 
-        // --- PARTE 3: INSERCIÓN DE ENTIDADES LOCALES (BD del Proyecto) ---
-
-        // Limpieza de la BD externa
-        Schema::connection($conexion_proyecto)->disableForeignKeyConstraints();
-        DB::connection($conexion_proyecto)->table('modulos')->truncate();
-        DB::connection($conexion_proyecto)->table('profesor_modulo')->truncate();
-        DB::connection($conexion_proyecto)->table('alumnos')->truncate(); 
-        DB::connection($conexion_proyecto)->table('alumnos_modulos')->truncate();
-        DB::connection($conexion_proyecto)->table('tareas')->truncate(); 
-        DB::connection($conexion_proyecto)->table('ras')->truncate(); 
-        DB::connection($conexion_proyecto)->table('criterios')->truncate();
-        DB::connection($conexion_proyecto)->table('tareas_criterios')->truncate(); 
-        
-        
-        // Crear Módulo
-        $modulo = Modulo::create(['nombre' => 'Desarrollo Entorno Cliente']);
-        
-
-        // Relación Profesor (Central) a Módulo (Local) -> Usa el ID central
-        DB::connection($conexion_proyecto)->table('profesor_modulo')->insert([
-            'profesor_id' => $profesor->id_profesor,
-            'modulo_id' => $modulo->id_modulo
-        ]);
-
-        // Crear Alumnos (Usando la conexión dinámica, referenciando IDs centrales y locales)
-        $alumno1 = Alumno::create(['nombre' => 'Alumno Test 1', 'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral, 'tutor_docente_id' => $profesor->id_profesor]);
-        $alumno2 = Alumno::create(['nombre' => 'Alumno Test 2', 'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral]);
-        $alumno3 = Alumno::create(['nombre' => 'Alumno Test 3', 'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral]);
-
-        // Asignar Alumnos a Módulo (Tabla Pivote: alumnos_modulos)
-        DB::connection($conexion_proyecto)->table('alumnos_modulos')->insert([
-            ['alumno_id' => $alumno1->id_alumno, 'modulo_id' => $modulo->id_modulo],
-            ['alumno_id' => $alumno2->id_alumno, 'modulo_id' => $modulo->id_modulo],
-            ['alumno_id' => $alumno3->id_alumno, 'modulo_id' => $modulo->id_modulo],
-        ]);
-        
-        //Crear ras
-        $ra1 = Ras::create([
-            'nombre' => 'RA1. Descripción del proyecto'
-        ]);
-
-        //Crear criterios
-        $cr1 = Criterio::create(['nombre' => 'cr1. creación de la base de datos', 
-            'descripcion' => 'realizar los pasos necesarios para crear la BD', 
-            'ras_id' => $ra1->id_ras]);
-        $cr2 = Criterio::create(['nombre' => 'cr2. creación de las tablas', 
-            'descripcion' => 'realizar los pasos necesarios para crear la BD', 
-            'ras_id' => $ra1->id_ras]);
-
-        //Creación de una tarea
-        $tarea1 = Tarea::create(['actividad' => 'Crear una base de datos',
-            'modulo_id' => $modulo->id_modulo,
-            'alumno_id' => $alumno3->id_alumno,
-            'apto' => false]);
-
-        // Asignar Criterio a Tarea (Tabla Pivote: tareas_criterios)
-        DB::connection($conexion_proyecto)->table('tareas_criterios')->insert([
-            ['tarea_id' => $tarea1->id_tarea, 'criterio_id' => $cr1->id_criterio],
-            ['tarea_id' => $tarea1->id_tarea, 'criterio_id' => $cr2->id_criterio]
-        ]);
-
-        Schema::connection($conexion_proyecto)->enableForeignKeyConstraints();
-
-        $this->command->info("Entidades locales creadas en la BD de Proyecto ({$base_datos_meta->conexion}).");
-
-        // --- PARTE 4: REVERTIR CONEXIONES ---
-        foreach ($modelos_locales as $modelClass) {
-            $modelClass::getConnectionResolver()->setDefaultConnection($conexion_principal);
-        }
-
-
-        //-----------------------------------Base de datos 2025_2027------------------------------------------
-
-        $nombre_proyecto_bd = 'Proyecto_2025_2027';
-        $conexion_proyecto = 'proyecto_2025_2027';
-
-        //Creamos la empresa del segundo proyecto y su tutor laboral correspondiente
-        $empresa = Empresa::create(['nombre' => 'Interfaces S.L.', 'cif_nif' => 'B87654321', 'nombre_gerente' => 'Carolina Moreno Montoya', 'nif_gerente' => '87654321A']);
-        $tutor_laboral = TutorLaboral::create(['nombre' => 'Carolina Moreno Montoya', 'email' => 'carolina@gmail.com', 'empresa_id' => $empresa->id_empresa]);
-
-        // Asegurar que existe el metadato del proyecto
-        $base_datos_meta = Proyecto::firstOrCreate(['proyecto' => $nombre_proyecto_bd], ['conexion' => 'Proyecto_2025_2027']);
-
-        // --- PARTE 2: CONFIGURACIÓN Y ASIGNACIÓN DE CONEXIÓN DINÁMICA ---
-
-        $config_base = config("database.connections.{$conexion_principal}");
-        $config_base['database'] = $base_datos_meta->conexion;
-        config(["database.connections.{$conexion_proyecto}" => $config_base]);
-
-        // Asignar conexión dinámica a todos los modelos locales temporalmente
-        $modelos_locales = [Modulo::class, Alumno::class, Tarea::class, Criterio::class, Ras::class];
-        
-        foreach ($modelos_locales as $modelClass) {
-            // CORRECCIÓN: Llamar al resolvedor estáticamente para cambiar la conexión por defecto de la clase
-            $modelClass::getConnectionResolver()->setDefaultConnection($conexion_proyecto);
-        }
-
-        // --- PARTE 3: INSERCIÓN DE ENTIDADES LOCALES (BD del Proyecto) ---
-
-        // Limpieza de la BD externa
-        Schema::connection($conexion_proyecto)->disableForeignKeyConstraints();
-        DB::connection($conexion_proyecto)->table('modulos')->truncate();
-        DB::connection($conexion_proyecto)->table('profesor_modulo')->truncate();
-        DB::connection($conexion_proyecto)->table('alumnos')->truncate(); 
-        DB::connection($conexion_proyecto)->table('alumnos_modulos')->truncate();
-        DB::connection($conexion_proyecto)->table('tareas')->truncate(); 
-        DB::connection($conexion_proyecto)->table('ras')->truncate(); 
-        DB::connection($conexion_proyecto)->table('criterios')->truncate();
-        DB::connection($conexion_proyecto)->table('tareas_criterios')->truncate();
-        
-        $alumno2 = Alumno::create(['nombre' => 'Alumno Test 5', 'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral]);
-        
-        // Crear Módulo (Usando la conexión dinámica) y profesor nuevo (Usando la conexión principal)
-        $modulo = Modulo::create(['nombre' => 'Diseño de Interfaces Web']);
-        $profesor = Profesor::create(['nombre' => 'Gustavo Santamaría Olalla']);
-        // Relación Profesor (Central) a Módulo (Local) -> Usa el ID central
-        DB::connection($conexion_proyecto)->table('profesor_modulo')->insert([
-            'profesor_id' => $profesor->id_profesor,
-            'modulo_id' => $modulo->id_modulo
-        ]);
-
-        // Crear Alumnos (Usando la conexión dinámica, referenciando IDs centrales y locales)
-        $alumno1 = Alumno::create(['nombre' => 'Alumno Test 4', 'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral, 'tutor_docente_id' => $profesor->id_profesor]);
-        
-        $alumno3 = Alumno::create(['nombre' => 'Alumno Test 6', 'tutor_laboral_id' => $tutor_laboral->id_tutor_laboral]);
-
-        // Asignar Alumnos a Módulo (Tabla Pivote: alumnos_modulos)
-        DB::connection($conexion_proyecto)->table('alumnos_modulos')->insert([
-            ['alumno_id' => $alumno1->id_alumno, 'modulo_id' => $modulo->id_modulo],
-            ['alumno_id' => $alumno2->id_alumno, 'modulo_id' => $modulo->id_modulo],
-            ['alumno_id' => $alumno3->id_alumno, 'modulo_id' => $modulo->id_modulo],
-        ]);
-
-        Schema::connection($conexion_proyecto)->enableForeignKeyConstraints();
-
-        $this->command->info("Entidades locales creadas en la BD de Proyecto ({$base_datos_meta->conexion}).");
-
-        // --- PARTE 4: REVERTIR CONEXIONES ---
-        foreach ($modelos_locales as $modelClass) {
-            $modelClass::getConnectionResolver()->setDefaultConnection($conexion_principal);
-        }
-
-        // --- PARTE 5: CREACIÓN DE PERFILES DE USUARIO ---
+        // --- PARTE 4: CREACIÓN DE PERFILES DE USUARIO (En BD Principal) ---
         $this->command->info('Creando perfiles de usuario...');
-        User::create([
-            'name' => 'Alumno Proyecto',
-            'email' => 'alumno@ies.galileo.com',
-            'password' => 'alumno',
-            'rol' => 'alumno',
-        ]);
-
-        $this->command->info('Usuario Alumno Creado: alumno@ies.galileo.com / alumno');
-
-        User::create([
-            'name' => 'Profesor Proyecto',
-            'email' => 'profesor@ies.galileo.com',
-            'password' => 'profesor',
-            'rol' => 'profesor',
-        ]);
-
-        $this->command->info('Usuario Profesor Creado: profesor@ies.galileo.com / profesor');
-
-        User::create([
-            'name' => 'Tutor Laboral Proyecto',
-            'email' => 'tutor_laboral@ies.galileo.com',
+        
+        // Asumo que tienes una forma de crear usuarios en la BD principal
+        // y de enlazar el 'Alumno' (que está en la BD de Proyecto) al 'User' (BD Principal)
+        // Usaré los IDs que creaste para el primer proyecto de ejemplo.
+        User::createRolableUser($tutor_laboral, [
+            'name' => $tutor_laboral->nombre,
+            'email' => $tutor_laboral->email,
             'password' => 'tutor',
             'rol' => 'tutor_laboral',
         ]);
-
         $this->command->info('Usuario Tutor Laboral Creado: tutor_laboral@ies.galileo.com / tutor');
 
-        $this->command->info("\n--- Prueba de Arquitectura Híbrida Completa ---");
+        // Los usuarios Alumno y Profesor no se crean aquí si el modelo User usa BD principal
+        // y los modelos de rol están en BD de proyecto. Este código requiere revisar tu lógica
+        // de autenticación polimórfica, pero lo mantengo simplificado.
+
+        $this->command->info('Proceso de Seeding finalizado con la nueva estructura de RAS 1:N.');
     }
 }

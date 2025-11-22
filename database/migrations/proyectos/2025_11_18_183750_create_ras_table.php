@@ -6,21 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('ras', function (Blueprint $table) {
             $table->uuid('id_ras')->primary();
             $table->string('nombre')->nullable()->index();
+            $table->uuid('modulo_id')->index(); 
             $table->timestamps();
+
+            // Restricción de Clave Foránea
+            $table->foreign('modulo_id')
+                  ->references('id_modulo')
+                  ->on('modulos')
+                  ->onDelete('cascade'); 
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('ras');

@@ -9,7 +9,7 @@
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-4 p-md-5">
                     <h2 class="card-title text-center mb-3 fw-bold text-primary">
-                        Crear nuevo usuario
+                        Crear nuevo profesor
                     </h2>
 
                     <!-- Bloque de Errores de Validación de Laravel -->
@@ -68,16 +68,19 @@
                             @enderror
                         </div>
 
-                        <!-- Checkbox Recordar y Enlace Olvidé Contraseña -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <x-usuarios.rol-desplegable/>
+                        <!-- Rol (Oculto en el formulario, se añade implícitamente)-->
+                        <div class="d-flex justify-content-between align-items-center mb-4 oculto">
+                            <label for="rol" class="form-label fw-semibold">
+                                Rol
+                            </label>
+                            <input name="rol" id="rol-select" class="form-control w-50" value="{{ 'profesor' }}" disable/>
                         </div>
 
                         <!-- Botón de Enviar -->
                         <div class="d-grid gap-2">
                             <button type="submit"
                                     class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
-                                Crear Usuario
+                                Añadir
                             </button>
                         </div>
                         <!-- Botón de Cancelar -->
