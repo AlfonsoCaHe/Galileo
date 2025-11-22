@@ -77,7 +77,7 @@
                         <div class="d-grid gap-2">
                             <button type="submit"
                                     class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
-                                Acceder
+                                Crear Usuario
                             </button>
                         </div>
                         <!-- Botón de Cancelar -->

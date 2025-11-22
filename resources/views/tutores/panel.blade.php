@@ -5,7 +5,15 @@
     <h1 class="text-center">
         PANEL DE CONTROL DE TUTOR LABORAL
     </h1>
-    <!-- Formulario de Logout -->
+    <div>
+        @auth
+            <a href="{{ route('tutores.alumnos')}}" class="btn btn-primary m-3">
+                Ver alumnos tutorizados
+            </a>
+
+            <p>Tu ID de Tutor es: {{ auth()->id() }}</p>
+        @endauth
+    </div>
     <div class="d-grid gap-2 col-6 mx-auto mt-5">
         <form action="{{ route('logout') }}" method="POST">
             @csrf

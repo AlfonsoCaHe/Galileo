@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfesorController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\UsuariosController;
+use App\Http\Controllers\TutorLaboralController;
 use App\Http\Middleware\AdminCheck;
 use App\Http\Middleware\AlumnoCheck;
 use App\Http\Middleware\ProfesorCheck;
@@ -56,9 +57,25 @@ Route::middleware(['auth', ProfesorCheck::class])->group(function () {
 Route::middleware(['auth', TutorLaboralCheck::class])->group(function () {
     Route::get('/tutores/panel', function () {
         return view('tutores.panel'); 
-    })->name('tutores.panel'); 
+    })->name('tutores.panel');
+
+    Route::get('/tutores', [TutorLaboralController::class, 'indexTutoresLaborales'])->name('tutores.index');
+
+    // Ruta para ver los alumnos del tutor
+    //Aprovecha la vista alumnos.index
+    Route::get('/tutores/alumnos', [TutorLaboralController::class, 'mostrarAlumnos'])->name('tutores.alumnos');
 
 });
+// Route::middleware(['auth', TutorLaboralCheck::class])->group(function () {
+//     Route::get('/tutores/panel', [TutorLaboralController::class, 'indexAlumnosTutorizados'])->name('tutores.panel');
+
+//     Route::get('/tutores', [TutorLaboralController::class, 'indexTutoresLaborales'])->name('tutores.index');
+
+//     // Ruta para ver los alumnos del tutor
+//     //Aprovecha la vista alumnos.index
+//     Route::get('/tutores/{tutorLaboral_id}/alumnos', [TutorLaboralController::class, 'mostrarAlumnos'])->name('tutores.alumnos');
+
+// });
 
 
 //----------------------------------Rutas administrador----------------------------------------------------//

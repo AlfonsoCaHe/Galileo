@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Rules\ValidarTexto;
 use App\Models\User;
+use App\Models\Profesor;
+use App\Models\Alumno;
+use App\Models\TutorLaboral;
 
 class UsuariosController extends Controller
 {
@@ -41,7 +44,7 @@ class UsuariosController extends Controller
 
         if ($user->isTutorLaboral()) {
             // Asume que tienes una ruta con nombre 'tutor.panel'
-            return redirect()->route('tutor.panel');
+            return redirect()->route('tutores.panel');
         }
 
         // Si el rol no estuviera definido en la bd (debería ser imposible si el Enum funciona bien)
@@ -110,20 +113,59 @@ class UsuariosController extends Controller
     }
 
     /**
-     * Método que inserta un nuevo usuario en la base de datos
+     * Método que inserta un nuevo usuario en la base de datos y su tabla de rol asociada.
      */
     public function store(Request $request){
 
+        // 1. Validación de los datos
         $datos = $request->validate([
             'name' => ['required', new ValidarTexto],
-            'email' => 'required|email',
+            'email' => 'required|email|unique:users,email', // El email debe ser único
             'password' => 'required|min:8',
-            'rol' => 'required|in:alumno,profesor,tutor_laboral'
+            'rol' => 'required|in:admin,alumno,profesor,tutor_laboral'
         ]);
 
-        User::create($datos);
+        // 2. Iniciar la Transacción para las relaciones polimórficas
+        DB::beginTransaction();
 
-        return redirect()->route('usuarios.show')->with('success', 'Nuevo usuario insertado correctamente.');
+        try {
+            // 3. Crear el Usuario (Tabla `users`)
+            $user = User::create([
+                'name' => $datos['name'],
+                'email' => $datos['email'],
+                'password' => $datos['password'],
+                'rol' => $datos['rol'],
+            ]);
+
+            // 4. Añadimos a la tabla del Rol Específico
+            if ($user->rol === 'profesor') {
+                
+                // 4a. Crear el registro en la tabla 'profesores'
+                $profesor = Profesor::create([
+                    'nombre' => $user->name, // Usamos el nombre del User para el Profesor
+                ]);
+                
+                // 4b. Actualizamos el registro del User con el enlace polimórfico
+                // Usamos la clave primaria del profesor ('id_profesor') y la clase del modelo.
+                $user->update([
+                    'rolable_id' => $profesor->id_profesor, 
+                    'rolable_type' => Profesor::class, 
+                ]);
+
+            } 
+            // TODO: Se pueden añadir aquí bloques 'else if' para 'alumno', 'tutor_laboral', etc.
+
+            // 5. Confirmar la transacción
+            DB::commit();
+
+            return redirect()->route('usuarios.show')->with('success', 'Usuario y rol de ' . $user->rol . ' creados correctamente.');
+
+        } catch (\Exception $e) {
+            // 6. Revertir la transacción (si algo falla)
+            DB::rollBack();
+            
+            return back()->withInput()->with('error', 'Error al crear el usuario y su rol. Inténtelo de nuevo. (Detalle: ' . $e->getMessage() . ')');
+        }
     }
 
     /**
