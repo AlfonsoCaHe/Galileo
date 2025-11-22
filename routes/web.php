@@ -110,4 +110,32 @@ Route::middleware(['auth', AdminCheck::class])->group(function () {
     Route::get('usuarios/{id}/edit', [UsuariosController::class, 'edit'])->name('usuarios.editar');
     // Ruta para procesar la actualización del usuario
     Route::post('usuarios/{id}/update', [UsuariosController::class, 'update'])->name('usuarios.update');
+
+    // Ruta para mostrar el listado de empresas mediante data tables
+    Route::get('/gestion/empresas', [TutorLaboralController::class, 'indexEmpresas'])
+        ->name('gestion.empresas.index');
+    // Ruta para mostrar el formulario para crear una Empresa nueva y sus tutores
+    Route::get('/gestion/empresas/crear', [TutorLaboralController::class, 'createEmpresa'])
+        ->name('gestion.empresas.create');
+    // Ruta que almacena la información del formnulario para crear una Empresa nueva
+    Route::post('/gestion/empresas', [TutorLaboralController::class, 'storeEmpresa'])
+        ->name('gestion.empresas.store');
+    // Ruta para mostrar el formulario de edición de empresas
+    Route::get('/gestionempresas/{empresa_id}/editar', [TutorLaboralController::class, 'editEmpresa'])
+        ->name('gestion.empresas.edit');
+    // Ruta para actualizar la modificación de la empresa
+    Route::put('/empresas/{empresa_id}', [TutorLaboralController::class, 'updateEmpresa'])
+        ->name('gestion.empresas.update');
+    // Ruta para añadir un nuevo tutor a la empresa desde datatable
+    Route::post('/gestion/empresas/{empresa_id}/tutores', [TutorLaboralController::class, 'storeTutor'])
+        ->name('gestion.tutores.store');
+    // Ruta para actualizar un tutor existente desde datatable
+    Route::put('/gestion/tutores/{tutor_id}', [TutorLaboralController::class, 'updateTutor'])
+        ->name('gestion.tutores.update');
+    // Ruta para eliminar un tutor
+    Route::delete('/gestion/tutores/{tutor_id}', [TutorLaboralController::class, 'destroyTutor'])
+        ->name('gestion.tutores.destroy');
+    //Ruta que muestra el formulario para crear un tutor asociado a una empresa específica desde el datatable
+    Route::get('/gestion/empresas/{empresa_id}/tutores/create', [TutorLaboralController::class, 'createTutor'])
+        ->name('gestion.tutores.create');
 });

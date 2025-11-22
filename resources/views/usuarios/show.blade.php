@@ -105,10 +105,10 @@
     <h2>Listado de usuarios</h2>
      
     <div>
-        <a href="{{route('usuarios.crear')}}" type="submit" class="btn btn-primary mb-3">
+        <a href="{{route('usuarios.crear')}}" type="submit" class="btn btn-success mb-3">
             Añadir usuario
         </a>
-        <a href="{{route('admin.panel')}}" type="submit" class="btn btn-primary mb-3">
+        <a href="{{route('admin.panel')}}" type="submit" class="btn btn-secondary mb-3">
             Panel de administración
         </a> 
     </div>
