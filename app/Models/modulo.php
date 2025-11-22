@@ -1,68 +1,72 @@
 <?php
 
 namespace App\Models;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+use App\Models\ProfesorModulo;
 
 class Modulo extends Model
 {
     use HasUuids;
 
-    //protected $connection = 'mysql';
-
     protected $table = "modulos";
-    
     protected $primaryKey = 'id_modulo';
-
     protected $fillable = [
-        'nombre',
-        'profesor_id'
+        'nombre', 
+        'proyecto_id'  // Identificador del proyecto (BD Galileo)
     ];
-
     public $incrementing = false;
     protected $keyType = 'string';
-
     public $timestamps = true;
 
-    //-- Declaración de relaciones
+    // --- Relaciones ---
 
-    /**
-     * Obtiene el profesor asociado al módulo.
-     * La consulta debe forzarse a la BD principal (Galileo).
-     */
-    public function profesor(): BelongsTo{
-        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor')
-                    ->on('mysql'); // O .on('galileo')
+    // Relación con el profesor que está en la BD principal (Galileo)
+    public function profesor(): BelongsTo
+    {
+        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor');
     }
 
-    /**
-     * Obtiene los alumnos del modulo (Tabla Pivote: alumnos_modulos).
-     */
+    // Relación con los Resultados de Aprendizaje (RAS) - Local
+    public function ras(): HasMany
+    {
+        // Usará la conexión dinámica actual
+        return $this->hasMany(Ras::class, 'modulo_id', 'id_modulo');
+    }
+    
+    // Relación con los alumnos (Muchos a muchos) - Local
     public function alumnos(): BelongsToMany
     {
         return $this->belongsToMany(
             Alumno::class, 
-            'alumnos_modulos', 
-            'modulo_id',       // 1. FK de este modelo (Modulo) en la tabla pivote
-            'alumno_id',       // 2. FK del modelo relacionado (Alumno) en la tabla pivote
-            'id_modulo',       // 3. Clave local (PK de Modulo)
-            'id_alumno'        // 4. Clave del modelo relacionado (PK de Alumno)
+            'alumnos_modulos', // Tabla pivote
+            'modulo_id',       // FK de este modelo
+            'alumno_id'        // FK del modelo relacionado
         );
     }
 
     /**
-     * Obtiene los ras del modulo (Tabla Pivote: modulos_ras).
+     * Relación con los profesores (Muchos a Muchos). La tabla pivote ('profesor_modulo') está en la BD dinámica actual.
      */
-    public function ras(): BelongsToMany
+    public function profesores(): BelongsToMany
     {
+        // 1. Obtener el nombre de la conexión dinámica de esta instancia de Módulo.
+        $dynamicConnectionName = $this->getConnectionName();
+        
+        // 2. Creamos el nombre de tabla totalmente cualificado:
+        //    CONEXION_DINAMICA.nombre_de_tabla_pivote
+        $fullyQualifiedPivotTable = $dynamicConnectionName . '.profesor_modulo';
+        
         return $this->belongsToMany(
-            Ras::class, 
-            'modulo_ras',    // Nombre de la tabla pivot
-            'modulo_id',     // FK de este modelo en la pivot
-            'ras_id'         // FK del modelo relacionado en la pivot
-        );  
+            Profesor::class,                // Target: Profesor (usa 'mysql')
+            $fullyQualifiedPivotTable,      // ¡CORRECCIÓN CLAVE! Fuerza la conexión de la pivote
+            'modulo_id',                    // FK de este modelo en la pivote
+            'profesor_id'                   // FK del modelo relacionado en la pivote
+        )->using(ProfesorModulo::class); // Mantenemos el modelo pivote para la limpieza y manejo de operaciones como sync.
     }
 }

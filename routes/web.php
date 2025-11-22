@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\TutorLaboralController;
+use App\Http\Controllers\ModuloController;
 use App\Http\Middleware\AdminCheck;
 use App\Http\Middleware\AlumnoCheck;
 use App\Http\Middleware\ProfesorCheck;
@@ -72,7 +73,7 @@ Route::middleware(['auth', TutorLaboralCheck::class])->group(function () {
 Route::middleware(['auth', AdminCheck::class])->group(function () {
     Route::get('/admin/panel', function () {return view('admin.panel');})->name('admin.panel');// Muestra la vista admin/panel.blade.php
     
-    Route::get('/listado-proyectos', [AdminController::class, 'listadoProyectos'])->name('admin.proyectos');
+    Route::get('/gestion/proyectos', [AdminController::class, 'listadoProyectos'])->name('gestion.proyectos.index');
 
     //Ruta para crear una nueva base de datos pulsando el componente /resources/views/admin/crear-proyecto-form.blade.php
     Route::post('/admin/crear-proyecto', [AdminController::class, 'crearProyecto'])->name('admin.crear.proyecto');
@@ -135,4 +136,32 @@ Route::middleware(['auth', AdminCheck::class])->group(function () {
     //Ruta que muestra el formulario para crear un tutor asociado a una empresa específica desde el datatable
     Route::get('/gestion/empresas/{empresa_id}/tutores/create', [TutorLaboralController::class, 'createTutor'])
         ->name('gestion.tutores.create');
+
+    // --- Rutas CRUD para Módulos (Requieren ID de Proyecto para conexión) ---
+    Route::prefix('gestion/proyectos/{proyecto_id}/modulos')->group(function () {
+    
+        // READ (Index)
+        Route::get('/', [ModuloController::class, 'index'])
+            ->name('gestion.modulos.index');
+
+        // CREATE (Formulario)
+        Route::get('/create', [ModuloController::class, 'create'])
+            ->name('gestion.modulos.create');
+            
+        // STORE (Guardar nuevo)
+        Route::post('/', [ModuloController::class, 'store'])
+            ->name('gestion.modulos.store');
+
+        // EDIT (Formulario, requiere ID de Módulo)
+        Route::get('/{modulo_id}/edit', [ModuloController::class, 'edit'])
+            ->name('gestion.modulos.edit');
+
+        // UPDATE (Actualizar, requiere ID de Módulo)
+        Route::put('/{modulo_id}', [ModuloController::class, 'update'])
+            ->name('gestion.modulos.update');
+
+        // DELETE (Eliminar, requiere ID de Módulo)
+        Route::delete('/{modulo_id}', [ModuloController::class, 'destroy'])
+            ->name('gestion.modulos.destroy');
+    });
 });

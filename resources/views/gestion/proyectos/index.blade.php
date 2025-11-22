@@ -16,6 +16,7 @@
                             <strong>Proyecto:</strong> {{ $proyecto->proyecto }} 
                             | <strong>Conexión:</strong> {{ $proyecto->conexion }}
                             </a>
+                            <a href="{{ route('gestion.modulos.index', $proyecto->id_base_de_datos) }}" class="btn btn-primary">Gestionar Módulos</a>
                         </li>
                     @endforeach
                 </ul>

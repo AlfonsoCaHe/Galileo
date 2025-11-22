@@ -10,6 +10,12 @@ class Profesor extends Model
 {
     use HasUuids;
 
+    /**
+     * Define la conexión a la base de datos principal (Galileo). Se usa en los modelos de la base de datos principal
+     * @var string
+     */
+    protected $connection = 'mysql';
+
     protected $table = "profesores";
     
     protected $primaryKey = 'id_profesor';
@@ -22,13 +28,6 @@ class Profesor extends Model
     protected $keyType = 'string';
 
     public $timestamps = true;
-
-    /**
-     * Define la conexión a la base de datos principal (Galileo).
-     * Asumiendo que 'mysql' es tu conexión principal por defecto.
-     * @var string
-     */
-    protected $connection = 'mysql';
 
     /**
      * Para crear la relación polimórfica
