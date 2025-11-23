@@ -105,14 +105,15 @@
     <h2>Listado de usuarios</h2>
      
     <div>
-        <a href="{{route('gestion.profesor.crear')}}" type="submit" class="btn btn-success mb-3">
+        {{--Funciones pasadas a los gestores de profesores y alumnos--}}
+        {{-- <a href="{{route('gestion.profesor.crear')}}" type="submit" class="btn btn-success mb-3">
             Añadir profesor
         </a>
         <a href="{{route('gestion.alumno.crear')}}" type="submit" class="btn btn-success mb-3">
             Añadir alumno
-        </a>
+        </a> --}}
         <a href="{{route('admin.panel')}}" type="submit" class="btn btn-secondary mb-3">
-            Panel de administración
+            Volver
         </a> 
     </div>
     

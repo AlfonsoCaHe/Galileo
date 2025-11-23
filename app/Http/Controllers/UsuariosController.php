@@ -112,12 +112,12 @@ class UsuariosController extends Controller
         return view('gestion.profesor.crear');
     }
 
-    /**
-     * Método que redirige a la vista de creación de alumnos
-     */
-    public function createAlumno(){
-        return view('gestion.alumno.crear');
-    }
+    // /**
+    //  * Método que redirige a la vista de creación de alumnos
+    //  */
+    // public function createAlumno(){
+    //     return view('gestion.alumno.crear');
+    // }
 
     /**
      * Método que inserta un nuevo usuario en la base de datos y su tabla de rol asociada.

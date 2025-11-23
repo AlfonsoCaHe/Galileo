@@ -31,12 +31,12 @@ class AdminUserSeeder extends Seeder
         User::create([
             'name' => 'Admin',
             'email' => $adminEmail,
-            'password' => 'password',
+            'password' => 'root',
             'rol' => 'admin',
             'rol_id' => null,
             'rol_type' => null,
         ]);
 
-        echo "Usuario administrador creado con éxito: {$adminEmail}\n";
+        echo "Usuario administrador creado con éxito: Usuario: {$adminEmail} / Contraseña: root\n";
     }
 }
