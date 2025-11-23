@@ -16,14 +16,27 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Crear la instancia del User
+        $adminEmail = 'admin@ies.galileo.com';
+        
+        // 1. Comprobamos si el usuario admin ya existe
+        $user = User::where('email', $adminEmail)->first();
+
+        if ($user) { // Si el usuario ya existe, no hacemos nada y salimos.
+            echo "El usuario administrador ({$adminEmail}) ya existe. Saltamos inserción.\n";
+            return;
+        }
+
+        // 2. Si no existe creamos el usuario admin 
+        // Usamos el rol 'admin', será el único usuario que lo tenga, no se pueden crear más
         User::create([
-            'name' => 'Admin Proyecto',
-            'email' => 'admin@ies.galileo.com',
-            'password' => 'root',
+            'name' => 'Admin',
+            'email' => $adminEmail,
+            'password' => 'password',
             'rol' => 'admin',
+            'rol_id' => null,
+            'rol_type' => null,
         ]);
 
-        $this->command->info('Usuario Administrador Creado: admin@ies.galileo.com / root');
+        echo "Usuario administrador creado con éxito: {$adminEmail}\n";
     }
 }

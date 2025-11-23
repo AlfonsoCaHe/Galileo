@@ -24,7 +24,7 @@ Route::post('/login', [UsuariosController::class, 'login']);
 // Cierra la sesión
 Route::post('/logout', [UsuariosController::class, 'logout'])->name('logout');
 
-// --------------------------------Rutas Protegidas (Requieren Rol)------------------------------------//
+// --------------------------------Rutas Protegidas (Requieren Logueo)-------------------------------------//
 Route::middleware(['auth'])->group(function () {
     
     // Redirige al panel específico según el rol.

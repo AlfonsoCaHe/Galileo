@@ -46,7 +46,6 @@ class ModuloController extends Controller
         $proyecto = $this->setDynamicConnection($proyecto_id);
         $modulos = Modulo::all();
         $this->restoreConnection();
-        
         return view('gestion.modulos.index', compact('modulos', 'proyecto'));
     }
 
@@ -91,7 +90,6 @@ class ModuloController extends Controller
                     'nombre' => $validated['nombre'],
                     'proyecto_id' => $proyecto->id_base_de_datos, 
                 ]);
-                
                 // 2. Asociar Profesores (Many-to-Many)
                 $modulo->profesores()->attach($validated['profesores']);
                 
