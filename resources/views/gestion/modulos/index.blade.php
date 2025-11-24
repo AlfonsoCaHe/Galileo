@@ -73,7 +73,8 @@
     @endif
     <div class="card shadow-lg p-4">
         {{-- Botón para Añadir Nuevo Módulo --}}
-        <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex justify-content-between mb-3">
+            <a href="{{ route('gestion.proyectos.index') }}" class="btn btn-secondary">Volver a proyectos</a>
             <a href="{{ route('gestion.modulos.create', ['proyecto_id' => $proyecto->id_base_de_datos]) }}"class="btn btn-success fw-bold">
                 Nuevo Módulo
             </a>

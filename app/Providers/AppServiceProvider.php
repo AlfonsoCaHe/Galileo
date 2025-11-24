@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\BorrarProyecto;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->commands([
+            BorrarProyecto::class,
+        ]);
     }
 }

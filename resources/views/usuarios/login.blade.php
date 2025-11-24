@@ -65,11 +65,11 @@
                                     Recordarme
                                 </label>
                             </div>
-                            <small>
+                            {{--Funcionalidad no operativa<small>
                                 <a href="#" class="text-decoration-none text-info">
                                     ¿Olvidaste tu contraseña?
                                 </a>
-                            </small>
+                            </small>--}}
                         </div>
 
                         <!-- Botón de Enviar -->

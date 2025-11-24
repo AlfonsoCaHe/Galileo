@@ -75,11 +75,11 @@
                         </div>
 
                         <div class="d-flex justify-content-between mt-5">
-                            <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
+                            <button type="submit" class="btn btn-success btn-lg rounded-3 fw-bold shadow-sm">
                                 Crear Módulo
                             </button>
                             <a href="{{ route('gestion.modulos.index', ['proyecto_id' => $proyecto->id_base_de_datos]) }}" 
-                               class="btn btn-secondary btn-lg rounded-3 fw-bold shadow-sm">
+                               class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
                                 Cancelar
                             </a>
                         </div>

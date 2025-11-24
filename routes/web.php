@@ -6,6 +6,7 @@ use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\TutorLaboralController;
 use App\Http\Controllers\ModuloController;
+use App\Http\Controllers\ProyectoController;
 use App\Http\Middleware\AdminCheck;
 use App\Http\Middleware\AlumnoCheck;
 use App\Http\Middleware\ProfesorCheck;
@@ -121,14 +122,22 @@ Route::middleware(['auth'])->group(function () {
                 ->name('gestion.alumnos.update');                
             Route::delete('/{proyecto_id}/{alumno_id}', [AlumnoController::class, 'destroy'])
                 ->name('gestion.alumnos.destroy');
+            Route::get('/proyecto/{proyecto_id}', [ProyectoController::class, 'index'])
+                ->name('gestion.alumnos.proyecto');
         });
 
         // --- 3. Gestión de Proyectos, Módulos y Alumnos ---
         Route::prefix('gestion/proyectos')->group(function () {
             
-            // Listado de Proyectos
-            Route::get('/', [AdminController::class, 'listadoProyectos'])
+            // CRUD de Proyectos
+            Route::get('/', [ProyectoController::class, 'index'])
                 ->name('gestion.proyectos.index');
+            Route::post('/', [ProyectoController::class, 'store'])
+                ->name('gestion.proyectos.store');
+            Route::put('/{proyecto_id}/estado', [ProyectoController::class, 'updateEstado'])
+                ->name('gestion.proyectos.update.estado');
+            Route::delete('/{proyecto_id}', [ProyectoController::class, 'destroy'])
+                ->name('gestion.proyectos.destroy');
         });
             
             // // Alumnos (Vistas/Listados)
