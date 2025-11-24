@@ -21,7 +21,16 @@
 
                     <!-- SECCIÓN: TUTORÍA Y EMPRESA -->
                     <div class="mb-5 p-3 bg-light rounded-3 border">
-                        <h4 class="fw-semibold text-secondary mb-3">Tutoría Laboral</h4>
+                        <h4 class="fw-semibold text-secondary mb-3 mt-3">Tutoría Docente</h4>
+                        @if ($alumno->tutorDocente)
+                            <p class="mb-1">
+                                <i class="bi bi-person-circle me-2"></i>
+                                <strong>Tutor:</strong> {{ $alumno->tutorDocente->nombre }}
+                            </p>
+                        @else
+                            <p class="text-warning mb-0">No tiene asignado un Tutor Docente.</p>
+                        @endif
+                        <h4 class="fw-semibold text-secondary mb-3 mt-3">Tutoría Laboral</h4>
                         @if ($alumno->tutorLaboral)
                             <p class="mb-1">
                                 <i class="bi bi-person-circle me-2"></i>

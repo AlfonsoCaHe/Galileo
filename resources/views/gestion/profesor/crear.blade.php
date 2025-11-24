@@ -9,11 +9,8 @@
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-4 p-md-5">
                     <h2 class="card-title text-center mb-3 fw-bold text-primary">
-                        Iniciar Sesión
+                        Crear nuevo profesor
                     </h2>
-                    <p class="text-center text-muted mb-4">
-                        Accede a tu cuenta para continuar.
-                    </p>
 
                     <!-- Bloque de Errores de Validación de Laravel -->
                     @if ($errors->any())
@@ -27,8 +24,22 @@
                         </div>
                     @endif
 
-                    <form action="{{ url('/login') }}" method="POST">
+                    <form action="{{ url('/usuarios/store') }}" method="POST">
                         @csrf
+
+                        <!-- Campo Nombre -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-semibold">
+                                Nombre
+                            </label>
+                            <input id="name" name="name" required
+                                   value="{{ old('nombre') }}"
+                                   class="form-control rounded-3 @error('name') is-invalid @enderror"
+                                   placeholder="Nombre">
+                            @error('nombre')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
                         <!-- Campo Email -->
                         <div class="mb-3">
@@ -57,27 +68,27 @@
                             @enderror
                         </div>
 
-                        <!-- Checkbox Recordar y Enlace Olvidé Contraseña -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                                <label class="form-check-label text-muted" for="remember">
-                                    Recordarme
-                                </label>
-                            </div>
-                            {{--Funcionalidad no operativa<small>
-                                <a href="#" class="text-decoration-none text-info">
-                                    ¿Olvidaste tu contraseña?
-                                </a>
-                            </small>--}}
+                        <!-- Rol (Oculto en el formulario, se añade implícitamente)-->
+                        <div class="d-flex justify-content-between align-items-center mb-4 oculto">
+                            <label for="rol" class="form-label fw-semibold">
+                                Rol
+                            </label>
+                            <input name="rol" id="rol-select" class="form-control w-50" value="{{ 'profesor' }}" disable/>
                         </div>
 
                         <!-- Botón de Enviar -->
                         <div class="d-grid gap-2">
                             <button type="submit"
                                     class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
-                                Acceder
+                                Añadir
                             </button>
+                        </div>
+                        <!-- Botón de Cancelar -->
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{route('usuarios.show')}}" type="submit"
+                                    class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
+                                Cancelar
+                            </a>
                         </div>
                     </form>
                 </div>

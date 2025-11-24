@@ -4,6 +4,8 @@
 <div class="container">
     <h2>Seleccionar Alumno para ver su información</h2>
 
+    <a href="{{ url()->previous() }}" class="btn btn-secondary">Volver</a>
+
     @if ($alumnos->isEmpty())
         <p class="alert alert-warning">No hay alumnos registrados en la base de datos.</p>
     @else

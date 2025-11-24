@@ -16,7 +16,8 @@ class Proyecto extends Model
 
     protected $fillable = [
         'proyecto',
-        'conexion'
+        'conexion',
+        'finalizado'
     ];
 
     public $incrementing = false;

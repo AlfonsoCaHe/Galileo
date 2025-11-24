@@ -2,12 +2,19 @@
 
 namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Profesor extends Model
 {
     use HasUuids;
+
+    /**
+     * Define la conexión a la base de datos principal (Galileo). Se usa en los modelos de la base de datos principal
+     * @var string
+     */
+    protected $connection = 'mysql';
 
     protected $table = "profesores";
     
@@ -23,9 +30,10 @@ class Profesor extends Model
     public $timestamps = true;
 
     /**
-     * Define la conexión a la base de datos principal (Galileo).
-     * Asumiendo que 'mysql' es tu conexión principal por defecto.
-     * @var string
+     * Para crear la relación polimórfica
      */
-    protected $connection = 'mysql';
+    public function user(): MorphOne
+    {
+        return $this->morphOne(User::class, 'rolable');
+    }
 }

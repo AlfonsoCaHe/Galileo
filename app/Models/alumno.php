@@ -2,7 +2,7 @@
 
 namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,20 +53,11 @@ class Alumno extends Model
      */
     public function modulos(): BelongsToMany
     {
-        // return $this->belongsToMany(
-        //     Modulo::class, 
-        //     'alumnos_modulos', // Nombre de la tabla pivote
-        //     'alumno_id',       // FK de este modelo en la pivote
-        //     'modulo_id'        // FK del modelo relacionado en la pivote
-        // )->withTimestamps(); // Añadir si la tabla pivote tiene timestamps
-
         return $this->belongsToMany(
             Modulo::class, 
-            'alumnos_modulos', 
-            'alumno_id',       // 1. FK de este modelo (Alumno) en la tabla pivote
-            'modulo_id',       // 2. FK del modelo relacionado (Modulo) en la tabla pivote
-            'id_alumno',       // 3. Clave local (PK de Alumno)
-            'id_modulo'        // 4. Clave del modelo relacionado (PK de Modulo)
+            'alumnos_modulos', // Nombre de la tabla pivote
+            'alumno_id', // FK de este modelo en la pivote
+            'modulo_id',  // FK del modelo relacionado en la pivote
         );  
     }
 
@@ -78,5 +69,18 @@ class Alumno extends Model
     {
         // 'alumno_id' es la FK en la tabla 'tareas' que apunta a 'id_alumno' en 'alumnos'
         return $this->hasMany(Tarea::class, 'alumno_id', 'id_alumno'); 
+    }
+
+    // --- Declaración de Relaciones Polimórficas ---
+
+    /**
+     * Obtiene el usuario asociado a este rol de Alumno.
+     * Esta es la relación inversa para la vinculación polimórfica (MorphOne).
+     */
+    public function user(): MorphOne
+    {
+        // 'rolable' es el nombre de la relación polimórfica en el modelo User (el dueño)
+        // El segundo argumento es opcional si usas los valores por defecto (rolable_type, rolable_id)
+        return $this->morphOne(User::class, 'rolable'); 
     }
 }

@@ -2,9 +2,13 @@
 
 @section('content')
 <div class="container mt-5">
-    <h2>Herramientas de Administración de BD</h2>
+    <h1 class="mb-4 text-primary">Herramientas de Administración de BD</h1>
     <hr>
-    <a href="{{ route('admin.proyectos') }}">Ir al Panel de Administración</a>
+    <a href="{{ route('gestion.proyectos.index') }}" class="btn btn-primary">Gestionar Proyectos</a>
+    <a href="{{ route('usuarios.show') }}" class="btn btn-primary">Gestionar Usuarios</a>
+    <a href="{{ route('gestion.empresas.index') }}" class="btn btn-primary">Gestionar Empresas</a>
+    <a href="{{ route('gestion.alumnos.index') }}" class="btn btn-primary">Gestionar Alumnos</a>
+    {{--<a href="{{ route('gestion.modulos.index') }}" class="btn btn-primary">Gestionar Modulos</a>--}}
 
     <!-- Formulario de Logout -->
     <div class="d-grid gap-2 col-6 mx-auto mt-5">

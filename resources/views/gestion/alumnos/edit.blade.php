@@ -1,7 +1,5 @@
 @extends('layouts.default')
 
-@section('title', 'Iniciar Sesión')
-
 @section('content')
 <div class="container my-5">
     <div class="row justify-content-center">
@@ -9,12 +7,8 @@
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-4 p-md-5">
                     <h2 class="card-title text-center mb-3 fw-bold text-primary">
-                        Iniciar Sesión
+                        Modificar Datos Alumno: {{ $alumno->nombre }}
                     </h2>
-                    <p class="text-center text-muted mb-4">
-                        Accede a tu cuenta para continuar.
-                    </p>
-
                     <!-- Bloque de Errores de Validación de Laravel -->
                     @if ($errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -27,8 +21,23 @@
                         </div>
                     @endif
 
-                    <form action="{{ url('/login') }}" method="POST">
+                    <form action="{{ route('gestion.alumnos.update', ['proyecto_id' => $proyecto, 'alumno_id' => $alumno->id_alumno]) }}" method="POST">
                         @csrf
+                        @method('PUT')
+
+                        <!-- Campo Nombre -->
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label fw-semibold">
+                                Nombre
+                            </label>
+                            <input id="nombre" name="nombre" required
+                                   value="{{ $alumno->nombre }}"
+                                   class="form-control rounded-3 @error('nombre') is-invalid @enderror"
+                                   placeholder="Nombre">
+                            @error('nombre')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
                         <!-- Campo Email -->
                         <div class="mb-3">
@@ -36,7 +45,7 @@
                                 Correo Electrónico
                             </label>
                             <input id="email" name="email" type="email" autocomplete="email" required
-                                   value="{{ old('email') }}"
+                                   value="{{ $alumno->email }}"
                                    class="form-control rounded-3 @error('email') is-invalid @enderror"
                                    placeholder="tu.correo@ejemplo.com">
                             @error('email')
@@ -47,37 +56,33 @@
                         <!-- Campo Contraseña -->
                         <div class="mb-3">
                             <label for="password" class="form-label fw-semibold">
-                                Contraseña
+                                Contraseña (Dejar vacío para no cambiar)
                             </label>
-                            <input id="password" name="password" type="password" autocomplete="current-password"
-                                   class="form-control rounded-3 @error('password') is-invalid @enderror"
-                                   placeholder="••••••••">
+                            <input id="password" name="password" type="password" autocomplete="new-password"
+                                class="form-control rounded-3 @error('password') is-invalid @enderror"
+                                placeholder="••••••••">
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
-                        <!-- Checkbox Recordar y Enlace Olvidé Contraseña -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                                <label class="form-check-label text-muted" for="remember">
-                                    Recordarme
-                                </label>
-                            </div>
-                            {{--Funcionalidad no operativa<small>
-                                <a href="#" class="text-decoration-none text-info">
-                                    ¿Olvidaste tu contraseña?
-                                </a>
-                            </small>--}}
+                        <!-- Campo confirmar Contraseña --> 
+                        <div class="mb-3">
+                            <label for="password_confirmation" class="form-label">Confirmar Contraseña</label>
+                            <input type="password" class="form-control" id="password_confirmation" name="password_confirmation">
                         </div>
 
                         <!-- Botón de Enviar -->
                         <div class="d-grid gap-2">
-                            <button type="submit"
-                                    class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
-                                Acceder
+                            <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
+                                Actualizar
                             </button>
+                        </div>
+                        <!-- Botón de Cancelar -->
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{route('gestion.alumnos.index')}}" type="submit"
+                                    class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
+                                Cancelar
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -85,4 +90,3 @@
         </div>
     </div>
 </div>
-@endsection

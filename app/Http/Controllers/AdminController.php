@@ -11,15 +11,15 @@ class AdminController extends Controller
 {
     public function crearProyecto(Request $request)
     {
-        // Obtenemos el año si se pasa desde el formulario
+        // Obtenemos el año si se pasa desde el formulario, si no, por defecto es el año actual
         $yearStart = $request->input('year_start'); 
         
         $arguments = $yearStart ? ['year_start' => $yearStart] : [];
         
         try {
-            //Ejecución ASÍNCRONA (Recomendado para comandos largos o de inserción en bases de datos)
+            //EJECUCIÓN ASÍNCRONA (Recomendado para comandos largos o de inserción en bases de datos)
             //No se utiliza por un problema en la retroalimentación, y dado que supuestamente solo se crearán las bases de datos en local, no debe haber problema
-            // Encola la ejecución del comando. Esto requiere tener configurada una cola (Queue).
+            //Encola la ejecución del comando. Esto requiere tener configurada una cola (Queue).
             /**
              * RunArtisanCommand::dispatch('db:crear-proyecto', $arguments);
              */
@@ -33,25 +33,25 @@ class AdminController extends Controller
                 $errorMessage = Artisan::output();
                 // Limpiamos la salida para no contaminar futuras llamadas.
 
-                return redirect()->route('admin.proyectos')->with('error', trim($errorMessage));
+                return redirect()->route('gestion.proyectos.index')->with('error', trim($errorMessage));
             }
             
             // Si no hay duplicidad creamos la base de datos y volvemos a la vista:
-            return redirect()->route('admin.proyectos')->with('success', 'La nueva base de datos del proyecto ha sido creada y migrada correctamente.');
+            return redirect()->route('gestion.proyectos.index')->with('success', 'La nueva base de datos del proyecto ha sido creada y migrada correctamente.');
 
         } catch (\Exception $e) {
             // Error:
             $errorMessage = "Error al ejecutar el comando: " . $e->getMessage();
             
-            return redirect()->route('admin.proyectos')->with('error', $errorMessage);
+            return redirect()->route('gestion.proyectos.index')->with('error', $errorMessage);
         }
 
-        return redirect()->route('admin.proyectos')->with('success', 'La creación del proyecto ha sido iniciada en segundo plano...');
+        return redirect()->route('gestion.proyectos.index')->with('success', 'La creación del proyecto ha sido iniciada en segundo plano...');
     }
 
     public function listadoProyectos()
     {
         $proyectos = Proyecto::orderBy('proyecto', 'asc')->get();
-        return view('admin.proyectos', compact('proyectos'));
+        return view('gestion.proyectos.index', compact('proyectos'));
     }
 }
