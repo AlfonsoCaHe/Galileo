@@ -11,7 +11,7 @@ class TutorLaboral extends Model
 {
     use HasUuids;
 
-    protected $connection = 'mysql';
+    // protected $connection = 'mysql';
 
     protected $table = "tutores_laborales";
     

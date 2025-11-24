@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Modulo;
 use App\Models\Proyecto;
-use App\Models\Profesor; // Desde BD principal
-use App\Models\Alumno;   // Desde BD dinámica
+use App\Models\Profesor;
+use App\Models\Alumno;
+use App\Models\Ras;
+use App\Models\Tarea;
+use App\Models\Criterio;
+use App\Models\ProfesorModulo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -21,10 +25,14 @@ class ModuloController extends Controller
         $config_base['database'] = $proyecto->conexion;
         config(["database.connections.{$conexion_nombre}" => $config_base]);
 
-        // Forzamos a los modelos dinámicos a usar esta conexión
+        // Forzamos a TODOS los modelos dinámicos a usar esta conexión
         Modulo::getConnectionResolver()->setDefaultConnection($conexion_nombre);
         Alumno::getConnectionResolver()->setDefaultConnection($conexion_nombre);
-        // [Añadir otros modelos locales: Ras::class, Tarea::class, etc.]
+        Ras::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
+        Tarea::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
+        Criterio::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
+        ProfesorModulo::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
+        // ----------------------------------------------------------------------
         
         return $proyecto;
     }
@@ -32,10 +40,16 @@ class ModuloController extends Controller
     // Método auxiliar para restaurar la conexión
     private function restoreConnection()
     {
-        // Restaurar la conexión predeterminada (Galileo)
-        Modulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
-        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
-        // [Añadir otros modelos locales]
+        // Restaurar la conexión predeterminada (Galileo) para todos los modelos dinámicos
+        $default = config('database.default');
+        
+        Modulo::getConnectionResolver()->setDefaultConnection($default);
+        Alumno::getConnectionResolver()->setDefaultConnection($default);
+        Ras::getConnectionResolver()->setDefaultConnection($default); 
+        Tarea::getConnectionResolver()->setDefaultConnection($default); 
+        Criterio::getConnectionResolver()->setDefaultConnection($default); 
+        ProfesorModulo::getConnectionResolver()->setDefaultConnection($default); 
+        // ----------------------------------------------------------------------
     }
 
     /**
