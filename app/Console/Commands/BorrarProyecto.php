@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Log;
 
 class BorrarProyecto extends Command
 {
-    protected $signature = 'db:eliminar-bd {nombre_bd}';
+    protected $signature = 'db:eliminar-proyecto {nombre_proyecto}';
 
     protected $description = 'Elimina físicamente la base de datos de un proyecto.';
 
     public function handle()
     {
-        $nombreBD = $this->argument('nombre_bd');
+        $nombreBD = $this->argument('nombre_proyecto');
 
         try {
             // 1. Ejecutar DROP DATABASE

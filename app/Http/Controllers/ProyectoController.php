@@ -172,8 +172,8 @@ class ProyectoController extends Controller
         
             // CRÍTICO: Usamos 'Artisan::call' con la opción '--no-interaction' (o '-n') para evitar la doble confirmación
             // y los fallos en el contexto HTTP.
-            $exitCode = Artisan::call('db:eliminar-bd', [
-                'nombre_bd' => $nombre_bd_conexion,
+            $exitCode = Artisan::call('db:eliminar-proyecto', [
+                'nombre_proyecto' => $nombre_bd_conexion,
                 '--no-interaction' => true, // Esta opción fuerza el modo no interactivo
             ]);
 
