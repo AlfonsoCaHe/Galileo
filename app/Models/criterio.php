@@ -30,6 +30,6 @@ class Criterio extends Model
      */
     public function ras(): BelongsTo
     {
-        return $this->belongsTo(Alumno::class, 'ras_id', 'id_ras');
+        return $this->belongsTo(Ras::class, 'ras_id', 'id_ras');
     }
 }

@@ -44,11 +44,6 @@ class Profesor extends Model
 
     public function modulos()
     {
-        // Asumo que tienes una tabla intermedia o una relación directa. 
-        // Si usas una tabla pivote (Profesor <-> Modulo):
         return $this->belongsToMany(Modulo::class, 'profesor_modulo', 'profesor_id', 'modulo_id');
-        
-        // O SI el módulo tiene directamente el 'profesor_id':
-        // return $this->hasMany(Modulo::class, 'profesor_id');
     }
 }

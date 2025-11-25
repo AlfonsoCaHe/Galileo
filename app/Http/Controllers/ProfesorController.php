@@ -126,39 +126,45 @@ class ProfesorController extends Controller
     /**
      * Método que redirige a la vista de gestión de profesores
      */
-    public function index()
+    public function index(Request $request)
     {
-        // 1. Obtener todos los profesores de la BD Central (Galileo)
-        $profesores = Profesor::all();
+        // 1. Capturamos el filtro de la URL (por defecto 'todos')
+        $filtro = $request->get('estado', 'todos');
 
-        // Inicializamos las propiedades para que la vista no falle si no hay proyectos
+        // 2. Preparamos la consulta base
+        $query = Profesor::query();
+
+        // 3. Aplicamos el filtro si es necesario
+        if ($filtro === 'activos') {
+            $query->where('activo', 1);
+        } elseif ($filtro === 'inactivos') {
+            $query->where('activo', 0);
+        }
+        
+        // Ejecutamos la consulta para obtener los profesores filtrados
+        $profesores = $query->orderBy('nombre', 'asc')->get();
+
+        // --- A PARTIR DE AQUÍ, TODO IGUAL QUE ANTES ---
+        // Inicializamos colecciones...
         foreach ($profesores as $profesor) {
             $profesor->modulos_collection = collect(); 
             $profesor->alumnos_count = 0;
         }
 
-        // 2. Obtener proyectos activos (finalizado = 0)
-        // Aseguramos que solo buscamos en proyectos vivos
+        // Obtener proyectos activos y recorrerlos (Mismo código que tenías)
         $proyectos = Proyecto::where('finalizado', 0)->get();
-        
         $defaultConnection = config('database.default');
 
-        // 3. Bucle Multi-Tenant: Recorrer cada proyecto para buscar datos
         foreach ($proyectos as $proyecto) {
-            
-            // Configurar conexión dinámica
             $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
             $config = config('database.connections.mysql');
-            $config['database'] = $proyecto->conexion; // Nombre BD del proyecto
+            $config['database'] = $proyecto->conexion;
             Config::set("database.connections.{$connectionName}", $config);
             DB::purge($connectionName);
 
             try {
-                // Para cada profesor, buscamos sus datos en ESTE proyecto
                 foreach ($profesores as $profesor) {
-                    
-                    // A. Buscar MÓDULOS (Tabla 'profesor_modulo' en la BD dinámica)
-                    // Usamos Query Builder porque estamos cruzando conexiones
+                    // A. Buscar MÓDULOS
                     $modulosData = DB::connection($connectionName)
                         ->table('modulos')
                         ->join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
@@ -166,16 +172,14 @@ class ProfesorController extends Controller
                         ->select('modulos.id_modulo', 'modulos.nombre')
                         ->get();
 
-                    // Agregamos a la colección temporal del profesor
                     foreach($modulosData as $mod) {
                         $profesor->modulos_collection->push($mod);
                     }
 
-                    // B. Contar ALUMNOS (Tabla 'alumnos_modulos')
+                    // B. Contar ALUMNOS
                     if ($modulosData->isNotEmpty()) {
                         $idsModulos = $modulosData->pluck('id_modulo')->toArray();
                         
-                        // Contamos alumnos únicos matriculados en los módulos de este profe
                         $totalAlumnosEnProyecto = DB::connection($connectionName)
                             ->table('alumnos_modulos')
                             ->whereIn('modulo_id', $idsModulos)
@@ -185,23 +189,20 @@ class ProfesorController extends Controller
                         $profesor->alumnos_count += $totalAlumnosEnProyecto;
                     }
                 }
-
             } catch (\Exception $e) {
-                // Si un proyecto falla, lo ignoramos para no romper toda la web, pero guardamos log
-                Log::error("Error conectando al proyecto {$proyecto->proyecto}: " . $e->getMessage());
+                Log::error("Error proyecto {$proyecto->proyecto}: " . $e->getMessage());
             }
         }
 
-        // 4. Preparar datos finales para la vista
+        // Asignar colección final
         foreach ($profesores as $profesor) {
-            // Pasamos la colección temporal a la propiedad 'modulos' que usa el Blade
             $profesor->modulos = $profesor->modulos_collection;
         }
 
-        // Restaurar conexión original
         DB::setDefaultConnection($defaultConnection);
 
-        return view('gestion.profesores.index', compact('profesores'));
+        // Pasamos también la variable $filtro a la vista para mantener el select seleccionado
+        return view('gestion.profesores.index', compact('profesores', 'filtro'));
     }
 
     /**
@@ -258,8 +259,59 @@ class ProfesorController extends Controller
     /**
      * Modifica los datos de un profesor
      */
-    public function update(Request $request){
-        
+    public function update(Request $request, $profesor_id)
+    {
+        // 1. Buscamos el profesor y su usuario asociado
+        // No necesitamos cambiar de conexión, ya estamos en la principal
+        $profesor = Profesor::findOrFail($profesor_id);
+        $user = $profesor->user; 
+
+        // 2. Validamos los campos
+        // Usamos el ID del usuario ($user->id) para ignorarlo en la comprobación de email único
+        $userId = $user ? $user->id : 'NULL';
+
+        $validated = $request->validate([
+            'nombre'   => ['required', new ValidarTexto], // Tu regla personalizada
+            'email'    => 'required|email|unique:users,email,' . $userId,
+            'password' => 'nullable|min:8|confirmed',
+        ]);
+
+        try {
+            // 3. Transacción
+            // Al estar todo en la misma BD, si falla el usuario, se deshace el cambio del profesor también.
+            DB::beginTransaction();
+
+            // Actualizamos Profesor
+            $profesor->nombre = $validated['nombre'];
+            $profesor->save();
+
+            // Actualizar Usuario (Sincronización)
+            if ($user) {
+                $user->name = $validated['nombre'];
+                $user->email = $validated['email'];
+
+                // Solo actualiza la contraseña si se proporcionó un valor nuevo
+                if (!empty($validated['password'])) {
+                    $user->password = $validated['password'];
+                }
+                
+                $user->save();
+            } else {
+                // Si por alguna corrupción de datos antigua no tiene usuario, lo logueamos
+                Log::warning("Profesor {$profesor->id_profesor} actualizado sin usuario asociado.");
+            }
+
+            DB::commit();
+
+            return redirect()->route('gestion.profesores.index')->with('success', 'Datos del profesor ' . $validated['nombre'] . ' actualizados con éxito.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Logueamos si hay error
+            Log::error('Error update Profesor: ' . $e->getMessage());
+            
+            return redirect()->back()->withInput()->withErrors('Error al actualizar el profesor: ' . $e->getMessage());
+        }
     }
 
     /**

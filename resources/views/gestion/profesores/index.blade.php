@@ -3,7 +3,7 @@
 @section('title', 'Gestión de Profesores')
 
 @section('scripts')
-    {{-- Scripts de DataTables con la configuración solicitada --}}
+    {{-- Scripts de DataTables --}}
     <script>
         $(document).ready(function() {
             // Inicialización de DataTables
@@ -38,9 +38,6 @@
                     { "orderable": false, "targets": [1, 2, 4] } 
                 ]
             });
-
-            // NOTA: He omitido el script de "Confirmación de borrado" 
-            // porque me indicaste que los profesores NO se borran, solo se desactivan con el Toggle.
         });
     </script>
 @endsection
@@ -71,17 +68,26 @@
     @endif
 
     <div class="card shadow-lg p-4">
-        {{-- Menú de opciones --}}
-        <div class="d-flex justify-content-start mb-3">
+        {{-- CABECERA CON FILTRO Y BOTONES --}}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            {{-- Botones de Acción --}}
             <div class="d-flex">
-                {{-- Ajusta la ruta si usas create o store en tu web.php --}}
-                <a href="{{ route('gestion.profesores.store') }}" class="btn btn-success fw-bold m-2">
-                    Nuevo Profesor
+                <a href="{{ route('gestion.profesores.store') }}" class="btn btn-success fw-bold m-2 shadow-sm">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Nuevo Profesor
                 </a>
-                <a href="{{ route('home') }}" class="btn btn-secondary fw-bold m-2">
+                <a href="{{ route('home') }}" class="btn btn-secondary fw-bold m-2 shadow-sm">
                     Volver
                 </a>
             </div>
+            {{-- Filtro de Estado --}}
+            <form action="{{ route('gestion.profesores.index') }}" method="GET" class="d-flex align-items-center">
+                <label for="estado" class="form-label me-2 mb-0 fw-bold text-secondary">Estado:</label>
+                <select name="estado" id="estado" class="form-select w-auto" onchange="this.form.submit()">
+                    <option value="todos" {{ $filtro == 'todos' ? 'selected' : '' }}>Todos</option>
+                    <option value="activos" {{ $filtro == 'activos' ? 'selected' : '' }}>Activos</option>
+                    <option value="inactivos" {{ $filtro == 'inactivos' ? 'selected' : '' }}>Inactivos</option>
+                </select>
+            </form>
         </div>
 
         @if($profesores->isEmpty())
