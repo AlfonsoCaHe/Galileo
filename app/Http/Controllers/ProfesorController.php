@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Rules\ValidarTexto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Http\Request;
 
 class ProfesorController extends Controller
@@ -125,90 +126,82 @@ class ProfesorController extends Controller
     /**
      * Método que redirige a la vista de gestión de profesores
      */
-    public function index(Request $request)
+    public function index()
     {
-        // 1. Determinar el estado del filtro
-        $estado_filtro = $request->get('estado', 'activos'); // Por defecto, solo activos
+        // 1. Obtener todos los profesores de la BD Central (Galileo)
+        $profesores = Profesor::all();
 
-        // 2. Construir la consulta base (Aplicar filtro de Activo/Inactivo)
-        $query = Profesor::with('user'); 
-
-        if ($estado_filtro === 'activos') {//Si no es activo ni inactivo es todos
-            $query->where('activo', 1);
-        } elseif ($estado_filtro === 'inactivos') {
-            $query->where('activo', 0);
-        } 
-        
-        // Obtenemos la lista de profesores filtrada
-        $profesores = $query->get();
-
-        // 3. Obtenemos solo los proyectos activos de la BD principal (Galileo)
-        $proyectosActivos = Proyecto::where('finalizado', false)->get();
-        
-        $stats = [];
-        
-        // 4. Itera sobre cada profesor filtrado y calcula sus estadísticas
+        // Inicializamos las propiedades para que la vista no falle si no hay proyectos
         foreach ($profesores as $profesor) {
-            $totalModulos = 0;
-            $totalAlumnos = 0;
-            $esTutorDocente = false;
-            $proyectosConAlumnos = [];
-            
-            // 5. Iterar sobre cada proyecto activo
-            foreach ($proyectosActivos as $proyecto) {
-                $conexion_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos;
-                
-                // Configurar la conexión dinámica para el proyecto actual
-                $this->setDynamicConnection($proyecto, $conexion_nombre);
-                
-                // A. Módulos impartidos por este profesor en este proyecto
-                $modulosImpartidos = ProfesorModulo::where('profesor_id', $profesor->id_profesor)->get();
-                $countModulosProyecto = $modulosImpartidos->count();
-                $totalModulos += $countModulosProyecto;
-                
-                // B. Sumar alumnos únicos de los módulos impartidos en este proyecto, así no contamos doble
-                $alumnosUnicosIds = [];
-                if ($countModulosProyecto > 0) {
-                    foreach ($modulosImpartidos as $pm) {
-                        // Modulo::find() usa la conexión dinámica
-                        $modulo = Modulo::find($pm->modulo_id); 
-                        if ($modulo) {
-                            // $modulo->alumnos() usa la conexión dinámica
-                            $alumnosUnicosIds = array_merge($alumnosUnicosIds, $modulo->alumnos()->pluck('id_alumno')->toArray());
-                        }
-                    }
-                    $countAlumnosProyecto = count(array_unique($alumnosUnicosIds));
-                    $totalAlumnos += $countAlumnosProyecto;
-                    
-                    if ($countAlumnosProyecto > 0) {
-                        $proyectosConAlumnos[] = [
-                            'nombre' => $proyecto->proyecto,
-                            'alumnos' => $countAlumnosProyecto
-                        ];
-                    }
-                }
-                
-                // C. Verificar si es Tutor Docente en ESTE proyecto
-                // Alumno::where() usa la conexión dinámica
-                if (Alumno::where('tutor_docente_id', $profesor->id_profesor)->exists()) {
-                    $esTutorDocente = true;
-                }
-                
-                // Restaurar la conexión después de cada proyecto
-                $this->restoreConnection();
-            }
-            
-            // 6. Almacenar resultados
-            $stats[$profesor->id_profesor] = [
-                'modulos_total' => $totalModulos,
-                'alumnos_total' => $totalAlumnos,
-                'es_tutor_docente' => $esTutorDocente,
-                'proyectos_detalle' => $proyectosConAlumnos
-            ];
+            $profesor->modulos_collection = collect(); 
+            $profesor->alumnos_count = 0;
         }
 
-        // 7. Pasar los datos a la vista
-        return view('gestion.profesores.index', compact('profesores', 'stats', 'estado_filtro'));
+        // 2. Obtener proyectos activos (finalizado = 0)
+        // Aseguramos que solo buscamos en proyectos vivos
+        $proyectos = Proyecto::where('finalizado', 0)->get();
+        
+        $defaultConnection = config('database.default');
+
+        // 3. Bucle Multi-Tenant: Recorrer cada proyecto para buscar datos
+        foreach ($proyectos as $proyecto) {
+            
+            // Configurar conexión dinámica
+            $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
+            $config = config('database.connections.mysql');
+            $config['database'] = $proyecto->conexion; // Nombre BD del proyecto
+            Config::set("database.connections.{$connectionName}", $config);
+            DB::purge($connectionName);
+
+            try {
+                // Para cada profesor, buscamos sus datos en ESTE proyecto
+                foreach ($profesores as $profesor) {
+                    
+                    // A. Buscar MÓDULOS (Tabla 'profesor_modulo' en la BD dinámica)
+                    // Usamos Query Builder porque estamos cruzando conexiones
+                    $modulosData = DB::connection($connectionName)
+                        ->table('modulos')
+                        ->join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
+                        ->where('profesor_modulo.profesor_id', $profesor->id_profesor)
+                        ->select('modulos.id_modulo', 'modulos.nombre')
+                        ->get();
+
+                    // Agregamos a la colección temporal del profesor
+                    foreach($modulosData as $mod) {
+                        $profesor->modulos_collection->push($mod);
+                    }
+
+                    // B. Contar ALUMNOS (Tabla 'alumnos_modulos')
+                    if ($modulosData->isNotEmpty()) {
+                        $idsModulos = $modulosData->pluck('id_modulo')->toArray();
+                        
+                        // Contamos alumnos únicos matriculados en los módulos de este profe
+                        $totalAlumnosEnProyecto = DB::connection($connectionName)
+                            ->table('alumnos_modulos')
+                            ->whereIn('modulo_id', $idsModulos)
+                            ->distinct('alumno_id')
+                            ->count('alumno_id');
+                        
+                        $profesor->alumnos_count += $totalAlumnosEnProyecto;
+                    }
+                }
+
+            } catch (\Exception $e) {
+                // Si un proyecto falla, lo ignoramos para no romper toda la web, pero guardamos log
+                Log::error("Error conectando al proyecto {$proyecto->proyecto}: " . $e->getMessage());
+            }
+        }
+
+        // 4. Preparar datos finales para la vista
+        foreach ($profesores as $profesor) {
+            // Pasamos la colección temporal a la propiedad 'modulos' que usa el Blade
+            $profesor->modulos = $profesor->modulos_collection;
+        }
+
+        // Restaurar conexión original
+        DB::setDefaultConnection($defaultConnection);
+
+        return view('gestion.profesores.index', compact('profesores'));
     }
 
     /**
@@ -272,8 +265,11 @@ class ProfesorController extends Controller
     /**
      * Método que redirige a la vista para ver los detalles de un profesor
      */
-    public function show($profesor_id){
-
+    public function show($id)
+    {
+        $profesor = Profesor::findOrFail($id);
+        // Aquí podrías añadir lógica similar al index si quieres ver detalles de sus alumnos
+        return view('profesor.show', compact('profesor')); // Asegúrate de tener esta vista o redirigir
     }
 
     /**
@@ -298,20 +294,19 @@ class ProfesorController extends Controller
      * Método que desactiva y activa los datos de un profesor en la base de datos para evitar el riesgo de pérdida de integridad referencial.
      */
     // Asegúrate de importar esto arriba
-    public function toggleActivo($profesor_id)
+    public function toggleActivo($id)
     {
         try {
-            DB::beginTransaction(); // Importante para mantener integridad entre las dos tablas
+            DB::beginTransaction();
 
-            $profesor = Profesor::findOrFail($profesor_id);
-
-            // 1. Invertimos el estado del profesor
+            $profesor = Profesor::findOrFail($id);
+            
+            // 1. Invertir estado
             $nuevoEstado = !$profesor->activo;
             $profesor->activo = $nuevoEstado;
             $profesor->save();
 
-            // Buscamos si ya existe un usuario asociado (incluso si está borrado lógicamente)
-            // Usamos where porque la relación polimórfica podría no traerlo si está soft-deleted
+            // 2. Buscar usuario asociado (incluso borrados)
             $user = User::withTrashed()
                 ->where('rolable_id', $profesor->id_profesor)
                 ->where('rolable_type', Profesor::class)
@@ -319,43 +314,39 @@ class ProfesorController extends Controller
 
             $mensaje = '';
 
-            if ($nuevoEstado === true) {
-                // --- CASO: ACTIVAR PROFESOR ---
-                
+            if ($nuevoEstado) {
+                // --- ACTIVAR ---
                 if ($user) {
                     if ($user->trashed()) {
-                        // El usuario existía pero estaba "borrado", lo RESTAURAMOS.
-                        // Esto mantiene la integridad referencial y evita el error de "Email duplicado".
-                        $user->restore();
-                        $mensaje = 'Profesor y usuario reactivados correctamente.';
+                        $user->restore(); // Restaurar usuario existente
+                        $mensaje = 'Profesor reactivado. Acceso de usuario restaurado.';
                     } else {
-                        // El usuario existe y ya estaba activo (caso raro, corrección de datos)
-                        $mensaje = 'El profesor se ha activado. El usuario ya estaba activo.';
+                        $mensaje = 'Profesor activado (El usuario ya estaba activo).';
                     }
                 } else {
-                    // No existe usuario previo, lo CREAMOS.
-                    // Aquí va tu lógica de generación de email/pass simplificada como pediste
-                    $nombreLimpio = strtolower(str_replace(' ', '.', $profesor->nombre));
-                    // Aseguramos unicidad básica añadiendo algo de aleatoriedad o ID si quieres, 
-                    // pero sigo tu lógica actual:
-                    $emailGenerado = $nombreLimpio . '@ies.galileo.com';
+                    // Crear Usuario Nuevo (Si no existía)
+                    $emailBase = strtolower(str_replace(' ', '.', $profesor->nombre));
+                    $email = $emailBase . '@ies.galileo.com';
                     
+                    // Evitar duplicados simples
+                    if(User::where('email', $email)->exists()) {
+                        $email = $emailBase . rand(10,99) . '@ies.galileo.com';
+                    }
+
                     User::createRolableUser($profesor, [
                         'name' => $profesor->nombre,
-                        'email' => $emailGenerado,
-                        'password' => 'password', // Tu default
+                        'email' => $email,
+                        'password' => 'password', // Default
                         'rol' => 'profesor'
                     ]);
-                    
-                    $mensaje = 'Profesor activado y nuevo usuario creado.';
+                    $mensaje = "Profesor activado. Usuario creado: $email";
                 }
-
             } else {
-                // --- CASO: DESACTIVAR PROFESOR ---
+                // --- DESACTIVAR ---
                 if ($user) {
-                    $user->delete(); // Soft Delete (se va a la papelera, no se borra físico)
+                    $user->delete(); // Soft Delete
                 }
-                $mensaje = 'Profesor desactivado y acceso revocado.';
+                $mensaje = 'Profesor desactivado. Acceso revocado.';
             }
 
             DB::commit();
@@ -364,7 +355,7 @@ class ProfesorController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error toggleActivo: ' . $e->getMessage());
-            return redirect()->back()->withErrors('Error al cambiar el estado: ' . $e->getMessage());
+            return redirect()->back()->withErrors('Error: ' . $e->getMessage());
         }
     }
 }

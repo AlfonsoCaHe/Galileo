@@ -3,14 +3,15 @@
 @section('title', 'Gestión de Profesores')
 
 @section('scripts')
+    {{-- Scripts de DataTables con la configuración solicitada --}}
     <script>
         $(document).ready(function() {
-            // 1. Inicialización de DataTables
-            const dataTable = $('#profesores-datatable').DataTable({
+            // Inicialización de DataTables
+            $('#profesores-datatable').DataTable({
                 "language": {
                     "decimal": ",",
-                    "emptyTable": "No hay profesores registrados.",
-                    "info": "Monstrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "emptyTable": "No hay profesores registrados",
+                    "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
                     "infoEmpty": "",
                     "infoFiltered": "",
                     "infoPostFix": "",
@@ -31,61 +32,24 @@
                         "sortDescending": ": Click/return para ordenar descendentemente"
                     }
                 },
-                "order": [[ 0, "asc" ]], // Ordenar por nombre de profesor
-                "responsive": true,
+                // Configuración de columnas no ordenables
                 "columnDefs": [
-                    { "orderable": false, "targets": [2, 3, 4] },//Deshabilitamos ordenación en Activo, Módulos, Alumnos y Acciones
-                    { "visible": false, "targets": [0] }// Ocultamos la columna 0 (ID Profesor, mantenido para ordenación)
+                    // Desactivamos ordenación en: Estado(1), Módulos(2) y Acciones(4)
+                    { "orderable": false, "targets": [1, 2, 4] } 
                 ]
             });
-            
-            // 2. Manejo del Switch de Activo/Inactivo (AJAX o submit del form)
-            $('.toggle-activo').on('change', function() {
-                // Obtener el ID del profesor del atributo de datos
-                const profesorId = $(this).data('profesor-id');
-                // Obtener el formulario asociado y enviarlo
-                $(`#toggle-form-${profesorId}`).submit();
-            });
 
-            // 3. Manejar el cambio del filtro de estado
-            $('#estado_filtro').on('change', function() {
-                const estado = $(this).val();
-                // Redirigir a la misma ruta con el nuevo parámetro 'estado'
-                window.location.href = "{{ route('gestion.profesores.index') }}?estado=" + estado;
-            });
+            // NOTA: He omitido el script de "Confirmación de borrado" 
+            // porque me indicaste que los profesores NO se borran, solo se desactivan con el Toggle.
         });
-
-        document.addEventListener('DOMContentLoaded', function() {
-        // Selecciona todos los inputs con la clase 'toggle-activo'
-        const toggleSwitches = document.querySelectorAll('.toggle-activo');
-
-        toggleSwitches.forEach(function(switchInput) {
-            // Escucha el evento 'change' (cuando el usuario clica)
-            switchInput.addEventListener('change', function() {
-                
-                // Encuentra el formulario más cercano al switch
-                const form = this.closest('form');
-                
-                if (form) {
-                    // Envía el formulario de forma programática
-                    form.submit();
-                }
-                
-                // Opcional: Deshabilitar el switch temporalmente para evitar doble clic
-                this.disabled = true;
-            });
-        });
-    });
     </script>
 @endsection
 
 @section('content')
 <div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="fw-bold text-primary">Gestión de Profesores</h1>
-    </div>
+    <h1 class="mb-4 text-primary">Gestión de Profesores</h1>
 
-    {{-- Sección de alertas de la base de datos --}}
+    {{-- Bloque de Errores --}}
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <h4 class="alert-heading">¡Error en la Operación!</h4>
@@ -98,6 +62,7 @@
         </div>
     @endif
 
+    {{-- Bloque de Éxito --}}
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -105,101 +70,105 @@
         </div>
     @endif
 
-    {{-- Tabla de Profesores --}}
-    <div class="card shadow-lg border-0 rounded-4 p-3">
+    <div class="card shadow-lg p-4">
         {{-- Menú de opciones --}}
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
-            
-            {{-- Botones de Acción (Sección Izquierda) --}}
-            <div class="d-flex flex-column flex-sm-row mb-3 mb-md-0">
-                <a href="{{ route('gestion.profesores.create') }}" class="btn btn-success fw-bold me-md-3 mb-2 mb-sm-0 shadow-sm">
-                    <i class="bi bi-person-plus-fill me-1"></i> Nuevo Profesor
+        <div class="d-flex justify-content-start mb-3">
+            <div class="d-flex">
+                {{-- Ajusta la ruta si usas create o store en tu web.php --}}
+                <a href="{{ route('gestion.profesores.store') }}" class="btn btn-success fw-bold m-2">
+                    Nuevo Profesor
                 </a>
-                <a href="{{ route('admin.panel') }}" class="btn btn-secondary fw-bold shadow-sm">
-                    <i class="bi bi-arrow-left-circle-fill me-1"></i> Volver al Panel
+                <a href="{{ route('home') }}" class="btn btn-secondary fw-bold m-2">
+                    Volver
                 </a>
-            </div>
-            
-            {{-- Filtro de Estado (Sección Derecha) --}}
-            <div class="d-flex align-items-center">
-                <label for="estado_filtro" class="form-label fw-semibold me-2 mb-0 text-nowrap">Filtrar por Estado:</label>
-                <select id="estado_filtro" class="form-select w-auto" style="min-width: 150px;">
-                    <option value="activos" {{ $estado_filtro == 'activos' ? 'selected' : '' }}>Profesores Activos</option>
-                    <option value="inactivos" {{ $estado_filtro == 'inactivos' ? 'selected' : '' }}>Profesores Inactivos</option>
-                    <option value="todos" {{ $estado_filtro == 'todos' ? 'selected' : '' }}>Todos</option>
-                </select>
             </div>
         </div>
+
         @if($profesores->isEmpty())
             <p class="alert alert-warning">No hay profesores registrados en la base de datos.</p>
         @else
-            <table id="profesores-datatable" class="table table-striped table-hover responsive" style="width:100%">
-                <thead class="bg-primary text-white">
+            <table id="profesores-datatable" class="table table-striped table-hover w-100 align-middle">
+                <thead>
                     <tr>
-                        <th scope="col" class="d-none">ID Profesor</th> <!-- Oculto para no mostrarlo -->
-                        <th scope="col">Nombre Completo</th>
-                        <th scope="col" class="text-center">Activo</th>
-                        <th scope="col" class="text-center">Módulos Asignados</th>
-                        <th scope="col" class="text-center">Alumnos Asignados</th>
-                        <th scope="col" class="text-center">Acciones</th>
+                        <th>Nombre del Profesor</th>
+                        <th class="text-center">Estado</th>
+                        <th>Módulos</th>
+                        <th class="text-center">Alumnos</th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($profesores as $profesor)
                     <tr>
-                        <td class="d-none">{{ $profesor->id_profesor }}</td>
-                        <td>{{ $profesor->nombre }}</td>
-                        
-                        {{-- Columna Activo (Switch y Formulario) --}}
-                        <td class="text-center">
-                            {{-- Formulario para el toggle --}}
-                            <form id="toggle-form-{{ $profesor->id_profesor }}" 
-                                action="{{ route('gestion.profesores.toggle', $profesor->id_profesor) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('PUT')
-                                <div class="form-check form-switch d-inline-block">
-                                    <input class="form-check-input toggle-activo" 
-                                        type="checkbox" 
-                                        id="switch-{{ $profesor->id_profesor }}" 
-                                        data-profesor-id="{{ $profesor->id_profesor }}"
-                                        name="activo_toggle" 
-                                        role="switch"
-                                        {{ $profesor->activo ? 'checked' : '' }}>
-                                    <label class="form-check-label visually-hidden" for="switch-{{ $profesor->id_profesor }}">Activo</label>
-                                </div>
-                            </form>
-                        </td>
-
-                        {{-- Columna Módulos Asignados --}}
-                        @php
-                            // Obtenemos las estadísticas ya calculadas en el Controller
-                            $statsProfesor = $stats[$profesor->id_profesor] ?? ['modulos_total' => 0, 'alumnos_total' => 0, 'es_tutor_docente' => false];
-                        @endphp
-                        <td class="text-center">
-                            <span class="badge {{ $statsProfesor['modulos_total'] > 0 ? 'bg-primary' : 'bg-secondary' }} p-2">
-                                <i class="bi bi-book me-1"></i> {{ $statsProfesor['modulos_total'] }}
-                            </span>
-                            @if ($statsProfesor['es_tutor_docente'])
-                                <span class="badge bg-info text-dark mt-1 d-block mx-auto" style="width: fit-content;">
-                                    Tutor Docente
-                                </span>
+                        {{-- 1. Nombre --}}
+                        <td class="fw-bold text-primary">
+                            {{ $profesor->nombre }}
+                            @if(optional($profesor->user)->email)
+                                <br>
+                                <small class="text-muted fw-normal" style="font-size: 0.8rem;">
+                                    {{ $profesor->user->email }}
+                                </small>
                             @endif
                         </td>
 
-                        {{-- Columna Alumnos Asignados --}}
+                        {{-- 2. Estado (Toggle) --}}
                         <td class="text-center">
-                            <span class="badge {{ $statsProfesor['alumnos_total'] > 0 ? 'bg-success' : 'bg-secondary' }} p-2">
-                                <i class="bi bi-people-fill me-1"></i> {{ $statsProfesor['alumnos_total'] }}
+                            <form action="{{ route('gestion.profesores.toggle', $profesor->id_profesor) }}" 
+                                  method="POST" 
+                                  id="form-toggle-{{ $profesor->id_profesor }}">
+                                @csrf
+                                @method('PUT')
+                                
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           role="switch"
+                                           style="cursor: pointer; transform: scale(1.2);"
+                                           onchange="this.form.submit()"
+                                           {{ $profesor->activo ? 'checked' : '' }}>
+                                </div>
+                                <span class="badge {{ $profesor->activo ? 'bg-success' : 'bg-danger' }} mt-1">
+                                    {{ $profesor->activo ? 'ACTIVO' : 'INACTIVO' }}
+                                </span>
+                            </form>
+                        </td>
+
+                        {{-- 3. Módulos --}}
+                        <td>
+                            @if(isset($profesor->modulos) && $profesor->modulos->isNotEmpty())
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach($profesor->modulos as $modulo)
+                                        <span class="badge bg-secondary text-white">
+                                            {{ $modulo->nombre ?? 'Módulo' }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-muted small fst-italic">Sin módulos asignados</span>
+                            @endif
+                        </td>
+
+                        {{-- 4. Alumnos --}}
+                        <td class="text-center">
+                            @php $total = $profesor->alumnos_count ?? 0; @endphp
+                            <span class="badge rounded-pill {{ $total > 0 ? 'bg-info text-dark' : 'bg-light text-secondary border' }} p-2">
+                                <i class="bi bi-people-fill me-1"></i> {{ $total }}
                             </span>
                         </td>
-                        
-                        {{-- Columna Acciones --}}
+
+                        {{-- 5. Acciones --}}
                         <td class="text-center">
-                            {{-- Botón Ver --}}
-                            <a href="{{ route('gestion.profesores.show', $profesor->id_profesor) }}" class="btn btn-sm btn-info text-white" title="Ver Detalles">
+                            {{-- Ver --}}
+                            <a href="{{ route('gestion.profesores.show', $profesor->id_profesor) }}" 
+                               class="btn btn-sm btn-info text-white" 
+                               title="Ver Detalles">
                                 Ver
                             </a>
-                            <a href="{{ route('gestion.profesores.edit', $profesor->id_profesor) }}" class="btn btn-sm btn-warning" title="Editar Profesor">
+
+                            {{-- Editar --}}
+                            <a href="{{ route('gestion.profesores.edit', $profesor->id_profesor) }}" 
+                               class="btn btn-sm btn-warning" 
+                               title="Editar">
                                 Editar
                             </a>
                         </td>

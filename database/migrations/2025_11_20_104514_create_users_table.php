@@ -20,8 +20,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
             
-            // CAMPOS DE AUTORIZACIÓN:
-            // 1. Campo de enum 'rol' para la verificación rápida de perfiles
+            // Campo de enum 'rol' para la verificación rápida de perfiles
             $table->enum('rol', ['admin', 'alumno', 'profesor', 'tutor_laboral']); 
 
             $table->uuid('rolable_id')->nullable();
