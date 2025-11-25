@@ -12,8 +12,8 @@
             "pagingType": "numbers",
             "lengthChange": true,
             "lengthMenu": [
-                [5, 10, 100, -1],
-                [5, 10, 100, 'Todos']
+                [10, 50, 100, -1],
+                [10, 50, 100, 'Todos']
             ],
             "order": [
                 [1, "asc"]

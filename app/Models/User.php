@@ -29,7 +29,7 @@ class User extends Authenticatable
     // Habilitamos el uso de UUIDs como clave primaria
     use HasApiTokens, HasFactory, Notifiable, HasUuids;
 
-    // protected $connection = 'mysql';
+    protected $connection = 'mysql';
 
     protected $primaryKey = 'id';
     public $incrementing = false;

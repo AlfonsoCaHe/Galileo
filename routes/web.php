@@ -102,8 +102,6 @@ Route::middleware(['auth'])->group(function () {
             // DataTables y Creación por Rol
             Route::post('/showDataTable', [UsuariosController::class, 'showDataTable'])
                 ->name('usuarios.showDataTable');
-            Route::get('/gestion/profesor/crear', [UsuariosController::class, 'createProfesor'])
-                ->name('gestion.profesor.crear');
         });
 
         Route::prefix('/gestion/alumnos')->group(function () {
@@ -124,6 +122,24 @@ Route::middleware(['auth'])->group(function () {
                 ->name('gestion.alumnos.destroy');
             Route::get('/proyecto/{proyecto_id}', [ProyectoController::class, 'index'])
                 ->name('gestion.alumnos.proyecto');
+        });
+
+        Route::prefix('/gestion/profesores')->group(function () {
+                
+            Route::get('/', [ProfesorController::class, 'index'])
+                ->name('gestion.profesores.index');
+            Route::post('/store', [ProfesorController::class, 'store'])
+                ->name('gestion.profesores.store');
+            Route::get('/create', [ProfesorController::class, 'create'])
+                ->name('gestion.profesores.create');
+            Route::get('/show', [ProfesorController::class, 'show'])
+                ->name('gestion.profesores.show');
+            Route::get('/{profesor_id}/edit', [ProfesorController::class, 'edit'])
+                ->name('gestion.profesores.edit');
+            Route::put('/{profesor_id}/update', [ProfesorController::class, 'update'])
+                ->name('gestion.profesores.update');                
+            Route::put('/{profesor_id}/toggle', [ProfesorController::class, 'toggleActivo'])
+                ->name('gestion.profesores.toggle');
         });
 
         // --- 3. Gestión de Proyectos, Módulos y Alumnos ---

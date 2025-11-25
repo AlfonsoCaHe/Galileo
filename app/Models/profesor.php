@@ -22,6 +22,11 @@ class Profesor extends Model
 
     protected $fillable = [
         'nombre',
+        'activo'
+    ];
+
+    protected $casts = [
+        'activo' => 'boolean'
     ];
 
     public $incrementing = false;

@@ -37,7 +37,7 @@
                 ]
             });
 
-            // Lógica de confirmación de borrado
+            // Gestión de confirmación de borrado
             // 1. Selecciona todos los formularios con la clase 'delete-form'
             $('.delete-form').on('submit', function(e) {
                 const form = $(this);
@@ -79,7 +79,7 @@
         </div>
     @endif
     <div class="card shadow-lg p-4">
-        {{-- Botón para Añadir Nuevo Alumno --}}
+        {{-- Menú de opciones --}}
         <div class="d-flex justify-content-start mb-3">
             <div class="d-flex">
                 <a href="{{ route('gestion.alumnos.create') }}"class="btn btn-success fw-bold m-2">

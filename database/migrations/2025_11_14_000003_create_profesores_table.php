@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('profesores', function (Blueprint $table) {
             $table->uuid('id_profesor')->primary();
             $table->string('nombre', 70);
+            $table->boolean('activo')->default(true);
             $table->timestamps();
         });
     }

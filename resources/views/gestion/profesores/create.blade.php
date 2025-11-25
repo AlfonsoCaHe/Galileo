@@ -24,17 +24,17 @@
                         </div>
                     @endif
 
-                    <form action="{{ url('/usuarios/store') }}" method="POST">
+                    <form action="{{ route('gestion.profesores.store') }}" method="POST">
                         @csrf
 
                         <!-- Campo Nombre -->
                         <div class="mb-3">
-                            <label for="name" class="form-label fw-semibold">
+                            <label for="nombre" class="form-label fw-semibold">
                                 Nombre
                             </label>
-                            <input id="name" name="name" required
+                            <input id="nombre" name="nombre" required
                                    value="{{ old('nombre') }}"
-                                   class="form-control rounded-3 @error('name') is-invalid @enderror"
+                                   class="form-control rounded-3 @error('nombre') is-invalid @enderror"
                                    placeholder="Nombre">
                             @error('nombre')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -85,7 +85,7 @@
                         </div>
                         <!-- Botón de Cancelar -->
                         <div class="d-grid gap-2 mt-3">
-                            <a href="{{route('usuarios.show')}}" type="submit"
+                            <a href="{{route('gestion.profesores.index')}}" type="submit"
                                     class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
                                 Cancelar
                             </a>

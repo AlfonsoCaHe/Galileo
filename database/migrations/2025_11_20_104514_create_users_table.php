@@ -29,6 +29,7 @@ return new class extends Migration
             
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         // 2. TABLA password_reset_tokens: Esencial para la funcionalidad de "Olvidé mi contraseña"
