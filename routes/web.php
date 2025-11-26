@@ -126,7 +126,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::prefix('/gestion/profesores')->group(function () {
                 
-            Route::get('/', [ProfesorController::class, 'index'])
+            Route::get('/index', [ProfesorController::class, 'index'])
                 ->name('gestion.profesores.index');
             Route::post('/store', [ProfesorController::class, 'store'])
                 ->name('gestion.profesores.store');
@@ -219,3 +219,5 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 });
+
+require __DIR__ . '/gestion_academica.php';

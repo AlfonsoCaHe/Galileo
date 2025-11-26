@@ -15,7 +15,7 @@ class Criterio extends Model
     protected $primaryKey = 'id_criterio';
 
     protected $fillable = [
-        'nombre',
+        'ce',//Nombre del criterio
         'descripcion',
         'ras_id'
     ];

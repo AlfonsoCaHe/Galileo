@@ -16,7 +16,8 @@ class Ras extends Model
     protected $primaryKey = 'id_ras';
 
     protected $fillable = [
-        'nombre',
+        'codigo',
+        'descripcion',
         'modulo_id' // Clave foránea para la relación 1:N con Modulo
     ];
 

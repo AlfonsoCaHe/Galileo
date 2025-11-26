@@ -48,22 +48,35 @@ class ProjectSchemaManager
         $schema->create('criterios', function (Blueprint $table) {
             $table->uuid('id_criterio')->primary();
             $table->uuid('ras_id'); // FK a 'ras'
-            $table->string('codigo')->unique();
+            $table->string('ce', 10); 
             $table->text('descripcion');
             $table->timestamps();
 
             $table->foreign('ras_id')->references('id_ras')->on('ras')->onDelete('cascade');
         });
-        
+
         $schema->create('tareas', function (Blueprint $table) {
             $table->uuid('id_tarea')->primary();
-            $table->uuid('modulo_id'); // FK a 'modulos'
-            $table->string('nombre');
-            $table->text('descripcion')->nullable();
-            $table->dateTime('fecha_limite');
-            $table->timestamps();
-
+            
+            //Parte del profesor (Profesor)
+            $table->string('nombre');// "Despliega una aplicación en un servidor"
+            $table->text('descripcion')->nullable(); // Instrucciones
+            $table->boolean('bloqueado')->default(false);//Evita que se pueda modificar la tarea una vez es true
+            
+            //Parte del Alumno
+            $table->text('notas_alumno')->nullable();
+            $table->date('fecha')->nullable();//Con un calendario
+            $table->string('duracion', 5)->nullable(); // HH:MM (Ej: 2:30)
+            
+            $table->uuid('modulo_id');
+            $table->uuid('alumno_id');
+            
+            //Parte del tutor laboral
+            $table->boolean('apto')->default(false); 
+            
             $table->foreign('modulo_id')->references('id_modulo')->on('modulos')->onDelete('cascade');
+            $table->foreign('alumno_id')->references('id_alumno')->on('alumnos')->onDelete('cascade');
+            $table->timestamps();
         });
 
         // 4. Tablas Pivote (Many-to-Many)

@@ -8,6 +8,7 @@ use App\Models\Profesor;
 use App\Models\Empresa;
 use App\Models\TutorLaboral;
 use App\Models\User;
+use App\Models\Alumno;
 use Illuminate\Support\Str;
 
 class PruebaRelacionesSeeder extends Seeder
@@ -43,39 +44,44 @@ class PruebaRelacionesSeeder extends Seeder
         // Profesor::truncate();
         // Empresa::truncate();
         // TutorLaboral::truncate();
-
+        $indice_profesor = 1;
+        $indice_empresa = 1;
+        $indice_tutor = 1;
         // Crear 2 Profesores
         for ($i = 1; $i <= 2; $i++) {
             $profesor = Profesor::create([
-                'nombre' => "Profesor Demo {$i}",
+                'nombre' => "Profesor Demo {$indice_profesor}",
             ]);
             User::create([
-                'name' => $profesor->nombre, 'email' => 'profesor'.$i.'@ies.galileo.com', 'password' => 'password',
+                'name' => $profesor->nombre, 'email' => 'profesor'.$indice_profesor.'@ies.galileo.com', 'password' => 'password',
                 'rol' => 'profesor', 'rolable_id' => $profesor->id_profesor, 'rolable_type' => Profesor::class, 
             ]);
+            $indice_profesor++;
         }
         $this->command->info("-> Se crearon 2 profesores y sus usuarios.");
 
         // Crear 2 Empresas con 2 Tutores cada una
         for ($i = 1; $i <= 2; $i++) {
             $empresa = Empresa::create([
-                'nombre' => "Empresa Demo {$i}",
-                'cif_nif' => "A1234560{$i}",
-                'nombre_gerente' => "Gerente {$i}",
-                'nif_gerente' => "{$i}1234567A"
+                'nombre' => "Empresa Demo {$indice_empresa}",
+                'cif_nif' => "A1234560{$indice_empresa}",
+                'nombre_gerente' => "Gerente {$indice_empresa}",
+                'nif_gerente' => "{$indice_empresa}1234567A"
             ]);
             
             for ($j = 1; $j <= 2; $j++) {
                 $tutor = TutorLaboral::create([
                     'empresa_id' => $empresa->id_empresa,
-                    'nombre' => "Tutor {$j} - {$empresa->nombre}",
-                    'email' => "tutor{$i}{$j}@demo.com",
+                    'nombre' => "Tutor {$indice_tutor} - {$empresa->nombre}",
+                    'email' => "tutor{$i}{$indice_tutor}@demo.com",
                 ]);
                 User::create([
                     'name' => $tutor->nombre, 'email' => $tutor->email, 'password' => 'password',
                     'rol' => 'tutor_laboral', 'rolable_id' => $tutor->id_tutor_laboral, 'rolable_type' => TutorLaboral::class, 
                 ]);
+                $indice_tutor++;
             }
+            $indice_empresa++;
         }
         $this->command->info("-> Se crearon 2 empresas y 4 tutores laborales con sus usuarios.");
     }
@@ -89,6 +95,9 @@ class PruebaRelacionesSeeder extends Seeder
         $currentYear = now()->year;
         $projectYears = [$currentYear, $currentYear + 1];
         
+        $indice_alumno = 1;
+        $letra_alumno = ['A', 'B', 'C', 'D', 'E', 'F'];
+
         foreach ($projectYears as $year) {
             $this->command->info("\n*** Creando Proyecto para el año: {$year} ***");
 
@@ -102,6 +111,13 @@ class PruebaRelacionesSeeder extends Seeder
                 // Opcional: si tu PruebaRelacionesSeeder usa una conexión específica, puedes pasarla aquí.
             ], $this->command->getOutput()); 
             
+            for($i = 1; $i < 2; $i++){
+                $alumno = Alumno::create([
+                    'nombre' => 'Alumno '.$letra_alumno[$indice_alumno],
+                ]);
+                $indice_alumno++;
+            }
+
             $this->command->info("*** Proyecto {$year} sembrado con datos de prueba (4 Alumnos, Módulos, Tareas). ***");
         }
     }
