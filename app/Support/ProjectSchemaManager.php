@@ -29,6 +29,7 @@ class ProjectSchemaManager
         $schema->create('alumnos', function (Blueprint $table) {
             $table->uuid('id_alumno')->primary();
             $table->string('nombre');
+            $table->string('periodo')->nullable();// Periodo de empresa del alumno
             $table->uuid('tutor_laboral_id')->nullable(); // FK a la BD principal
             $table->uuid('tutor_docente_id')->nullable(); // FK a la BD principal
             $table->timestamps();
@@ -59,12 +60,13 @@ class ProjectSchemaManager
             $table->uuid('id_tarea')->primary();
             
             //Parte del profesor (Profesor)
-            $table->string('nombre');// "Despliega una aplicación en un servidor"
+            $table->string('nombre');// Código de Actividad (Ej: MM01)
+            $table->string('tarea');// Desplegable con el nombre que verá el alumno
             $table->text('descripcion')->nullable(); // Instrucciones
             $table->boolean('bloqueado')->default(false);//Evita que se pueda modificar la tarea una vez es true
             
             //Parte del Alumno
-            $table->text('notas_alumno')->nullable();
+            $table->text('notas_alumno')->nullable();// Anotaciones del alumno
             $table->date('fecha')->nullable();//Con un calendario
             $table->string('duracion', 5)->nullable(); // HH:MM (Ej: 2:30)
             

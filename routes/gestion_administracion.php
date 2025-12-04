@@ -7,6 +7,7 @@ use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\TutorLaboralController;
 use App\Http\Controllers\ModuloController;
 use App\Http\Controllers\ProyectoController;
+use App\Http\Controllers\EmpresaController;
 use App\Http\Middleware\AdminCheck;
 use Illuminate\Support\Facades\Route;
 
@@ -120,18 +121,22 @@ Route::middleware([AdminCheck::class])->group(function () {
     Route::prefix('gestion/empresas')->group(function () {
 
         // Rutas CRUD para Empresas
-        Route::get('/', [TutorLaboralController::class, 'indexEmpresas'])
+        Route::get('/', [EmpresaController::class, 'indexEmpresas'])
             ->name('gestion.empresas.index');
-        Route::get('/crear', [TutorLaboralController::class, 'createEmpresa'])
+        Route::get('/crear', [EmpresaController::class, 'createEmpresa'])
             ->name('gestion.empresas.create');
-        Route::post('/', [TutorLaboralController::class, 'storeEmpresa'])
+        Route::post('/', [EmpresaController::class, 'storeEmpresa'])
             ->name('gestion.empresas.store');
-        Route::get('/{empresa_id}/editar', [TutorLaboralController::class, 'editEmpresa']) // Se corrigió el prefijo original
+        Route::get('/{empresa_id}/editar', [EmpresaController::class, 'editEmpresa']) // Se corrigió el prefijo original
             ->name('gestion.empresas.edit');
-        Route::put('/{empresa_id}', [TutorLaboralController::class, 'updateEmpresa'])
+        Route::put('/{empresa_id}', [EmpresaController::class, 'updateEmpresa'])
             ->name('gestion.empresas.update');
-        Route::delete('/{empresa_id}', [TutorLaboralController::class, 'destroyEmpresa'])
+        Route::delete('/{empresa_id}', [EmpresaController::class, 'destroyEmpresa'])
             ->name('gestion.empresas.destroy');
+
+        // Otras rutas para empresa
+        Route::put('/gestion/empresas/{empresa_id}/cupo', [EmpresaController::class, 'updateCupo'])
+            ->name('gestion.empresas.updateCupo');
 
         // Rutas CRUD para Tutores (Anidadas o con rutas específicas)
         Route::post('/{empresa_id}/tutores', [TutorLaboralController::class, 'storeTutor']) // Almacenar nuevo tutor

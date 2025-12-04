@@ -3,7 +3,7 @@
     <div class="d-flex">
         <div id="logo">
             <a href="{{ route('home') }}" class="btn w-100 h-100 p-1 d-flex flex-column align-items-center justify-content-center rounded-circle">
-                <img src="{{ asset('img/logo galileo.jpeg') }}" class="rounded-circle" style="max-width: 90px; max-height: 90px;"/>
+                <img src="{{ asset('img/logo_galileo_f.png') }}" class="rounded-circle" style="max-width: 90px; max-height: 90px;" alt="IES GALILEO"/>
             </a>
         </div>
         <div class="d-flex flex-row container w-auto justify-start">

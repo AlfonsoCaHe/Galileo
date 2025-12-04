@@ -1,5 +1,7 @@
 @extends('layouts.default')
 
+@extends('gestion.layouts.header')
+
 @section('scripts')
     <script>
         $(document).ready(function() {
@@ -40,7 +42,7 @@
 
 @section('content')
 <div class="container my-5">
-    <h1 class="mb-4 text-primary">Gestión de Empresas y Tutores Laborales</h1>
+    <h1 class="mb-4 texto">Gestión de Empresas y Tutores Laborales</h1>
     
     <div class="d-flex">
         <a href="{{ route('gestion.empresas.create') }}" class="btn btn-success m-2">

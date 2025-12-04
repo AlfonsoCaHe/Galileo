@@ -37,4 +37,12 @@ class Empresa extends Model
         // Asumiendo que la FK es 'empresa_id' en la tabla 'tutores_laborales'
         return $this->hasMany(TutorLaboral::class, 'empresa_id', 'id_empresa');
     }
+
+    /**
+     * Obtiene los cupos de alumnos por periodo.
+     */
+    public function cupos(): HasMany
+    {
+        return $this->hasMany(CupoEmpresa::class, 'empresa_id', 'id_empresa');
+    }
 }
