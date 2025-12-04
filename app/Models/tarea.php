@@ -16,6 +16,7 @@ class Tarea extends Model
 
     protected $fillable = [
         'nombre',
+        'tarea',//Desplegable para los alumnos
         'descripcion',
         'notas_alumno',
         'fecha',
@@ -48,11 +49,6 @@ class Tarea extends Model
 
     public function criterios(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Criterio::class, 
-            'tareas_criterios', 
-            'tarea_id', 
-            'criterio_id'
-        );
+        return $this->belongsToMany('tareas_criterios', 'tarea_id', 'criterio_id');
     }
 }

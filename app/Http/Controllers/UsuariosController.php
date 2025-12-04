@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Profesor;
 use App\Models\Alumno;
 use App\Models\TutorLaboral;
+use Yajra\DataTables\Facades\DataTables;
 
 class UsuariosController extends Controller
 {
@@ -106,6 +107,13 @@ class UsuariosController extends Controller
     }
 
     /**
+     * Método que redirige a la vista de gestión de usuarios
+     */
+    public function index(){
+        return view('gestion.usuarios.index');
+    }
+
+    /**
      * Método que redirige a la vista de creación de profesores
      */
     public function createProfesor(){
@@ -195,108 +203,176 @@ class UsuariosController extends Controller
     /**
      * Redirige al listado de usuarios de la base de datos
      */
-    public function show(){
-        $usuarios = User::all();
+    // public function show(){
+    //     $usuarios = User::all();
 
-        return view('usuarios.show',compact('usuarios'));
-    }
+    //     return view('usuarios.show',compact('usuarios'));
+    // }
 
     /**
      * Procesa la petición AJAX de DataTables.
      */
-    public function showDataTable(Request $request) {
-        
-        // 1. Consulta Base (Selecciona los campos necesarios)
-        $query = User::select(['id', 'name', 'email', 'rol']);
+    public function showDataTable(Request $request)
+    {
+        // Filtro: 'inactivos' muestra la papelera, cualquier otra cosa muestra los activos
+        $verInactivos = $request->input('estado') === 'inactivos';
 
-        // 2. FILTRADO (Búsqueda Global de DataTables)
-        if (!empty($request->search['value'])) {
-            $searchValue = $request->search['value'];
-            $query->where(function ($q) use ($searchValue) {
-                $q->where('name', 'LIKE', "%{$searchValue}%")
-                  ->orWhere('email', 'LIKE', "%{$searchValue}%")
-                  ->orWhere('rol', 'LIKE', "%{$searchValue}%");
-            });
+        if ($verInactivos) {
+            $query = User::onlyTrashed(); 
+        } else {
+            $query = User::query(); 
         }
-        
-        // 3. CONTEO DE REGISTROS
-        $recordsFiltered = $query->count();
-        $recordsTotal = User::count(); 
 
-        // 4. ORDENACIÓN (ORDER BY)
-        if (isset($request->order[0]['column'])) {
-            $columnIndex = $request->order[0]['column'];
-            $columnName = $request->columns[$columnIndex]['name'];
-            $direction = $request->order[0]['dir'];
+        return DataTables::of($query)
+            ->addColumn('estado', function ($usuario) {
+                // PROTECCIÓN ADMIN: No mostramos el switch para el Admin principal
+                if ($usuario->rol === 'admin') {
+                    return '<span> </span>';
+                }
 
-            if (in_array($columnName, ['id', 'nombre', 'email', 'rol'])) {
-                $dbColumn = ($columnName == 'nombre') ? 'name' : $columnName;
-                $query->orderBy($dbColumn, $direction);
+                // PROTECCIÓN AUTO-BORRADO: No puedes desactivarte a ti mismo
+                if (Auth::id() === $usuario->id) {
+                    return '<span class="badge bg-success">TU USUARIO</span>';
+                }
+
+                // LÓGICA DEL SWITCH
+                // Si está borrado (trashed), el switch está apagado. Si no, encendido.
+                $estaActivo = !$usuario->trashed();
+                $checked = $estaActivo ? 'checked' : '';
+                $texto = $estaActivo ? 'ACTIVO' : 'INACTIVO';
+                $claseTexto = $estaActivo ? 'text-success' : 'text-danger';
+
+                return '
+                    <form action="'.route('gestion.usuarios.toggle', $usuario->id).'" method="POST">
+                        '.csrf_field().'
+                        '.method_field('PUT').'
+                        <div class="form-check form-switch d-flex justify-content-center">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   role="switch" 
+                                   style="cursor: pointer; transform: scale(1.2);" 
+                                   onchange="this.form.submit()" 
+                                   '.$checked.'>
+                        </div>
+                        <small class="fw-bold '.$claseTexto.'">'.$texto.'</small>
+                    </form>
+                ';
+            })
+            ->addColumn('rol', function($usuario) {
+                // Formato visual de roles
+                $colors = [
+                    'admin' => 'danger',
+                    'profesor' => 'primary',
+                    'alumno' => 'info text-dark',
+                    'tutor_laboral' => 'success'
+                ];
+                $color = $colors[$usuario->rol] ?? 'secondary';
+                return '<span class="badge bg-'.$color.'">'.strtoupper($usuario->rol).'</span>';
+            })
+            ->addColumn('acciones', function ($usuario) {
+                return '
+                    <form action="'.route('gestion.usuarios.edit', $usuario->id).'" method="POST" class="d-inline">
+                        '.csrf_field().' 
+                        <button type="submit" class="btn btn-sm btn-warning shadow-sm" title="Editar">
+                            Editar
+                        </button>
+                    </form>';
+            })
+            ->rawColumns(['estado', 'rol', 'acciones'])
+            ->make(true);
+    }
+
+    /**
+     * Método Toggle: Si existe, lo borra (Soft). Si está borrado, lo restaura.
+     */
+    public function toggleEstado($id)
+    {
+        // Buscamos incluso en la papelera para poder restaurar
+        $usuario = User::withTrashed()->findOrFail($id);
+
+        // 1. Protección Admin
+        if ($usuario->rol === 'admin') {
+            return redirect()->back()->withErrors('No puedes desactivar al Administrador principal.');
+        }
+
+        // 2. Protección Auto-desactivación
+        if (Auth::id() === $usuario->id) {
+            return redirect()->back()->withErrors('No puedes desactivar tu propia cuenta.');
+        }
+
+        try {
+            if ($usuario->trashed()) {
+                // Si estaba borrado -> Restaurar (Activar)
+                $usuario->restore();
+                $mensaje = "Usuario activado correctamente.";
+            } else {
+                // Si estaba activo -> Borrar (Desactivar)
+                $usuario->delete();
+                $mensaje = "Usuario desactivado correctamente.";
             }
-        }
 
-        // 5. PAGINACIÓN (LIMIT y OFFSET)
-        if ($request->length != -1) {
-            $query->limit($request->length)->offset($request->start);
-        }
+            return redirect()->back()->with('success', $mensaje);
 
-        // 6. OBTENEMOS LOS DATOS Y FORMATEAMOS LA RESPUESTA
-        $usuarios = $query->get();
-        
-        $datos = [];
-        foreach($usuarios as $usuario) {
-            $editUrl = route('usuarios.editar', ['id' => $usuario->id]);
-            
-            // Formateamos el nombre para el atributo HTML
-            $userName = htmlspecialchars($usuario->name, ENT_QUOTES, 'UTF-8'); 
-            
-            $acciones = '<a href="'.$editUrl.'" class="btn btn-warning btn-sm me-2">Modificar</a>';
-            
-            if (!$usuario->isAdmin()) {
-                 $acciones .= ' <input type="button" 
-                                    data-id="'.$usuario->id.'" 
-                                    data-nombre="'.$userName.'"  
-                                    value="Eliminar" 
-                                    class="btn btn-danger btn-sm eliminar-usuario" />';
-            }
-            
-            $datos[] = [
-                'id' => $usuario->id,
-                'nombre' => $usuario->name, // Mapeamos $usuario->name a la columna 'nombre' de DataTables
-                'email' => $usuario->email,
-                'rol' => $usuario->rol,
-                'acciones' => $acciones
-            ];
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error al cambiar estado: ' . $e->getMessage());
         }
-
-        // 7. Devolver la respuesta en formato JSON
-        return response()->json([
-            'draw' => $request->draw, 
-            'recordsTotal' => $recordsTotal, 
-            'recordsFiltered' => $recordsFiltered, 
-            'data' => $datos
-        ]);
     }
 
     /**
      * Método para eliminar un usuario
      */
-    public function eliminar(Request $request) {
+    // public function eliminar(Request $request) {
 
-        $usuario = User::find($request->id);
+    //     $usuario = User::find($request->id);
 
-        //El usuario admin no se puede eliminar
-        if ($usuario && $usuario->isAdmin()) {
-            return response()->json(['error' => 'No se puede eliminar un usuario con rol de Administrador.'], 403);
-        }
+    //     //El usuario admin no se puede eliminar
+    //     if ($usuario && $usuario->isAdmin()) {
+    //         return response()->json(['error' => 'No se puede eliminar un usuario con rol de Administrador.'], 403);
+    //     }
 
-        if ($usuario) {
-            $usuario->delete();
-            return response()->json(['success' => 'Usuario eliminado correctamente.'], 200);
-        }
+    //     if ($usuario) {
+    //         $usuario->delete();
+    //         return response()->json(['success' => 'Usuario eliminado correctamente.'], 200);
+    //     }
         
-        // Si el usuario no existe
-        return response()->json(['error' => 'Usuario no encontrado.'], 404);
+    //     // Si el usuario no existe
+    //     return response()->json(['error' => 'Usuario no encontrado.'], 404);
+    // }
+
+    /**
+     * Realiza un Soft Delete del usuario.
+     */
+    public function destroy($id)
+    {
+        $usuario = User::findOrFail($id);
+
+        if ($usuario->rol === 'admin') {
+            return response()->json(['error' => 'No está permitido eliminar al Administrador principal.'], 403);
+        }
+        if (Auth::id() === $usuario->id) {
+            return response()->json(['error' => 'No puedes eliminar tu propia cuenta.'], 403);
+        }
+
+        try {
+            $usuario->delete();
+            return response()->json(['success' => 'Usuario enviado a la papelera correctamente.'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al eliminar: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Restaura un usuario eliminado.
+     */
+    public function restore($id)
+    {
+        try {
+            $usuario = User::onlyTrashed()->findOrFail($id);
+            $usuario->restore();
+            return response()->json(['success' => 'Usuario restaurado correctamente.'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al restaurar: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -307,7 +383,7 @@ class UsuariosController extends Controller
         // Buscar al usuario o fallar si no existe
         $usuario = User::findOrFail($id);
         
-        return view('usuarios.editar', compact('usuario'));
+        return view('gestion.usuarios.edit', compact('usuario'));
     }
 
     /**
@@ -343,6 +419,6 @@ class UsuariosController extends Controller
 
         $usuario->update($updateData);
 
-        return redirect()->route('usuarios.show')->with('success', 'Usuario actualizado correctamente.');
+        return redirect()->route('gestion.usuarios.index')->with('success', 'Usuario actualizado correctamente.');
     }
 }

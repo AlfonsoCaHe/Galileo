@@ -1,5 +1,6 @@
 :root{
-    --color_background:rgb(169, 253, 246);
+    --color_background:#008080;
+    --color_texto: white;
 }
 
 body{
@@ -9,4 +10,8 @@ body{
 .oculto{
     visibility: hidden;
     height: 0px;
+}
+
+.texto{
+    color: var(--color_texto);
 }
