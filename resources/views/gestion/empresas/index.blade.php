@@ -44,12 +44,9 @@
 <div class="container my-5">
     <h1 class="mb-4 texto">Gestión de Empresas y Tutores Laborales</h1>
     
-    <div class="d-flex">
+    <div class="d-flex justify-content-end">
         <a href="{{ route('gestion.empresas.create') }}" class="btn btn-success m-2">
             Crear Nueva Empresa
-        </a>
-        <a href="{{ route('home') }}" class="btn btn-secondary m-2">
-            Panel Principal
         </a>
     </div>
 
@@ -79,6 +76,7 @@
                     <th>NIF del Gerente</th>
                     <th>Tutor Contacto</th>
                     <th>Email del Tutor</th>
+                    <th>Plazas</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -106,6 +104,12 @@
                         </td>
                         <td>{{ $tutor ? $tutor->email : 'N/A' }}</td>
                         
+                        {{-- Plazas --}}
+                        <td class="text-center">
+                            <span class="badge rounded-pill bg-info text-dark border border-info p-2 px-3">
+                                <i class="bi bi-people-fill me-1"></i> {{ $empresa->cupos_sum_plazas ?? 0 }}
+                            </span>
+                        </td>
                         {{-- Acciones --}}
                         <td>
                             <a href="{{ route('gestion.empresas.edit', ['empresa_id' => $empresa->id_empresa]) }}" 

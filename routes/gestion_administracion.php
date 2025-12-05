@@ -65,7 +65,7 @@ Route::middleware([AdminCheck::class])->group(function () {
             ->name('gestion.profesores.store');
         Route::get('/create', [ProfesorController::class, 'create'])
             ->name('gestion.profesores.create');
-        Route::get('/show', [ProfesorController::class, 'show'])
+        Route::get('/{profesor_id}/show', [ProfesorController::class, 'show'])
             ->name('gestion.profesores.show');
         Route::get('/{profesor_id}/edit', [ProfesorController::class, 'edit'])
             ->name('gestion.profesores.edit');

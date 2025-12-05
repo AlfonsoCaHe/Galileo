@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('tutores_laborales', function (Blueprint $table) {
             $table->uuid('id_tutor_laboral')->primary();
             $table->string('nombre', 70);
+            $table->string('dni', 9)->unique();
             $table->string('email', 70);
             $table->uuid('empresa_id')->nullable()->index(); 
             

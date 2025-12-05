@@ -19,6 +19,7 @@ class TutorLaboral extends Model
 
     protected $fillable = [
         'nombre',
+        'dni',
         'email',
         'empresa_id'
     ];

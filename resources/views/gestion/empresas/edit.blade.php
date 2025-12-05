@@ -183,12 +183,6 @@
                     <div id="status-msg-2" class="mt-1" style="height: 20px;"></div>
                 </div>
             </div>
-            
-            {{-- Botones principales --}}
-            <div class="d-flex justify-content-end gap-2 mt-4 pt-3">
-                <a href="{{ route('gestion.empresas.index') }}" class="btn btn-secondary fw-bold">Volver</a>
-                <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Todo</button>
-            </div>
         </div>
     </form>
 
@@ -205,6 +199,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Nombre</th>
+                    <th>DNI</th>
                     <th>Email</th>
                     <th class="text-center" style="width: 150px;">Acciones</th>
                 </tr>
@@ -213,6 +208,7 @@
                 @foreach ($empresa->tutores as $tutor)
                     <tr>
                         <td class="align-middle">{{ $tutor->nombre }}</td>
+                        <td class="align-middle">{{ $tutor->dni }}</td>
                         <td class="align-middle">{{ $tutor->email }}</td>
                         <td class="text-center">
                             <a href="{{ route('gestion.tutores.edit', ['tutor_id' => $tutor->id_tutor_laboral]) }}" 
@@ -234,6 +230,11 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+    {{-- Botones principales --}}
+    <div class="d-flex justify-content-start gap-2 mt-4 pt-3">
+        <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Todo</button>
+        <a href="{{ route('gestion.empresas.index') }}" class="btn btn-danger fw-bold ms-2">Volver</a>
     </div>
 </div>
 @endsection

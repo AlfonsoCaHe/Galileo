@@ -1,5 +1,7 @@
 @extends('layouts.default')
 
+@extends('gestion.layouts.header')
+
 @section('title', 'Iniciar Sesión')
 
 @section('content')

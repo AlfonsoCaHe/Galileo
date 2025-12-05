@@ -19,7 +19,7 @@ class EmpresaController extends Controller
     public function indexEmpresas()
     {
         // Obtenemos todas las empresas con sus tutores laborales
-        $empresas = Empresa::with('tutores')->get(); 
+        $empresas = Empresa::with('tutores')->withSum('cupos', 'plazas')->get(); 
 
         return view('gestion.empresas.index', compact('empresas'));
     }
@@ -72,6 +72,7 @@ class EmpresaController extends Controller
                 User::createRolableUser($tutor, [
                     'name' => $request->tutor_nombre,
                     'email' => $request->tutor_email,
+                    'rol' => 'tutor_laboral',
                     'password' => $request->password,
                 ]);
 

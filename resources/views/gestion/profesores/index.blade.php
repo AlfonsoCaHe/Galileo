@@ -1,5 +1,7 @@
 @extends('layouts.default')
 
+@extends('gestion.layouts.header')
+
 @section('title', 'Gestión de Profesores')
 
 @section('scripts')
@@ -44,7 +46,7 @@
 
 @section('content')
 <div class="container my-5">
-    <h1 class="mb-4 text-primary">Gestión de Profesores</h1>
+    <h1 class="mb-4 texto">Gestión de Profesores</h1>
 
     {{-- Bloque de Errores --}}
     @if ($errors->any())
@@ -67,18 +69,15 @@
         </div>
     @endif
 
+    {{-- Botones de Acción --}}
+    <div class="d-flex justify-content-end">
+        <a href="{{ route('gestion.profesores.create') }}" class="btn btn-success fw-bold m-2 shadow-sm">
+            <i class="bi bi-plus-circle-fill me-1"></i> Nuevo Profesor
+        </a>
+    </div>
     <div class="card shadow-lg p-4">
-        {{-- CABECERA CON FILTRO Y BOTONES --}}
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            {{-- Botones de Acción --}}
-            <div class="d-flex">
-                <a href="{{ route('gestion.profesores.store') }}" class="btn btn-success fw-bold m-2 shadow-sm">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Nuevo Profesor
-                </a>
-                <a href="{{ route('home') }}" class="btn btn-secondary fw-bold m-2 shadow-sm">
-                    Volver
-                </a>
-            </div>
+        {{-- CABECERA CON FILTRO --}}
+        <div class="d-flex justify-content-end align-items-center mb-3">
             {{-- Filtro de Estado --}}
             <form action="{{ route('gestion.profesores.index') }}" method="GET" class="d-flex align-items-center">
                 <label for="estado" class="form-label me-2 mb-0 fw-bold text-secondary">Estado:</label>

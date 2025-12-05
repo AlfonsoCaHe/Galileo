@@ -1,6 +1,7 @@
 @extends('layouts.default')
 
 @section('content')
+@include('gestion.layouts.header')
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-5">
@@ -79,9 +80,8 @@
                         </div>
                         <!-- Botón de Cancelar -->
                         <div class="d-grid gap-2 mt-3">
-                            <a href="{{route('gestion.profesores.index')}}" type="submit"
-                                    class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
-                                Cancelar
+                            <a href="javascript:history.back()" class="btn btn-danger shadow-sm">
+                                <i class="bi bi-arrow-left me-1"></i> Cancelar
                             </a>
                         </div>
                     </form>

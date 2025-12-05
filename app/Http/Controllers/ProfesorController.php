@@ -315,13 +315,65 @@ class ProfesorController extends Controller
     }
 
     /**
-     * Método que redirige a la vista para ver los detalles de un profesor
+     * Muestra la ficha detallada del profesor.
+     * Recolecta:
+     * 1. Módulos donde imparte clase (Docente).
+     * 2. Alumnos de los que es responsable (Tutor Docente).
      */
-    public function show($id)
+    public function show($profesor_id)
     {
-        $profesor = Profesor::findOrFail($id);
-        // Aquí podrías añadir lógica similar al index si quieres ver detalles de sus alumnos
-        return view('profesor.show', compact('profesor')); // Asegúrate de tener esta vista o redirigir
+        // 1. Datos del profesor (BD Principal)
+        $profesor = Profesor::with('user')->findOrFail($profesor_id);
+
+        // 2. Colecciones para acumular datos de las distintas BDs
+        $modulosDocentes = collect();
+        $alumnosTutorizados = collect();
+
+        // 3. Obtener proyectos activos
+        $proyectos = Proyecto::where('finalizado', 0)->get();
+
+        foreach ($proyectos as $proyecto) {
+            // Configurar conexión dinámica
+            $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
+            $config = config('database.connections.mysql');
+            $config['database'] = $proyecto->conexion;
+            config(["database.connections.{$nombreConexion}" => $config]);
+            \Illuminate\Support\Facades\DB::purge($nombreConexion);
+
+            try {
+                // A. BUSCAR MÓDULOS (Donde es profesor)
+                // Usamos withCount('alumnos') para saber cuántos alumnos tiene matriculados ese módulo
+                $mods = Modulo::on($nombreConexion)
+                    ->whereHas('profesores', function ($q) use ($profesor_id) {
+                        $q->where('profesor_id', $profesor_id);
+                    })
+                    ->withCount('alumnos') 
+                    ->get();
+
+                foreach ($mods as $m) {
+                    // Inyectamos datos del proyecto para usarlos en la vista (rutas)
+                    $m->proyecto_nombre = $proyecto->proyecto;
+                    $m->proyecto_id = $proyecto->id_base_de_datos;
+                    $modulosDocentes->push($m);
+                }
+
+                // B. BUSCAR ALUMNOS (Donde es Tutor Docente)
+                $alums = Alumno::on($nombreConexion)
+                    ->where('tutor_docente_id', $profesor_id)
+                    ->get();
+
+                foreach ($alums as $a) {
+                    $a->proyecto_nombre = $proyecto->proyecto;
+                    $a->proyecto_id = $proyecto->id_base_de_datos;
+                    $alumnosTutorizados->push($a);
+                }
+
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        return view('gestion.profesores.show', compact('profesor', 'modulosDocentes', 'alumnosTutorizados'));
     }
 
     /**
@@ -338,7 +390,7 @@ class ProfesorController extends Controller
                     ->firstOrFail();
 
         $profesor->email = $user->email;
-
+        // dd($profesor);
         return view('gestion.profesores.edit', compact('profesor'));
     }
 

@@ -1,5 +1,7 @@
 @extends('layouts.default')
 
+<!-- @extends('gestion.layouts.header') -->
+
 @section('title', 'Editar Tutor Laboral: ' . $tutor->nombre)
 
 @section('content')
@@ -48,6 +50,16 @@
                         </div>
 
                         <div class="mb-3">
+                            <label for="dni" class="form-label fw-semibold">DNI</label>
+                            <input type="text" 
+                                   name="dni" 
+                                   id="dni" 
+                                   class="form-control" 
+                                   value="{{ old('dni', $tutor->dni) }}" 
+                                   required>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="email" class="form-label fw-semibold">Email de Acceso</label>
                             <input type="email" 
                                    name="email" 
@@ -82,7 +94,7 @@
                                 Guardar Cambios
                             </button>
                             <a href="{{ route('gestion.empresas.edit', ['empresa_id' => $tutor->empresa_id]) }}" 
-                               class="btn btn-secondary btn-lg rounded-3 fw-bold shadow-sm">
+                               class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
                                 Cancelar
                             </a>
                         </div>

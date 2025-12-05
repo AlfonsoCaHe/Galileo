@@ -14,7 +14,7 @@ body{
 }
 
 .texto{
-    color: var(--color_texto);
+    color: var(--color_texto) !important;
 }
 
 .fondo{
