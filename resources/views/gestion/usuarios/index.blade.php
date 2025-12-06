@@ -64,15 +64,10 @@
 @endsection
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid my-5">
     
     {{-- Cabecera --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0 texto">Gestión de Usuarios</h2>
-        <a href="{{ route('admin.panel') }}" class="btn btn-danger shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i>Volver
-        </a>
-    </div>
+    <h1 class="mb-4 texto">Gestión de Usuarios</h1>
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
