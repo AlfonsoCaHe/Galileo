@@ -49,6 +49,6 @@ class Tarea extends Model
 
     public function criterios(): BelongsToMany
     {
-        return $this->belongsToMany('tareas_criterios', 'tarea_id', 'criterio_id');
+        return $this->belongsToMany(Criterio::class, 'tareas_criterios', 'tarea_id', 'criterio_id');
     }
 }

@@ -5,30 +5,30 @@
 @section('scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        @if(session('open_ra'))
+        if(session('open_ra'))
             var collapseElement = document.getElementById('collapse-{{ session("open_ra") }}');
             if (collapseElement) {
                 var bsCollapse = new bootstrap.Collapse(collapseElement, { toggle: true });
                 collapseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-        @endif
     });
 </script>
 @endsection
 
 @section('content')
+@include('gestion.layouts.header')
 <div class="container-fluid">
     
     {{-- CABECERA --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-0 text-gray-800">Resultados de Aprendizaje</h1>
-            <p class="text-muted mb-0 mt-1">
-                Módulo: <strong>{{ $modulo->nombre }}</strong>
+            <h2 class=" mb-0 texto">Resultados de Aprendizaje</h2>
+            <p class="fs-6 texto mb-0 mt-1">
+                Módulo: <strong class="text-warning">{{ $modulo->nombre }}</strong>
             </p>
         </div>
-        <a href="{{ route('gestion.modulos.index', $proyecto_id) }}" class="btn btn-secondary shadow-sm">
-            <i class="bi bi-arrow-left me-2"></i>Volver a Módulos
+        <a href="{{ route('gestion.modulos.index', $proyecto_id) }}" class="btn btn-danger shadow-sm">
+            <i class="bi bi-arrow-left me-2"></i>Volver
         </a>
     </div>
 

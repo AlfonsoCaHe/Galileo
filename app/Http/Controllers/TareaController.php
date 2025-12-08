@@ -31,22 +31,36 @@ class TareaController extends Controller
         Ras::getConnectionResolver()->setDefaultConnection($connectionName);
     }
 
+    // 
+    
     public function index($proyecto_id, $modulo_id)
     {
         $this->setDynamicConnection($proyecto_id);
         $modulo = Modulo::findOrFail($modulo_id);
 
-        // Si es profesor/admin, ve todas. Si es alumno, solo las suyas.
-        $query = Tarea::with(['alumno', 'criterios'])->where('modulo_id', $modulo_id);
-        
-        if (Auth::user()->isAlumno()) {
-            $alumnoId = Auth::user()->rolable_id; 
-            $query->where('alumno_id', $alumnoId);
-        }
+        // 1. Traemos TODAS las tareas con sus relaciones necesarias
+        $todasLasTareas = Tarea::with(['alumno', 'criterios.ras'])
+                                ->where('modulo_id', $modulo_id)
+                                ->orderBy('created_at', 'desc')
+                                ->get();
 
-        $tareas = $query->orderBy('created_at', 'desc')->get();
+        // 2. Preparamos los datos del Popover (Alumnos por tarea)
+        // Clave: Nombre Tarea -> Valor: {total, html_nombres}
+        $infoAlumnos = $todasLasTareas->groupBy('nombre')->map(function ($grupo) {
+            return [
+                'total' => $grupo->count(),
+                // Creamos una lista HTML para el popover
+                'nombres' => $grupo->map(function($t) {
+                    return "<div>• " . ($t->alumno->nombre ?? 'Sin nombre') . "</div>";
+                })->implode('')
+            ];
+        });
 
-        return view('gestion.tareas.index', compact('proyecto_id', 'modulo', 'tareas'));
+        // 3. Para la tabla visual, usamos 'unique' para mostrar solo UNA fila por actividad
+        // Así evitamos que salga la misma tarea repetida 30 veces.
+        $tareasUnicas = $todasLasTareas->unique('nombre');
+
+        return view('gestion.tareas.index', compact('proyecto_id', 'modulo', 'tareasUnicas', 'infoAlumnos'));
     }
 
     public function create($proyecto_id, $modulo_id)
@@ -75,6 +89,7 @@ class TareaController extends Controller
                     $tarea = Tarea::create([
                         'nombre' => $request->nombre,
                         'descripcion' => $request->descripcion,
+                        'tarea' => $request->tarea,
                         'modulo_id' => $modulo_id,
                         'alumno_id' => $alumno_id,
                         'apto' => false,      // Default NO APTO
@@ -116,5 +131,216 @@ class TareaController extends Controller
          $this->setDynamicConnection($proyecto_id);
          Tarea::findOrFail($tarea_id)->delete();
          return redirect()->back()->with('success', 'Tarea eliminada.');
+    }
+
+    //******************************************************************************************* */
+    public function edit($proyecto_id, $modulo_id, $tarea_id)
+    {
+        $this->setDynamicConnection($proyecto_id);
+        $modulo = Modulo::with('ras.criterios')->findOrFail($modulo_id);
+
+        // 1. Buscamos la tarea específica que pinchó el usuario
+        $tareaPrincipal = Tarea::with(['criterios'])->findOrFail($tarea_id);
+
+        // 2. Buscamos TODAS las tareas hermanas (mismo nombre y módulo) para listar los alumnos
+        // Incluimos las relaciones necesarias para la tabla de alumnos
+        $asignaciones = Tarea::with(['alumno', 'alumno.tutorLaboral', 'alumno.tutorDocente'])
+                             ->where('modulo_id', $modulo_id)
+                             ->where('nombre', $tareaPrincipal->nombre) // Agrupamos por nombre
+                             ->get();
+
+        // 3. Obtenemos los IDs de criterios ya asignados para marcar los checkbox
+        $criteriosIds = $tareaPrincipal->criterios->pluck('id_criterio')->toArray();
+
+        return view('gestion.tareas.edit', compact('proyecto_id', 'modulo', 'tareaPrincipal', 'asignaciones', 'criteriosIds'));
+    }
+
+    public function update(Request $request, $proyecto_id, $tarea_id)
+    {
+        $this->setDynamicConnection($proyecto_id);
+        $tarea = Tarea::findOrFail($tarea_id);
+
+        // CASO 1: Actualización MASIVA (Definición General)
+        if ($request->modo == 'definicion') {
+            
+            $request->validate([
+                'nombre' => 'required|string',
+                'tarea' => 'nullable|string',
+                'descripcion' => 'nullable|string',
+                'criterios' => 'nullable|array'
+            ]);
+
+            // 1. Buscamos todas las tareas hermanas (mismo nombre y modulo) para actualizarlas todas
+            // OJO: Usamos el nombre ANTIGUO para buscarlas antes de cambiarlo
+            $tareasHermanas = Tarea::where('modulo_id', $tarea->modulo_id)
+                                   ->where('nombre', $tarea->nombre)
+                                   ->get();
+
+            foreach ($tareasHermanas as $t) {
+                // Actualizamos datos básicos
+                $t->update([
+                    'nombre' => $request->nombre,
+                    'tarea' => $request->tarea,
+                    'descripcion' => $request->descripcion
+                ]);
+
+                // Sincronizamos criterios (pivot)
+                if ($request->has('criterios')) {
+                    $t->criterios()->sync($request->criterios);
+                } else {
+                    $t->criterios()->detach();
+                }
+            }
+
+            return redirect()->back()->with('success', 'Definición actualizada para ' . $tareasHermanas->count() . ' alumnos.');
+        }
+
+        // CASO 2: Actualización INDIVIDUAL (Check Apto desde la tabla)
+        if ($request->modo == 'individual') {
+            // Si el checkbox 'apto' no viene en el request, es que se desmarcó (false)
+            $apto = $request->has('apto') ? true : false;
+            
+            $tarea->update(['apto' => $apto]);
+            
+            return redirect()->back()->with('success', 'Estado de calificación actualizado.');
+        }
+        
+        return redirect()->back();
+    }
+
+    /**
+     * Método para mostrar una sola tarea (ACTUALMENTE EN DESUSO)
+     */
+    public function show($proyecto_id, $modulo_id, $tarea_id){
+        $this->setDynamicConnection($proyecto_id);
+        $tarea = Tarea::findOrFail($tarea_id);
+
+        return view('gestion.tareas.show', compact('tarea'));
+    }
+
+    /**
+     * Actualiza solo la fecha vía AJAX (sin recargar).
+     */
+    public function updateFecha(Request $request, $proyecto_id, $tarea_id)
+    {
+        $request->validate([
+            'fecha' => 'nullable|date'
+        ]);
+
+        $this->setDynamicConnection($proyecto_id);
+        
+        try {
+            $tarea = Tarea::findOrFail($tarea_id);
+            
+            // Si llega fecha vacía, guardamos null, si no, la fecha
+            $tarea->fecha = $request->fecha ?: null;
+            $tarea->save();
+
+            return response()->json(['success' => true, 'message' => 'Fecha guardada']);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Actualiza solo la DURACIÓN vía AJAX.
+     */
+    public function updateDuracion(Request $request, $proyecto_id, $tarea_id)
+    {
+        $request->validate([
+            'duracion' => 'nullable|string|max:5' // Ej: "01:30"
+        ]);
+
+        $this->setDynamicConnection($proyecto_id);
+        
+        try {
+            $tarea = Tarea::findOrFail($tarea_id);
+            $tarea->duracion = $request->duracion;
+            $tarea->save();
+
+            return response()->json(['success' => true, 'message' => 'Duración guardada']);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Bloquea o Desbloquea TODAS las tareas hermanas a la vez (AJAX).
+     */
+    public function toggleBloqueoMasivo(Request $request, $proyecto_id, $tarea_id)
+    {
+        $request->validate(['bloqueado' => 'required|boolean']);
+
+        $this->setDynamicConnection($proyecto_id);
+
+        try {
+            $tarea = Tarea::findOrFail($tarea_id);
+
+            // Actualización masiva por Query Builder (más rápido que un foreach)
+            Tarea::where('modulo_id', $tarea->modulo_id)
+                 ->where('nombre', $tarea->nombre)
+                 ->update(['bloqueado' => $request->bloqueado]);
+
+            return response()->json(['success' => true, 'message' => 'Estado actualizado para todos.']);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Actualiza la calificación (APTO/NO APTO) vía AJAX.
+     */
+    public function updateApto(Request $request, $proyecto_id, $tarea_id)
+    {
+        // Validamos que llegue un booleano (1, 0, "true", "false")
+        $request->validate([
+            'apto' => 'required|boolean'
+        ]);
+
+        $this->setDynamicConnection($proyecto_id);
+        
+        try {
+            $tarea = Tarea::findOrFail($tarea_id);
+            $tarea->apto = $request->apto;
+            $tarea->save();
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Calificación guardada',
+                'estado' => $tarea->apto ? 'APTO' : 'NO APTO'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Actualiza el estado de BLOQUEO vía AJAX.
+     */
+    public function updateBloqueo(Request $request, $proyecto_id, $tarea_id)
+    {
+        $request->validate([
+            'bloqueado' => 'required|boolean'
+        ]);
+
+        $this->setDynamicConnection($proyecto_id);
+        
+        try {
+            $tarea = Tarea::findOrFail($tarea_id);
+            $tarea->bloqueado = $request->bloqueado;
+            $tarea->save();
+
+            return response()->json([
+                'success' => true, 
+                'message' => $tarea->bloqueado ? 'Tarea Bloqueada' : 'Tarea Desbloqueada'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }

@@ -405,4 +405,26 @@ class AlumnoController extends Controller
             return redirect()->back()->withErrors('Error al eliminar el alumno: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Método para mostrar un alumno para el administrador
+     */
+    public function show($proyecto_id, $alumno_id){
+
+        try{
+            $this->restoreConnection(); 
+            $user = User::where('rolable_id', $alumno_id)->firstOrFail();
+
+            // 2. Configuramos la conexión dinámica
+            $proyecto = $this->setDynamicConnection($proyecto_id);
+            $alumno = Alumno::findOrFail($alumno_id);
+        }
+        catch(\Exception $e){
+            $this->restoreConnection(); 
+
+            return redirect()->back()->withErrors('Error al mostrar el alumno: ' . $e->getMessage());
+        }
+
+        return view('gestion.alumnos.show', compact('alumno'));
+    }
 }

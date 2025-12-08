@@ -3,10 +3,13 @@
 @section('title', 'Nueva Tarea')
 
 @section('content')
+@if(auth()->user()->isProfesor() || auth()->user()->isAdmin())
+    @include('gestion.layouts.header')
+@endif
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Nueva Actividad / Tarea</h1>
-        <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-secondary shadow-sm">
+        <h2 class="mb-4 mt-4 texto">Nueva Actividad / Tarea</h2>
+        <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
             <i class="bi bi-arrow-left me-1"></i> Cancelar
         </a>
     </div>
@@ -27,6 +30,10 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nombre de la Actividad</label>
                             <input type="text" name="nombre" class="form-control" placeholder="Ej: Práctica 2. Montaje..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tarea</label>
+                            <input type="text" name="tarea" class="form-control" placeholder="Texto que aparecerá en el desplegable del alumno" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Instrucciones / Descripción</label>

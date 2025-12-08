@@ -57,8 +57,9 @@
 @endsection
 
 @section('content')
+@include('gestion.layouts.header')
 <div class="container my-5">
-    <h1 class="mb-4 text-primary">Listado de Alumnos</h1>
+    <h2 class="mb-4 texto">Listado de Alumnos</h2>
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -78,18 +79,16 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-    <div class="card shadow-lg p-4">
-        {{-- Menú de opciones --}}
-        <div class="d-flex justify-content-start mb-3">
-            <div class="d-flex">
-                <a href="{{ route('gestion.alumnos.create') }}"class="btn btn-success fw-bold m-2">
-                    Nuevo Alumno
-                </a>
-                <a href="{{ route('admin.panel') }}" class="btn btn-secondary fw-bold m-2">
-                    Volver
-                </a>
-            </div>
+
+    {{-- Menú de opciones --}}
+    <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex">
+            <a href="{{ route('gestion.alumnos.create') }}"class="btn btn-success fw-bold m-2">
+                Nuevo Alumno
+            </a>
         </div>
+    </div>
+    <div class="card shadow-lg p-4">
 
         @if($alumnos_totales->isEmpty())
             <p class="alert alert-warning">No hay alumnos registrados en la base de datos.</p>
@@ -123,7 +122,7 @@
                             {{-- 5. Acciones: Ver, Editar, Eliminar --}}
 
                             {{-- Ver Alumno (Usando la ruta del proyecto) --}}
-                            <a href="{{ route('alumno.show', ['alumno_id' => $alumno->id_alumno]) }}" 
+                            <a href="{{ route('gestion.alumnos.show', ['proyecto_id' => $alumno->proyecto_galileo_id, 'alumno_id' => $alumno->id_alumno]) }}" 
                                class="btn btn-sm btn-info text-white" title="Ver Detalles">
                                 Ver
                             </a>

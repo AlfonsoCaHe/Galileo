@@ -38,20 +38,21 @@
 @endsection
 
 @section('content')
+@include('gestion.layouts.header')
 <div class="container-fluid">
 
     {{-- CABECERA: Título H1 y Botones --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
         {{-- Título H1 con clases estrictas --}}
-        <h1 class="h3 mb-0 text-gray-800">Módulos: {{ $proyecto->proyecto }}</h1>
+        <h2 class="mb-4 texto">Módulos: {{ $proyecto->proyecto }}</h2>
         
         {{-- Botones de Acción --}}
-        <div class="d-flex">
-            <a href="{{ route('gestion.proyectos.index') }}" class="btn btn-secondary shadow-sm me-2">
-                <i class="bi bi-arrow-left me-1"></i>Volver
+        <div class="d-flex gap-4">
+            <a href="{{ route('gestion.modulos.create', $proyecto->id_base_de_datos) }}" class="btn btn-success shadow-sm">
+                <i class="bi bi-plus-circle-fill"></i>Nuevo Módulo
             </a>
-            <a href="{{ route('gestion.modulos.create', $proyecto->id_base_de_datos) }}" class="btn btn-primary shadow-sm">
-                <i class="bi bi-plus-circle-fill me-1"></i>Nuevo Módulo
+            <a href="javascript:history.back()" class="btn btn-danger shadow-sm">
+                <i class="bi bi-arrow-left"></i> Volver
             </a>
         </div>
     </div>

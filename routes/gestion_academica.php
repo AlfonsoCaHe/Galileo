@@ -98,18 +98,21 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
         // Guardar Tarea (Generación masiva para N alumnos)
         Route::post('/tareas', [TareaController::class, 'store'])
             ->name('gestion.tareas.store');
+        
+        // Editar definición de la tarea (Solo el profesor)
+        Route::get('tareas/{tarea_id}/edit', [TareaController::class, 'edit'])
+            ->name('gestion.tareas.edit');
     });
 
-    // Rutas de Tarea individual
+    // =============================================================
+    // 4. Gestión de Tareas
+    // Dependen de la tarea
+    // =============================================================
     Route::prefix('tareas/{tarea_id}')->group(function () {
         
         // Ver detalle / Evaluar (Tutor Laboral y Profesor)
         Route::get('/', [TareaController::class, 'show'])
             ->name('gestion.tareas.show');
-
-        // Editar definición de la tarea (Solo el profesor)
-        Route::get('/edit', [TareaController::class, 'edit'])
-            ->name('gestion.tareas.edit');
         
         // Actualizar datos o calificación
         Route::put('/', [TareaController::class, 'update'])
@@ -122,6 +125,18 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
         // Bloquea o desbloquea la edición de una tarea (solo el profesor)
         Route::put('/toggle-bloqueo', [TareaController::class, 'toggleBloqueo'])
             ->name('gestion.tareas.toggleBloqueo');
+
+        // Peticiones AJAX
+        Route::put('/update-fecha', [TareaController::class, 'updateFecha'])
+            ->name('gestion.tareas.updateFecha');
+        Route::put('/update-duracion', [TareaController::class, 'updateDuracion'])
+            ->name('gestion.tareas.updateDuracion');
+        Route::put('/bloqueo-masivo', [TareaController::class, 'toggleBloqueoMasivo'])
+            ->name('gestion.tareas.toggleBloqueoMasivo');
+        Route::put('/update-apto', [TareaController::class, 'updateApto'])
+            ->name('gestion.tareas.updateApto');
+        Route::put('/update-bloqueo', [TareaController::class, 'updateBloqueo'])
+            ->name('gestion.tareas.updateBloqueo');
     });
 
 });

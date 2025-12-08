@@ -53,6 +53,8 @@ Route::middleware([AdminCheck::class])->group(function () {
             ->name('gestion.alumnos.update');
         Route::delete('/{proyecto_id}/{alumno_id}', [AlumnoController::class, 'destroy'])
             ->name('gestion.alumnos.destroy');
+        Route::get('/{proyecto_id}/{alumno_id}/show', [AlumnoController::class, 'show'])
+            ->name('gestion.alumnos.show');
         Route::get('/proyecto/{proyecto_id}', [ProyectoController::class, 'index'])
             ->name('gestion.alumnos.proyecto');
     });

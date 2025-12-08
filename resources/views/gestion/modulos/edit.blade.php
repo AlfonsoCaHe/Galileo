@@ -3,6 +3,7 @@
 @section('title', 'Editar Módulo: ' . $modulo->nombre)
 
 @section('content')
+@include('gestion.layouts.header')
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-7">
