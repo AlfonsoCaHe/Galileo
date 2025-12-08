@@ -80,7 +80,7 @@
                             <button type="submit" class="btn btn-success btn-lg rounded-3 fw-bold shadow-sm">
                                 Guardar Cambios
                             </button>
-                            <a href="{{ route('gestion.modulos.index', ['proyecto_id' => $proyecto->id_base_de_datos]) }}" 
+                            <a href="javascript:history.back()" 
                                class="btn btn-danger btn-lg rounded-3 fw-bold shadow-sm">
                                 Cancelar
                             </a>

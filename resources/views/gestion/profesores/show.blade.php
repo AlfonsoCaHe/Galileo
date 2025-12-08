@@ -110,12 +110,12 @@
                                             {{-- Botón VER (Ir a RAs del módulo) --}}
                                             <a href="{{ route('gestion.ras.index', ['proyecto_id' => $modulo->proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" 
                                                class="btn btn-sm btn-info text-white shadow-sm me-1" title="Ver RAs">
-                                                <i class="bi bi-eye-fill"></i>
+                                                <i class="bi bi-eye-fill"></i>RAs
                                             </a>
                                             {{-- Botón EDITAR (Ir a editar módulo) --}}
                                             <a href="{{ route('gestion.modulos.edit', ['proyecto_id' => $modulo->proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" 
                                                class="btn btn-sm btn-warning shadow-sm" title="Editar Módulo">
-                                                <i class="bi bi-pencil-square"></i>
+                                                <i class="bi bi-pencil-square"></i>Editar
                                             </a>
                                         </td>
                                     </tr>

@@ -80,7 +80,7 @@
                         </div>
                         <!-- Botón de Cancelar -->
                         <div class="d-grid gap-2 mt-3">
-                            <a href="javascript:history.back()" class="btn btn-danger shadow-sm">
+                            <a href="javascript:history.back()" class="btn btn-danger btn-lg shadow-sm">
                                 <i class="bi bi-arrow-left me-1"></i> Cancelar
                             </a>
                         </div>

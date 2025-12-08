@@ -341,12 +341,12 @@ class ProfesorController extends Controller
             \Illuminate\Support\Facades\DB::purge($nombreConexion);
 
             try {
-                // A. BUSCAR MÓDULOS (Donde es profesor)
-                // Usamos withCount('alumnos') para saber cuántos alumnos tiene matriculados ese módulo
+                // A. BUSCAR MÓDULOS (Solución con JOIN manual)
+                // Esto busca directamente en la tabla 'profesores_modulos' que mencionaste
                 $mods = Modulo::on($nombreConexion)
-                    ->whereHas('profesores', function ($q) use ($profesor_id) {
-                        $q->where('profesor_id', $profesor_id);
-                    })
+                    ->join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
+                    ->where('profesor_modulo.profesor_id', $profesor_id)
+                    ->select('modulos.*') // Importante: Seleccionar solo campos del módulo para evitar conflictos de ID
                     ->withCount('alumnos') 
                     ->get();
 
@@ -372,7 +372,6 @@ class ProfesorController extends Controller
                 continue;
             }
         }
-
         return view('gestion.profesores.show', compact('profesor', 'modulosDocentes', 'alumnosTutorizados'));
     }
 

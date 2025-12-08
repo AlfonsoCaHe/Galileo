@@ -27,7 +27,7 @@
                 Módulo: <strong class="text-warning">{{ $modulo->nombre }}</strong>
             </p>
         </div>
-        <a href="{{ route('gestion.modulos.index', $proyecto_id) }}" class="btn btn-danger shadow-sm">
+        <a href="javascript:history.back()" class="btn btn-danger shadow-sm">
             <i class="bi bi-arrow-left me-2"></i>Volver
         </a>
     </div>
