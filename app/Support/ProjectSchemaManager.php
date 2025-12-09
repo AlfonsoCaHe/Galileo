@@ -20,7 +20,7 @@ class ProjectSchemaManager
         // 1. Tabla: modulos
         $schema->create('modulos', function (Blueprint $table) use ($proyectoId) {
             $table->uuid('id_modulo')->primary();
-            $table->string('nombre')->unique();
+            $table->string('nombre');
             $table->uuid('proyecto_id')->default($proyectoId); // FK a la BD principal (Galileo)
             $table->timestamps();
         });
@@ -39,7 +39,7 @@ class ProjectSchemaManager
         $schema->create('ras', function (Blueprint $table) {
             $table->uuid('id_ras')->primary();
             $table->uuid('modulo_id'); // FK a 'modulos'
-            $table->string('codigo')->unique();
+            $table->string('codigo');
             $table->string('descripcion');
             $table->timestamps();
             
@@ -61,7 +61,7 @@ class ProjectSchemaManager
             
             //Parte del profesor (Profesor)
             $table->string('nombre');// Código de Actividad (Ej: MM01)
-            $table->string('tarea');// Desplegable con el nombre que verá el alumno
+            $table->string('tarea')->nullable();// Desplegable con el nombre que verá el alumno
             $table->text('descripcion')->nullable(); // Instrucciones
             $table->boolean('bloqueado')->default(false);//Evita que se pueda modificar la tarea una vez es true
             
@@ -74,20 +74,26 @@ class ProjectSchemaManager
             $table->uuid('alumno_id');
             
             //Parte del tutor laboral
-            $table->boolean('apto')->default(false); 
+            $table->boolean('apto')->default(false);
+
+            $table->timestamps();
+            $table->softDeletes();
             
             $table->foreign('modulo_id')->references('id_modulo')->on('modulos')->onDelete('cascade');
-            $table->foreign('alumno_id')->references('id_alumno')->on('alumnos')->onDelete('cascade');
-            $table->timestamps();
+            $table->foreign('alumno_id')->references('id_alumno')->on('alumnos')->onDelete('cascade');       
         });
 
         // 4. Tablas Pivote (Many-to-Many)
 
         // Relación Alumno <--> Módulo
-        $schema->create('alumnos_modulos', function (Blueprint $table) {
+        $schema->create('alumno_modulo', function (Blueprint $table) {
             $table->uuid('alumno_id');
             $table->uuid('modulo_id');
             $table->primary(['alumno_id', 'modulo_id']);
+
+            $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['alumno_id', 'modulo_id', 'deleted_at'], 'alumno_modulo_unique');//Evitamos que si un alumno se ha vuelto a matricular se pueda recuperar el registro
 
             $table->foreign('alumno_id')->references('id_alumno')->on('alumnos')->onDelete('cascade');
             $table->foreign('modulo_id')->references('id_modulo')->on('modulos')->onDelete('cascade');

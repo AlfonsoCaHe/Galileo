@@ -7,6 +7,7 @@ use App\Http\Middleware\TutorLaboralCheck;
 use App\Http\Controllers\CriterioController;
 use App\Http\Controllers\RaController;
 use App\Http\Controllers\TareaController;
+use App\Http\Controllers\AlumnoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -137,6 +138,34 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
             ->name('gestion.tareas.updateApto');
         Route::put('/update-bloqueo', [TareaController::class, 'updateBloqueo'])
             ->name('gestion.tareas.updateBloqueo');
+
+        
     });
 
+    // GESTIÓN DE ALUMNOS INDIVIDUAL
+    Route::prefix('alumnos/{alumno_id}')->group(function () {
+        
+        Route::get('/', [AlumnoController::class, 'show'])->name('gestion.alumnos.show');
+        
+        // Ajax Tutores
+        Route::put('/update-docente', [AlumnoController::class, 'updateTutorDocente'])->name('gestion.alumnos.updateDocente');
+        Route::put('/update-laboral', [AlumnoController::class, 'updateTutorLaboral'])->name('gestion.alumnos.updateLaboral');
+
+        // Matriculación
+        Route::post('/matricular', [AlumnoController::class, 'matricular'])->name('gestion.alumnos.matricular');
+        //Desmatricular (SoftDelete)
+        Route::delete('/desmatricular/{modulo_id}', [AlumnoController::class, 'desmatricular'])
+            ->name('gestion.alumnos.desmatricular');
+        // Restaurar matrícula (Deshacer Soft Delete)
+        Route::put('/restaurar-matricula/{modulo_id}', [AlumnoController::class, 'restaurarMatricula'])
+            ->name('gestion.alumnos.restaurar');
+    });
+
+    // La ruta AJAX del desplegable de tutores no funciona correctamente si no está fuera del grupo de alumnos
+    Route::get('/get-tutores-empresa/{empresa_id}', [AlumnoController::class, 'getTutoresPorEmpresa'])
+        ->name('gestion.alumnos.getTutoresEmpresa');
+
+    // Asignar tarea a más alumnos
+    Route::post('/tareas/{tarea_id}/asignar', [TareaController::class, 'asignarAlumnos'])
+        ->name('gestion.tareas.asignar');
 });

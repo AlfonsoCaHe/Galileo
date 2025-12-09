@@ -52,12 +52,13 @@ class Alumno extends Model
      */
     public function modulos(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Modulo::class, 
-            'alumnos_modulos', // Nombre de la tabla pivote
+        return $this->belongsToMany(Modulo::class, 
+            'alumno_modulo', // Nombre de la tabla pivote
             'alumno_id', // FK de este modelo en la pivote
             'modulo_id',  // FK del modelo relacionado en la pivote
-        );  
+            )->withPivot('deleted_at') // Importante para poder leer el registro borrado
+            ->wherePivot('deleted_at', null) // Solo traer los NO borrados por defecto
+            ->withTimestamps();
     }
 
     /**
@@ -81,5 +82,16 @@ class Alumno extends Model
         // 'rolable' es el nombre de la relación polimórfica en el modelo User (el dueño)
         // El segundo argumento es opcional si usas los valores por defecto (rolable_type, rolable_id)
         return $this->morphOne(User::class, 'rolable'); 
+    }
+
+    /**
+     * Obtiene solo los módulos de los que se ha desmatriculado (Soft Deleted)
+     */
+    public function modulosBorrados()
+    {
+        return $this->belongsToMany(Modulo::class, 'alumno_modulo', 'alumno_id', 'modulo_id')
+                    ->withPivot('deleted_at')
+                    ->wherePivotNotNull('deleted_at') // Solo los que tienen fecha de borrado
+                    ->withTimestamps();
     }
 }

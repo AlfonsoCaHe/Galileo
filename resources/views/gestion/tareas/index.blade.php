@@ -47,7 +47,7 @@
         <h2 class="mb-0 texto">Tareas: <strong class="text-info">{{ $modulo->nombre }}</strong></h2>
         <div class="d-flex gap-2">
             @if(auth()->user()->isProfesor() || auth()->user()->isAdmin())
-                <a href="{{ route('gestion.tareas.create', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-primary shadow-sm">
+                <a href="{{ route('gestion.tareas.create', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-success shadow-sm">
                     <i class="bi bi-plus-circle-fill me-1"></i> Nueva Tarea
                 </a>
             @endif

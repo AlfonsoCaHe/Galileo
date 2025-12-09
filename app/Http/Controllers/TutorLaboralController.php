@@ -120,6 +120,7 @@ class TutorLaboralController extends Controller
         // 1. Validación de datos (Sin cambios)
         $request->validate([
             'nombre' => 'required|max:255',
+            'dni' => 'required|string|max:9',
             'email' => 'required|email|max:255|unique:users,email', 
             'password' => 'required|string|min:8', 
         ]);
@@ -130,6 +131,7 @@ class TutorLaboralController extends Controller
                 // Creamos el registro en la tabla tutores_laborales
                 $tutor = TutorLaboral::create([
                     'nombre' => $request->nombre,
+                    'dni' => $request->dni,
                     'email' => $request->email,
                     'empresa_id' => $empresa_id,
                 ]);
@@ -138,6 +140,7 @@ class TutorLaboralController extends Controller
                 User::createRolableUser($tutor, [
                     'name' => $request->nombre,
                     'email' => $request->email,
+                    'rol' => 'tutor_laboral',// Por defecto para los tutores laborales
                     'password' => $request->password,
                 ]);
                 
@@ -162,6 +165,7 @@ class TutorLaboralController extends Controller
         // Reglas de Validación: El email debe ser único en la tabla 'users', pero ignorando al usuario actual ($user->id).
         $request->validate([
             'nombre' => 'required|string|max:255',
+            'dni' => 'required|string|max:9',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed', 
         ]);
@@ -172,6 +176,7 @@ class TutorLaboralController extends Controller
                 // 2. Actualizar el perfil TutorLaboral
                 $tutor->update([
                     'nombre' => $request->nombre,
+                    'dni' => $request->dni,
                     'email' => $request->email,
                 ]);
 

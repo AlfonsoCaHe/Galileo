@@ -33,7 +33,7 @@
 <div class="container-fluid">
 
     {{-- CABECERA --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
         <div>
             <h1 class="h3 mb-0 texto">Ficha del Profesor</h1>
         </div>
@@ -155,9 +155,9 @@
                                                 para que sepa buscar en la BD del proyecto, ya que el ID 
                                                 puede no ser único globalmente o no encontrarse si no conectas la BD correcta.
                                             --}}
-                                            <a href="{{ route('alumno.show', ['alumno_id' => $alumno->id_alumno]) }}" 
-                                               class="btn btn-sm btn-primary shadow-sm">
-                                                <i class="bi bi-person-lines-fill me-1"></i> Ficha
+                                            <a href="{{ route('gestion.alumnos.show', ['proyecto_id' => $alumno->proyecto_id , 'alumno_id' => $alumno->id_alumno]) }}" 
+                                               class="btn btn-sm btn-info shadow-sm">
+                                                <i class="bi bi-person-lines-fill me-1"></i> Ver
                                             </a>
                                         </td>
                                     </tr>

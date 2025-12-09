@@ -7,65 +7,42 @@ use Illuminate\Support\Facades\Artisan;
 
 class PruebaTest extends Command
 {
-    /**
-     * El nombre y la firma del comando de consola.
-     * Añadimos 'db:test-prueba' para el entorno de pruebas.
-     *
-     * @var string
-     */
-    protected $signature = 'db:test-prueba';
+    // Cambiamos el nombre para que sea más claro para el usuario final
+    protected $signature = 'app:instalar'; 
+    protected $description = 'Instalación automática completa de Galileo y proyectos iniciales.';
 
-    /**
-     * La descripción del comando de consola.
-     *
-     * @var string
-     */
-    protected $description = 'Crea dos bases de datos de proyecto y ejecuta el Seeder de prueba para el entorno híbrido.';
-
-    /**
-     * Ejecuta el comando de consola.
-     */
     public function handle()
     {
-        $this->info("--- Iniciando Configuración de Entorno de Pruebas ---");
+        $this->info("📦 INICIANDO INSTALACIÓN AUTOMÁTICA DE GALILEO");
+        $this->info("---------------------------------------------");
 
-        // --- 1. Crear el Proyecto 2024 (proyecto_2024_2026) ---
-        $this->comment("\n1. Creando Base de Datos para el proyecto 2024...");
-        // Usamos $this->output para mostrar los mensajes de salida del comando hijo
-        $exitCode2024 = Artisan::call('db:crear-proyecto', ['year_start' => 2024], $this->output);
-        
-        if ($exitCode2024 !== 0) {
-            $this->error("Falló la creación del proyecto 2024. Deteniendo la prueba.");
+        // PASO 1: Instalar BD Principal (Galileo)
+        // Si ya existe, la verificará y actualizará sin romper nada.
+        $this->comment("1️⃣  Configurando Sistema Central...");
+        if (Artisan::call('db:crear-galileo', [], $this->output) !== 0) {
+            $this->error("STOP: Falló la instalación de Galileo.");
             return 1;
         }
 
-        // --- 2. Crear el Proyecto 2025 (proyecto_2025_2027) ---
-        $this->comment("\n2. Creando Base de Datos para el proyecto 2025...");
-        $exitCode2025 = Artisan::call('db:crear-proyecto', ['year_start' => 2025], $this->output);
-        
-        if ($exitCode2025 !== 0) {
-            $this->error("Falló la creación del proyecto 2025. Deteniendo la prueba.");
-            return 1;
+        // PASO 2: Crear Proyecto Actual (Ej: 2024)
+        $year = now()->year;
+        $this->comment("\n2️⃣  Creando Proyecto del año actual ({$year})...");
+        Artisan::call('db:crear-proyecto', ['year_start' => $year], $this->output);
+
+        // PASO 3: (Opcional) Datos de prueba
+        // Preguntar al usuario si quiere datos de prueba (interactivo)
+        if ($this->confirm('¿Deseas poblar la base de datos con información de prueba (Seeders)?', true)) {
+             $this->comment("\n3️⃣  Generando datos de prueba...");
+             Artisan::call('db:seed', [
+                '--class' => 'PruebaRelacionesSeeder', 
+                '--force' => true
+             ], $this->output);
         }
 
-        // --- 3. Ejecutar el Seeder de prueba ---
-        $this->comment("\n3. Ejecutando Seeder de Relaciones de Prueba (PruebaRelacionesSeeder)...");
-        Artisan::call('db:seed', [
-            '--class' => 'PruebaRelacionesSeeder',
-            '--force' => true
-        ], $this->output);
+        $this->info("\n✅ INSTALACIÓN COMPLETADA EXITOSAMENTE.");
+        $this->info("   - Usuario Admin: admin@galileo.com");
+        $this->info("   - Contraseña:  password");
         
-        $this->info("Seeder completado. El profesor, módulos, y alumnos han sido creados en las BDs correspondientes.");
-
-        // $this->comment("\n4. Añadiendo usuario administrador...");
-        // Artisan::call('db:seed', [
-        //     '--class' => 'AdminUserSeeder',
-        //     '--force' => true
-        // ], $this->output);
-
-        $this->info("Administrador admin@ies.galileo.com añadido.");
-        $this->info("\n--- Configuración de Pruebas Completa. Listo para probar ---");
-
         return 0;
     }
 }

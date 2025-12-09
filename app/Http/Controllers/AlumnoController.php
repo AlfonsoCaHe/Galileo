@@ -6,6 +6,10 @@ namespace App\Http\Controllers;
 // use App\Models\Tarea;
 use App\Models\Alumno;
 use App\Models\Proyecto;
+use App\Models\Modulo;
+use App\Models\Profesor;
+use App\Models\Empresa;
+use App\Models\TutorLaboral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -201,9 +205,9 @@ class AlumnoController extends Controller
         foreach ($proyectos as $proyecto) {
             $conexion = $proyecto->conexion;
             $dbName = $proyecto->proyecto; // El campo 'proyecto' guarda el nombre de la BD
-            
+
             try {
-                // 1. Configuramos la conexión dinámica (ya sabes cómo hacerlo)
+                // 1. Configuramos la conexión dinámica
                 $baseConfig = config('database.connections.mysql');
                 $newConfig = $baseConfig;
                 $newConfig['database'] = $dbName; 
@@ -409,22 +413,161 @@ class AlumnoController extends Controller
     /**
      * Método para mostrar un alumno para el administrador
      */
-    public function show($proyecto_id, $alumno_id){
+    public function show($proyecto_id, $alumno_id)
+    {
+        // 1. Conexión Dinámica
+        $proyecto = Proyecto::findOrFail($proyecto_id);
+        $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
+        config(['database.connections.' . $nombreConexion => array_merge(
+            config('database.connections.mysql'),
+            ['database' => $proyecto->conexion]
+        )]);
+        
+        // 2. Cargar Alumno con sus relaciones actuales
+        // Necesitamos el tutor laboral y docente actuales
+        $alumno = Alumno::on($nombreConexion)
+                    ->with(['modulos', 'tutorDocente', 'tutorLaboral.empresa', 'user', 'modulosBorrados'])
+                    ->findOrFail($alumno_id);
 
-        try{
-            $this->restoreConnection(); 
-            $user = User::where('rolable_id', $alumno_id)->firstOrFail();
+        // 3. Cargar listas para los selectores
+        // A. Profesores (Docentes) - Estos están en la BD Principal (Galileo)
+        $profesores = Profesor::where('activo', true)->orderBy('nombre')->get();
 
-            // 2. Configuramos la conexión dinámica
-            $proyecto = $this->setDynamicConnection($proyecto_id);
-            $alumno = Alumno::findOrFail($alumno_id);
+        // B. Empresas (Para el selector en cascada) - BD Principal
+        $empresas = Empresa::orderBy('nombre')->get();
+
+        // C. Módulos Disponibles (Para el Modal de Matriculación)
+        // Son todos los módulos del proyecto MENOS los que ya tiene el alumno
+        $idsActuales = $alumno->modulos->pluck('id_modulo')->toArray();
+        $modulosDisponibles = Modulo::on($nombreConexion)
+                                ->whereNotIn('id_modulo', $idsActuales)
+                                ->get();
+
+        return view('gestion.alumnos.show', compact('proyecto', 'alumno', 'profesores', 'empresas', 'modulosDisponibles'));
+    }
+
+    /**
+     * AJAX: Actualiza el Tutor Docente
+     */
+    public function updateTutorDocente(Request $request, $proyecto_id, $alumno_id)
+    {
+        $this->setDynamicConnection($proyecto_id); // Asumo que tienes este helper o usas la lógica de arriba
+        $alumno = Alumno::findOrFail($alumno_id);
+        $alumno->tutor_docente_id = $request->tutor_id;
+        $alumno->save();
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * AJAX: Actualiza el Tutor Laboral
+     */
+    public function updateTutorLaboral(Request $request, $proyecto_id, $alumno_id)
+    {
+        $this->setDynamicConnection($proyecto_id);
+        $alumno = Alumno::findOrFail($alumno_id);
+        $alumno->tutor_laboral_id = $request->tutor_id;
+        $alumno->save();
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * AJAX: Obtiene los tutores de una empresa (Para la cascada)
+     */
+    public function getTutoresPorEmpresa($proyecto_id, $empresa_id)
+    {
+        // Los tutores están en la BD Principal, no necesitamos conexión dinámica aquí
+        $tutores = TutorLaboral::where('empresa_id', $empresa_id)->get(['id_tutor_laboral', 'nombre']);
+        return response()->json($tutores);
+    }
+
+    /**
+     * Formulario: Matricula al alumno en nuevos módulos
+     */
+    public function matricular(Request $request, $proyecto_id, $alumno_id)
+    {
+        $this->setDynamicConnection($proyecto_id);
+        $alumno = Alumno::findOrFail($alumno_id);
+        
+        if ($request->has('modulos')) {
+            // attach añade sin borrar los anteriores
+            $alumno->modulos()->attach($request->modulos);
         }
-        catch(\Exception $e){
-            $this->restoreConnection(); 
 
-            return redirect()->back()->withErrors('Error al mostrar el alumno: ' . $e->getMessage());
+        return redirect()->back()->with('success', 'Matriculación actualizada correctamente.');
+    }
+
+    /**
+     * Función para quitar a un alumno de un módulo (Se realiza un softdelete, por lo que se puede deshacer el proceso)
+     */
+    public function desmatricular($proyecto_id, $alumno_id, $modulo_id)
+    {
+        $this->setDynamicConnection($proyecto_id);
+
+        try {
+            DB::transaction(function () use ($alumno_id, $modulo_id) {
+                
+                // 1. Soft Delete de TAREAS
+                // Al tener el trait SoftDeletes, esto ya no borra la fila, solo pone la fecha
+                \App\Models\Tarea::where('alumno_id', $alumno_id)
+                    ->where('modulo_id', $modulo_id)
+                    ->delete();
+
+                // 2. Soft Detach del MÓDULO
+                // En lugar de detach(), actualizamos la fila pivote
+                $alumno = Alumno::findOrFail($alumno_id);
+                
+                // Opción A: updateExistingPivot (Marca como borrado)
+                $alumno->modulos()->updateExistingPivot($modulo_id, [
+                    'deleted_at' => now()
+                ]);
+
+            });
+
+            return redirect()->back()->with('success', 'Alumno dado de baja del módulo (Puede deshacerse si contacta con soporte).');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error al desmatricular: ' . $e->getMessage());
         }
+    }
 
-        return view('gestion.alumnos.show', compact('alumno'));
+    /**
+     * Restaura la matrícula de un alumno en un módulo y recupera sus tareas/notas.
+     */
+    public function restaurarMatricula($proyecto_id, $alumno_id, $modulo_id)
+    {
+        // 1. Configuramos y OBTENEMOS el nombre de la conexión dinámica
+        $proyecto = Proyecto::findOrFail($proyecto_id);
+        $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
+        
+        // (Tu lógica actual de setDynamicConnection replicada o llamada para asegurar config)
+        $this->setDynamicConnection($proyecto_id);
+
+        try {
+            // CORRECCIÓN CLAVE: La transacción debe correr sobre la conexión del proyecto
+            DB::connection($nombreConexion)->transaction(function () use ($nombreConexion, $alumno_id, $modulo_id) {
+                
+                // 1. Restaurar el MÓDULO (Tabla Pivote)
+                // Usamos DB::table directo para evitar que Eloquent filtre los borrados y no los encuentre
+                DB::connection($nombreConexion)->table('alumno_modulo')
+                       ->where('alumno_id', $alumno_id)
+                       ->where('modulo_id', $modulo_id)
+                       ->update(['deleted_at' => null]); // Ponemos NULL para "revivirlo"
+
+                // 2. Restaurar TAREAS asociadas
+                // Aquí sí podemos usar el Modelo porque withTrashed() funciona bien en Modelos normales
+                // Aseguramos que el modelo use la conexión correcta
+                \App\Models\Tarea::on($nombreConexion)
+                    ->withTrashed() // Importante: incluir las borradas
+                    ->where('alumno_id', $alumno_id)
+                    ->where('modulo_id', $modulo_id)
+                    ->restore(); // Método mágico de SoftDeletes
+
+            });
+
+            return redirect()->back()->with('success', 'Matrícula y datos restaurados correctamente.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error al restaurar: ' . $e->getMessage());
+        }
     }
 }

@@ -152,7 +152,19 @@ class TareaController extends Controller
         // 3. Obtenemos los IDs de criterios ya asignados para marcar los checkbox
         $criteriosIds = $tareaPrincipal->criterios->pluck('id_criterio')->toArray();
 
-        return view('gestion.tareas.edit', compact('proyecto_id', 'modulo', 'tareaPrincipal', 'asignaciones', 'criteriosIds'));
+        // Obtenemos los IDs de los alumnos que YA tienen esta tarea
+        $idsAlumnosConTarea = $asignaciones->pluck('alumno_id')->toArray();
+
+        // Buscamos alumnos que:
+        // A) Estén matriculados en este módulo (usando la relación pivot) y no estén en la lista de los que ya la tienen
+        $alumnosDisponibles = Alumno::whereHas('modulos', function($q) use ($modulo_id) {
+                                    $q->where('modulos.id_modulo', $modulo_id);
+                                })
+                                ->whereNotIn('id_alumno', $idsAlumnosConTarea)
+                                ->orderBy('nombre')
+                                ->get();
+
+        return view('gestion.tareas.edit', compact('proyecto_id', 'modulo', 'tareaPrincipal', 'asignaciones', 'criteriosIds', 'alumnosDisponibles'));
     }
 
     public function update(Request $request, $proyecto_id, $tarea_id)
@@ -341,6 +353,64 @@ class TareaController extends Controller
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Asigna una tarea existente a nuevos alumnos.
+     */
+    public function asignarAlumnos(Request $request, $proyecto_id, $tarea_origen_id)
+    {
+        // 1. Configuramos la conexión manualmente AQUÍ para asegurar que el validador la vea
+        $proyecto = Proyecto::findOrFail($proyecto_id);
+        
+        // Generamos el nombre de conexión
+        $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
+        
+        // Inyectamos la configuración en Laravel en tiempo de ejecución
+        $config = config('database.connections.mysql'); // Copiamos la config base
+        $config['database'] = $proyecto->conexion;      // Cambiamos la BD a la del proyecto
+        Config::set("database.connections.{$nombreConexion}", $config);
+        DB::purge($nombreConexion); // Limpiamos caché por si acaso
+
+        // 2. Validación (Ahora sí encontrará la conexión)
+        $request->validate([
+            'alumnos' => 'required|array',
+            // Usamos la conexión que acabamos de registrar explícitamente
+            'alumnos.*' => "exists:{$nombreConexion}.alumnos,id_alumno"
+        ]);
+
+        try {
+            // 3. Ejecutamos la lógica usando la conexión dinámica
+            DB::connection($nombreConexion)->transaction(function () use ($tarea_origen_id, $request, $nombreConexion) {
+                
+                // Leemos la tarea origen en la conexión correcta
+                $tareaOrigen = Tarea::on($nombreConexion)->with('criterios')->findOrFail($tarea_origen_id);
+
+                foreach ($request->alumnos as $alumnoId) {
+                    // Replicamos la tarea (clona los campos excepto ID y timestamps)
+                    $nuevaTarea = $tareaOrigen->replicate(['notas_alumno', 'fecha', 'duracion', 'apto', 'bloqueado', 'alumno_id', 'created_at', 'updated_at', 'deleted_at']);
+                    
+                    // Asignamos datos nuevos
+                    $nuevaTarea->id_tarea = (string) \Illuminate\Support\Str::uuid();
+                    $nuevaTarea->alumno_id = $alumnoId;
+                    $nuevaTarea->bloqueado = false; 
+                    $nuevaTarea->apto = false;
+                    
+                    // IMPORTANTE: Forzar la conexión en el nuevo modelo antes de guardar
+                    $nuevaTarea->setConnection($nombreConexion);
+                    $nuevaTarea->save();
+
+                    // Clonamos los criterios (Relación N:M)
+                    $criteriosIds = $tareaOrigen->criterios->pluck('id_criterio')->toArray();
+                    $nuevaTarea->criterios()->sync($criteriosIds);
+                }
+            });
+
+            return redirect()->back()->with('success', 'Tarea asignada correctamente a los alumnos seleccionados.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error al asignar: ' . $e->getMessage());
         }
     }
 }

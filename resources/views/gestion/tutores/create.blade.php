@@ -5,6 +5,15 @@
 @section('content')
 <div class="container">
     <h2 class="texto">Crear Tutor Laboral para {{ $empresa->nombre }}</h2>
+    @if ($errors->any())
+        <div class="alert alert-danger shadow-sm">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <p class="texto">CIF/NIF: {{ $empresa->cif_nif }}</p>
     <form action="{{ route('gestion.tutores.store', ['empresa_id' => $empresa->id_empresa]) }}" method="POST">
         @csrf
@@ -38,7 +47,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Añadir</button>
-        <a href="{{ route('gestion.empresas.index') }}" class="btn btn-danger ms-2">Cancelar</a>
+        <a href="javascript:history.back()" class="btn btn-danger ms-2">Cancelar</a>
     </form>
 </div>
 @endsection

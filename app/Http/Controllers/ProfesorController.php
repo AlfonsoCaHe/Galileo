@@ -181,7 +181,7 @@ class ProfesorController extends Controller
                         $idsModulos = $modulosData->pluck('id_modulo')->toArray();
                         
                         $totalAlumnosEnProyecto = DB::connection($connectionName)
-                            ->table('alumnos_modulos')
+                            ->table('alumno_modulo')
                             ->whereIn('modulo_id', $idsModulos)
                             ->distinct('alumno_id')
                             ->count('alumno_id');
@@ -238,7 +238,7 @@ class ProfesorController extends Controller
                     'name' => $validated['nombre'],
                     'email' => $validated['email'],
                     'password' => $validated['password'],
-                    'rol' => 'profesor',
+                    'rol' => 'profesor', // Por defecto para los profesores
                     'rolable_id' => $profesor->id_profesor,
                     'rolable_type' => Profesor::class,
                 ]);

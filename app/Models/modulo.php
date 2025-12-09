@@ -44,10 +44,12 @@ class Modulo extends Model
     {
         return $this->belongsToMany(
             Alumno::class, 
-            'alumnos_modulos', // Tabla pivote
+            'alumno_modulo',   // Tabla pivote
             'modulo_id',       // FK de este modelo
             'alumno_id'        // FK del modelo relacionado
-        );
+        )->withPivot('deleted_at')
+        ->wherePivot('deleted_at', null)
+        ->withTimestamps();;
     }
 
     /**

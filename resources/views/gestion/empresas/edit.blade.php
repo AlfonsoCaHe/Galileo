@@ -121,6 +121,11 @@
         
         <div class="card shadow-sm p-4 mb-5 border-0 bg-white">
             <h3 class="h5 border-bottom pb-2 mb-4">Datos Generales</h3>
+            {{-- Botones principales --}}
+            <div class="d-flex justify-content-end gap-2 mt-2 mb-2 pt-3">
+                <button type="submit" class="btn btn-success fw-bold px-4">Guardar Todo</button>
+                <a href="{{ route('gestion.empresas.index') }}" class="btn btn-danger fw-bold ms-2">Volver</a>
+            </div>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="nombre" class="form-label fw-bold">Nombre de la Empresa</label>
@@ -230,11 +235,6 @@
                 @endforeach
             </tbody>
         </table>
-    </div>
-    {{-- Botones principales --}}
-    <div class="d-flex justify-content-start gap-2 mt-4 pt-3">
-        <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Todo</button>
-        <a href="{{ route('gestion.empresas.index') }}" class="btn btn-danger fw-bold ms-2">Volver</a>
     </div>
 </div>
 @endsection

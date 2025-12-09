@@ -102,7 +102,6 @@
 <script>
     function toggleAlumnos(check) {
         document.querySelectorAll('.chk-alumno').forEach(el => el.checked = check);
-        // Toggle button text logic could go here
     }
 </script>
 @endsection
