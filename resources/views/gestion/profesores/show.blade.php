@@ -8,7 +8,28 @@
             // Configuración común para ambas tablas
             const commonConfig = {
                 "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+                    "decimal": ",",
+                    "emptyTable": "No hay profesores registrados",
+                    "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "infoEmpty": "",
+                    "infoFiltered": "",
+                    "infoPostFix": "",
+                    "thousands": ".",
+                    "lengthMenu": "Mostrar _MENU_ registros",
+                    "loadingRecords": "Cargando...",
+                    "processing": "Procesando...",
+                    "search": "Buscar:",
+                    "zeroRecords": "No se han encontrado registros",
+                    "paginate": {
+                        "first": "Primero",
+                        "last": "Último",
+                        "next": "Siguiente",
+                        "previous": "Anterior"
+                    },
+                    "aria": {
+                        "sortAscending": ": Click/return para ordenar ascendentemente",
+                        "sortDescending": ": Click/return para ordenar descendentemente"
+                    }
                 },
                 "pageLength": 10
             };

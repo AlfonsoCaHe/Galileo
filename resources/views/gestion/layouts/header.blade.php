@@ -54,7 +54,6 @@
                 </div>
 
                 <div class="col-6 col-md-4 col-xxl-2">
-                    {{-- Nota: El logout suele requerir POST. Si usas GET, mantén el enlace. Si no, usa un form. --}}
                     <form action="{{ route('logout') }}" method="POST" class="h-100">
                         @csrf
                         <button type="submit" class="btn btn-danger w-100 h-100 p-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
