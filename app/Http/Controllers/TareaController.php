@@ -125,7 +125,9 @@ class TareaController extends Controller
         return redirect()->back()->with('success', "Tarea $estado correctamente.");
     }
     
-    // Destroy, Update, etc... (Implementar según necesidad estándar)
+    /**
+     * Método para eliminar una tarea
+     */
     public function destroy($proyecto_id, $tarea_id)
     {
          $this->setDynamicConnection($proyecto_id);

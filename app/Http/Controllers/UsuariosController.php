@@ -35,12 +35,12 @@ class UsuariosController extends Controller
 
         if ($user->isAlumno()) {
             // Asume que tienes una ruta con nombre 'alumno.panel'
-            return redirect()->route('alumno.panel');
+            return redirect()->route('alumnos.panel');
         }
 
         if ($user->isProfesor()) {
             // Asume que tienes una ruta con nombre 'profesor.panel'
-            return redirect()->route('profesor.panel');
+            return redirect()->route('profesores.panel');
         }
 
         if ($user->isTutorLaboral()) {

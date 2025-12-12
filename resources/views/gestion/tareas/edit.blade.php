@@ -233,6 +233,8 @@
 <div class="container-fluid">
     @if(auth()->user()->isAdmin())
         @include('gestion.layouts.header')
+    @elseif(auth()->user()->isProfesor())
+        @include('profesores.layouts.header')
     @endif
 
     {{-- CABECERA --}}
@@ -283,7 +285,6 @@
                     
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Tarea</label>
-                        {{-- Asumiendo que añadiste el campo 'tarea' en la BD --}}
                         <input type="text" name="tarea" class="form-control" value="{{ $tareaPrincipal->tarea }}" required>
                     </div>
 

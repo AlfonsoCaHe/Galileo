@@ -16,7 +16,11 @@
 @endsection
 
 @section('content')
-@include('gestion.layouts.header')
+@if(auth()->user()->isAdmin())
+    @include('gestion.layouts.header')
+@elseif(auth()->user()->isProfesor())
+    @include('profesores.layouts.header')
+@endif
 <div class="container-fluid">
     
     {{-- CABECERA --}}

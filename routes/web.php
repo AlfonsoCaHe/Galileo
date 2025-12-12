@@ -5,7 +5,7 @@ use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\TutorLaboralController;
 use App\Http\Middleware\AlumnoCheck;
-use App\Http\Middleware\ProfesorCheck;
+
 use App\Http\Middleware\TutorLaboralCheck;
 use Illuminate\Support\Facades\Route;
 
@@ -43,12 +43,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     //----------------------------------Rutas profesores----------------------------------------------------//
-    Route::middleware([ProfesorCheck::class])->group(function () {
-        Route::get('/profesor/panel', function () {
-            return view('profesor.panel'); 
-        })->name('profesor.panel'); 
-
-    });
+    
 
 
     //----------------------------------Rutas tutores laborales--------------------------------------------//
@@ -68,3 +63,4 @@ Route::middleware(['auth'])->group(function () {
 
 require __DIR__ . '/gestion_academica.php';
 require __DIR__ . '/gestion_administracion.php';
+require __DIR__ . '/gestion_perfiles.php';

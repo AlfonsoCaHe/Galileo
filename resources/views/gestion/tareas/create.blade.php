@@ -3,15 +3,23 @@
 @section('title', 'Nueva Tarea')
 
 @section('content')
-@if(auth()->user()->isProfesor() || auth()->user()->isAdmin())
+@if(auth()->user()->isAdmin())
     @include('gestion.layouts.header')
+@elseif(auth()->user()->isProfesor())
+    @include('profesores.layouts.header')
 @endif
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-4 mt-4 texto">Nueva Actividad / Tarea</h2>
+        @if(auth()->user()->isAdmin())
         <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
             <i class="bi bi-arrow-left me-1"></i> Cancelar
         </a>
+        @elseif(auth()->user()->isProfesor())
+        <a href="{{ route('profesores.modulos.alumnos', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Cancelar
+        </a>
+        @endif
     </div>
 
     @if ($errors->any())
@@ -23,7 +31,11 @@
         
         <div class="row">
             {{-- COLUMNA IZQUIERDA: Definición de la Tarea --}}
+            @if(auth()->user()->isAdmin())
             <div class="col-lg-8">
+            @else
+            <div class="col-lg-12">
+            @endif
                 <div class="card shadow mb-4">
                     <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Detalles de la Actividad</h6></div>
                     <div class="card-body">
@@ -69,6 +81,7 @@
                 </div>
             </div>
 
+            @if(auth()->user()->isAdmin())
             {{-- COLUMNA DERECHA: Selección de Alumnos --}}
             <div class="col-lg-4">
                 <div class="card shadow mb-4">
@@ -95,6 +108,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </form>
 </div>
