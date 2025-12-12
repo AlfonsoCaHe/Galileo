@@ -220,7 +220,7 @@
             <p class="small texto mb-0">Proyecto: <span class="text-warning">{{ $proyecto->proyecto }}</span></p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a href="javascript:history.back()" class="btn btn-danger d-flex align-items-center gap-2">
+            <a href="javascript:history.back()" class="btn btn-danger d-flex align-items-center me-2 ms-2">
                 <i class="bi bi-arrow-left-circle"></i> Volver
             </a>
         </div>

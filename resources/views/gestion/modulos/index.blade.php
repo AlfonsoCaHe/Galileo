@@ -38,8 +38,11 @@
 @endsection
 
 @section('content')
-@include('gestion.layouts.header')
+
 <div class="container-fluid">
+    @if(auth()->user()->isAdmin())
+        @include('gestion.layouts.header')
+    @endif
 
     {{-- CABECERA: Título H1 y Botones --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
@@ -51,9 +54,11 @@
             <a href="{{ route('gestion.modulos.create', $proyecto->id_base_de_datos) }}" class="btn btn-success shadow-sm">
                 <i class="bi bi-plus-circle-fill"></i>Nuevo Módulo
             </a>
-            <a href="javascript:history.back()" class="btn btn-danger shadow-sm">
+            @if(auth()->user()->isAdmin())
+            <a href="{{ route('gestion.proyectos.index') }}" class="btn btn-danger shadow-sm">
                 <i class="bi bi-arrow-left"></i> Volver
             </a>
+            @endif
         </div>
     </div>
 
@@ -129,14 +134,14 @@
                                     <a href="{{ route('gestion.ras.index', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $modulo->id_modulo]) }}" 
                                        class="btn btn-sm btn-dark text-white shadow-sm me-1" 
                                        title="Gestionar RAs y Criterios">
-                                        <i class="bi bi-list-check me-1"></i>RAs
+                                        </i>RAs
                                     </a>
 
                                     {{-- Tareas --}}
                                     <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $modulo->id_modulo]) }}" 
                                        class="btn btn-sm btn-info text-white shadow-sm me-1" 
                                        title="Gestionar Diario y Tareas">
-                                        <i class="bi bi-journal-check me-1"></i>Tareas
+                                        Tareas
                                     </a>
 
                                     {{-- Botón Editar --}}

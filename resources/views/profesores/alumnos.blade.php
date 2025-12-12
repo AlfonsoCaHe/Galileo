@@ -35,13 +35,13 @@
             <p class="texto">Proyecto: <span class="text-warning">{{ $proyecto->proyecto }}</span></p>
         </div>
         
-        <div class="btn-group gap-2" role="group">
+        <div class="btn-group gap-2 me-2" role="group">
             <a href="{{ route('gestion.tareas.create', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $modulo->id_modulo]) }}" 
-               class="btn btn-success d-flex align-items-center gap-2 ms-2">
-                <i class="bi bi-plus-circle"></i> Crear Tarea
+               class="btn btn-success d-flex align-items-center">
+                <i class="bi bi-plus-circle"></i> Crear Actividad
             </a>
 
-            <a href="{{ route('profesores.modulos') }}" class="btn btn-danger d-flex align-items-center gap-2">
+            <a href="{{ route('profesores.modulos') }}" class="btn btn-danger d-flex align-items-center">
                 <i class="bi bi-arrow-left-circle"></i> Volver
             </a>
         </div>

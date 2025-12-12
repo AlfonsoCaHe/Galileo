@@ -51,9 +51,16 @@
                     <i class="bi bi-plus-circle-fill me-1"></i> Nueva Tarea
                 </a>
             @endif
-            <a href="javascript:history.back()" class="btn btn-danger shadow-sm">
+            @if(auth()->user()->isAdmin())
+            <a href="{{ route('gestion.modulos.index', ['proyecto_id' => $proyecto_id]) }}" class="btn btn-danger shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> Volver
             </a>
+            @endif
+            @if(auth()->user()->isProfesor())
+            <a href="{{ route('profesores.modulos') }}" class="btn btn-danger shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+            @endif
         </div>
     </div>
 
