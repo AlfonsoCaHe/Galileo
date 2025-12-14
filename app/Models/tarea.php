@@ -5,11 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tarea extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids;
 
     protected $table = "tareas";
     protected $primaryKey = 'id_tarea';

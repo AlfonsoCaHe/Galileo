@@ -18,7 +18,7 @@ class Alumno extends Model
 
     protected $fillable = [
         'nombre',
-        'preriodo',
+        'periodo',
         'tutor_laboral_id',
         'tutor_docente_id'
     ];

@@ -94,7 +94,7 @@ class ProfesoradoDocenteController extends Controller
         $alumnos = Alumno::join('alumno_modulo', 'alumnos.id_alumno', '=', 'alumno_modulo.alumno_id')
             ->where('alumno_modulo.modulo_id', $modulo_id)
             ->whereNull('alumno_modulo.deleted_at')
-            ->select('alumnos.id_alumno', 'alumnos.nombre')
+            ->select('alumnos.id_alumno', 'alumnos.nombre', 'alumnos.periodo')
             ->selectRaw("(SELECT COUNT(*) 
                         FROM tareas 
                         WHERE tareas.alumno_id = alumnos.id_alumno AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
@@ -115,8 +115,6 @@ class ProfesoradoDocenteController extends Controller
                         FROM tareas, actividades 
                         WHERE tareas.actividad_id = actividades.id_actividad AND tareas.modulo_id = '{$modulo_id}') as actividades_count")
             ->get();
-
-            $actividades = Actividad::all();
 
         return view('profesores.alumnos', compact('alumnos', 'modulo', 'proyecto', 'actividades'));
     }
@@ -255,6 +253,13 @@ class ProfesoradoDocenteController extends Controller
             )
             ->orderBy('tareas.created_at', 'desc')
             ->get();
+
+        foreach($tareas as $tarea){
+            $actividad = Actividad::where('id_actividad', $tarea->actividad_id)->first();
+            $tarea->actividadNombre = $actividad->nombre;
+            $tarea->actividadTarea = $actividad->tarea;
+            $tarea->actividadDescripcion = $actividad->descripcion;
+        }
 
         // Reutilizamos la vista de tareas, pero le pasamos null en $modulo porque ya no es uno específico
         return view('profesores.tareas_docente', compact('alumno', 'tareas', 'proyecto'))->with('modulo', null);

@@ -480,6 +480,31 @@ class AlumnoController extends Controller
     }
 
     /**
+     * AJAX: Actualiza el periodo del alumno
+     */
+    public function updatePeriodo(Request $request)
+    {
+        $request->validate([
+            'id_alumno' => 'required',
+            'proyecto_id' => 'required',
+            'periodo' => 'nullable|in:Periodo 1,Periodo 2'
+        ]);
+
+        try {
+            $this->setDynamicConnection($request->proyecto_id);
+
+            $alumno = Alumno::findOrFail($request->id_alumno);
+            $alumno->periodo = $request->periodo;
+            $alumno->save();
+
+            return response()->json(['status' => 'success', 'message' => 'Periodo actualizado en la base de datos del proyecto']);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Error al conectar o actualizar: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Formulario: Matricula al alumno en nuevos módulos
      */
     public function matricular(Request $request, $proyecto_id, $alumno_id)

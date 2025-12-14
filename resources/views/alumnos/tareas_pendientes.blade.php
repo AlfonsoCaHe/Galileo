@@ -144,17 +144,9 @@
 
                         {{-- 5. Acciones --}}
                         <td class="text-center">
-                            {{--
-         justify-content-center: Centra los botones cuando sobran espacios (en pantalla grande).
-         min-width: 220px: Asegura que no se aplasten demasiado antes de que entre el modo responsive.
-    --}}
-                            <div class="row g-2 justify-content-center" style="min-width: 220px;">
 
-                                {{--
-            BOTÓN EDITAR 
-            col-6: En móvil/tablet ocupa el 50% del ancho.
-            col-xl-3: En pantalla grande (>1200px) ocupa el 25% del ancho.
-        --}}
+                            <div class="row g-2 justify-content-center" style="min-width: 100px;">
+                                {{-- Botón editar --}}
                                 <div class="col-6 col-xl-3">
                                     <a href="{{ route('alumnado.editTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $tarea->modulo_id, 'tarea_id' => $tarea->id_tarea]) }}"
                                         class="btn btn-warning btn-sm w-100 fw-bold d-flex align-items-center justify-content-center"
@@ -162,11 +154,7 @@
                                         <i class="bi bi-pencil-square me-1"></i> Editar
                                     </a>
                                 </div>
-
-                                {{--
-            BOTÓN ELIMINAR 
-            Misma lógica: 50% en móvil, 25% en escritorio grande.
-        --}}
+                                {{-- Botón eliminar --}}
                                 <div class="col-6 col-xl-3">
                                     <form action="{{ route('alumnado.destroyTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
                                         method="POST"

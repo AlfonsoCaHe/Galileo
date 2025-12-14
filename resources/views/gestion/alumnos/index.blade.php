@@ -52,14 +52,56 @@
                     e.preventDefault(); // Detiene el envío del formulario si el usuario pulsa "Cancelar"
                 }
             });
+
+            // AJAX - ACTUALIZAR EL PERIODO DEL ALUMNO
+            $('.select-periodo').on('change', function() {
+                let periodo = $(this).val();
+                let alumnoId = $(this).data('id');
+                let proyectoId = $(this).data('proyecto');
+                
+                let $input = $(this); 
+                let $indicator = $input.siblings('.status-indicator');
+
+                $input.removeClass('border-success border-danger').addClass('border-warning');
+                $indicator.html('<span class="text-warning fw-bold">...</span>');
+
+                $.ajax({
+                    url: "{{ route('alumnos.update.periodo', 'proyectoID') }}", 
+                    method: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        id_alumno: alumnoId,
+                        proyecto_id: proyectoId,
+                        periodo: periodo
+                    },
+                    success: function(response) {
+                        $input.removeClass('border-warning').addClass('border-success');
+                        $indicator.html('<span class="text-success fw-bold"><i class="bi bi-check-lg"></i></span>');
+                        
+                        setTimeout(function() {
+                            $input.removeClass('border-success');
+                            $indicator.fadeOut(500, function(){ 
+                                $(this).html('').show(); 
+                            });
+                        }, 2000);
+                    },
+                    error: function(xhr) {
+                        $input.removeClass('border-warning').addClass('border-danger');
+                        $indicator.html('<span class="text-danger fw-bold">Error</span>');
+                        
+                        alert.error(xhr.responseText);
+                        location.reload();
+                    }
+                });
+            });
         });
     </script>
 @endsection
 
 @section('content')
 @include('gestion.layouts.header')
-<div class="container my-5">
-    <h2 class="mb-4 texto">Listado de Alumnos</h2>
+<div class="container-fluid my-5">
+    <h2 class="m-4 texto">Listado de Alumnos</h2>
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -100,27 +142,44 @@
                         <th>Proyecto</th>
                         <th>Tutor Docente</th>
                         <th>Tutor Laboral</th>
+                        <th>Periodo</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($alumnos_totales as $alumno)
                     <tr>
+                        {{-- 0. Nombre alumno --}}
                         <td>{{ $alumno->nombre }}</td>
+
+                        {{-- 1. Proyecto --}}
                         <td>
                             <span class="badge bg-primary">{{ $alumno->proyecto_nombre }}</span>
                         </td>
+
+                        {{-- 2. Tutor Docente --}}
                         <td>
                             {{-- 3. Tutor Docente (Profesor) --}}
                             {{ $alumno->tutorDocente->nombre ?? 'N/A' }}
                         </td>
+
+                        {{-- 3. Tutor Laboral --}}
                         <td>
-                            {{-- 4. Tutor Laboral --}}
                             {{ $alumno->tutorLaboral->nombre ?? 'N/A' }}
                         </td>
-                        <td>
-                            {{-- 5. Acciones: Ver, Editar, Eliminar --}}
 
+                        {{-- 4. Periodo --}}
+                        <td>
+                            <x-periodo-select 
+                                class="select-periodo" 
+                                data-id="{{ $alumno->id_alumno }}" 
+                                data-proyecto="{{ $alumno->proyecto_galileo_id }}"
+                                :selected="$alumno->periodo" 
+                            />
+                        </td>
+
+                        {{-- 5. Acciones: Ver, Editar, Eliminar --}}
+                        <td>
                             {{-- Ver Alumno (Usando la ruta del proyecto) --}}
                             <a href="{{ route('gestion.alumnos.show', ['proyecto_id' => $alumno->proyecto_galileo_id, 'alumno_id' => $alumno->id_alumno]) }}" 
                                class="btn btn-sm btn-info text-white" title="Ver Detalles">

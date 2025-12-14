@@ -173,4 +173,7 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
     // La ruta AJAX del desplegable de tutores no funciona correctamente si no está fuera del grupo de alumnos
     Route::get('/get-tutores-empresa/{empresa_id}', [AlumnoController::class, 'getTutoresPorEmpresa'])
         ->name('gestion.alumnos.getTutoresEmpresa');
+    // La ruta AJAX del desplegable de periodos
+    Route::post('/alumnos/update-periodo', [AlumnoController::class, 'updatePeriodo'])
+        ->name('alumnos.update.periodo');
 });

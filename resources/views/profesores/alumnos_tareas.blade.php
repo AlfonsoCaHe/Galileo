@@ -18,8 +18,28 @@
                     "paginate": { "first": "First", "last": "Last", "next": "Next", "previous": "Prev" }
                 },
                 "pageLength": 25,
-                "columnDefs": [
-                    { "orderable": false, "targets": [4, 5, 6, 7] } 
+                responsive: true,
+                autoWidth: false,
+                columnDefs: [
+                    { 
+                        orderable: false, 
+                        targets: [4, 5, 6, 7] 
+                    },
+                    {
+                        className: "align-middle",
+                        targets: "_all"
+                    },
+                    // 3. PRIORIDAD RESPONSIVE (Evita que desaparezcan en móvil)
+                    // 1 = Máxima prioridad (Tarea)
+                    // 2 = Alta prioridad (Acciones)
+                    {
+                        responsivePriority: 1,
+                        targets: 0
+                    },
+                    {
+                        responsivePriority: 2,
+                        targets: [3, 6, 7]
+                    } 
                 ]
             });
 
@@ -143,22 +163,22 @@
                     <tbody>
                         @forelse($tareas as $tarea)
                         <tr>
-                            {{-- 1. Actividad --}}
+                            {{-- 0. Actividad --}}
                             <td>
                                 <span class="fw-bold text-primary">{{ $tarea->actividad->nombre }}</span>
                             </td>
 
-                            {{-- 2. Nombre--}}
+                            {{-- 1. Nombre--}}
                             <td>
                                 <span class="fw-bold text-primary">{{ $tarea->tarea }}</span>
                             </td>
                             
-                            {{-- 3. Descripción --}}
+                            {{-- 2. Descripción --}}
                             <td>
                                 <span class="text-muted small">{{ Str::limit($tarea->actividad->descripcion ?? 'Sin descripción', 50) }}</span>
                             </td>
 
-                            {{-- 4. Notas del alumno --}}
+                            {{-- 3. Notas del alumno --}}
                             <td class="position-relative">
                                 <input type="text" 
                                        class="form-control form-control-sm text-muted input-notas-ajax" 
@@ -169,7 +189,7 @@
                                 <div class="status-indicator" style="font-size: 0.7rem; position: absolute; bottom: -5px; right: 10px;"></div>
                             </td>
                             
-                            {{-- 5. Fecha --}}
+                            {{-- 4. Fecha --}}
                             <td class="text-center position-relative">
                                 <input type="date"
                                     class="form-control form-control-sm text-center input-fecha-ajax"
@@ -180,7 +200,7 @@
                                 <div class="status-indicator" style="font-size: 0.7rem; height: 15px; position: absolute; width: 100%; left: 0;"></div>
                             </td>
 
-                            {{-- 6. Duración --}}
+                            {{-- 5. Duración --}}
                             <td class="text-center position-relative">
                                 <x-duration-select 
                                     class="form-select-sm"
@@ -189,7 +209,7 @@
                                 />
                             </td>
                             
-                            {{-- 7. Calificación --}}
+                            {{-- 6. Calificación --}}
                             <td class="text-center position-relative">
                                 <div class="form-check d-flex justify-content-center">
                                     <input class="form-check-input border-2 border-secondary check-apto-ajax" 
@@ -202,7 +222,7 @@
                                 <div class="status-indicator" style="font-size: 0.7rem; height: 15px;"></div>
                             </td>
 
-                            {{-- 8. BLOQUEO --}}
+                            {{-- 7. BLOQUEO --}}
                             <td class="text-center position-relative">
                                 @if(auth()->user()->isProfesor() || auth()->user()->isAdmin())
                                     <div class="form-check form-switch d-flex justify-content-center">

@@ -1,6 +1,6 @@
 @extends('layouts.default')
 
-@push('scripts')
+@section('scripts')
 <script>
     $(document).ready(function() {
         $('#tablaTareas').DataTable({
@@ -24,7 +24,29 @@
             },
             order: [
                 [1, "desc"]
-            ] // Ordenar por fecha descendente por defecto
+            ],
+            responsive: true,
+            autoWidth: false,
+            columnDefs: [{
+                    orderable: false,
+                    targets: [4, 5, 6, 7]
+                },
+                {
+                    className: "align-middle",
+                    targets: "_all"
+                },
+                // 3. PRIORIDAD RESPONSIVE (Evita que desaparezcan en móvil)
+                // 1 = Máxima prioridad (Tarea)
+                // 2 = Alta prioridad (Acciones)
+                {
+                    responsivePriority: 1,
+                    targets: [0, 1, 8]
+                },
+                {
+                    responsivePriority: 2,
+                    targets: [3, 6, 7]
+                }
+            ]
         });
 
         // AJAX - COMPONENTE FECHA
@@ -203,16 +225,59 @@
                 }
             });
         });
+
+        // --- AJAX - GUARDAR TEXTOS ---
+        $('body').on('click', '.btn-guardar-fila', function(e) {
+            e.preventDefault();
+            var btn = $(this);
+            var row = btn.closest('tr');
+            var url = btn.data('url');
+            
+            // Recopilamos los datos de los inputs de la fila
+            var data = {
+                nombre: row.find('input[name="nombre"]').val(),
+                tarea: row.find('input[name="tarea"]').val(),
+                descripcion: row.find('textarea[name="descripcion"]').val(),
+                notas_alumno: row.find('input[name="notas_alumno"]').val(),
+                modo: 'definicion' // Para que el controlador sepa qué hacer
+            };
+
+            var originalContent = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...');
+
+            $.ajax({
+                url: url,
+                method: 'PUT',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                data: data,
+                success: function(response) {
+                    // Éxito
+                    btn.removeClass('btn-success').addClass('btn-dark')
+                       .html('<i class="bi bi-check-lg"></i> Guardado');
+                    
+                    // Volver al estado original tras 2 seg
+                    setTimeout(function() {
+                        btn.prop('disabled', false).removeClass('btn-dark').addClass('btn-success').html(originalContent);
+                    }, 2000);
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html('Error');
+                    alert('Error al guardar los datos de texto.');
+                }
+            });
+        });
     });
 </script>
-@endpush
+@endsection
 
 @section('content')
 @if(auth()->user()->isProfesor())
     @include('profesores.layouts.header')
 @endif
+
 <div class="container-fluid py-4">
 
+    {{-- Encabezado con botón volver --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold texto">Historial de Tareas</h2>
@@ -226,139 +291,124 @@
         </div>
     </div>
 
+    {{-- Alertas --}}
     @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif
 
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3">
-            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-journal-text me-2"></i>Tareas Entregadas</h6>
+        <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-journal-text me-2"></i>Tareas Realizadas</h6>
         </div>
-        <div class="card-body">
+        
+        {{-- p-0 en el body para ganar espacio en móvil --}}
+        <div class="card-body p-0 p-md-3"> 
             <div class="table-responsive">
-                <table id="tablaTareas" class="table table-hover align-middle">
+                <table id="tablaTareas" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
                             <th>Nombre</th>
+                            <th class="text-start">Coment. alumno</th>
                             <th>Tarea</th>
-                            <th>Descripción / Título</th>
-                            <th>Anotaciones del alumno</th>
-                            <th class="text-center">Fecha Entrega</th>
+                            <th class="text-start">Descripción</th> {{-- Oculto en móvil --}}
+                            <th class="text-center">Fecha</th>
                             <th>Duración</th>
-                            <th class="text-center">Calificación</th>
-                            <th class="text-end">Bloquear</th>
-                            <th class="text-end">Acciones</th>
+                            <th class="text-center">Calif.</th>
+                            <th class="text-center">Bloq.</th>
+                            <th class="text-center">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($tareas as $tarea)
-                        <form action="{{ route('gestion.tareas.update', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}" method="POST">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="modo" value="definicion"> {{-- Campo oculto para distinguir qué actualizamos --}}
-                            <tr>
-                                {{-- Nombre --}}
-                                <td>
-                                    <label class="form-label fw-bold">Actividad</label>
-                                    <input type="text" name="nombre" class="form-control" value="{{ $tarea->nombre }}" placeholder="Ej: MMA1" required>
-                                </td>
+                        <tr>
+                            {{-- 0. Nombre (Actividad) --}}
+                            <td>
+                                <div style="max-width: 120px;">
+                                    <p><span class="text-primary fw-bold">{{ $tarea->actividadNombre }}</span></p>
+                                </div>
+                            </td>
 
-                                {{-- Tarea --}}
-                                <td>
-                                    <label class="form-label fw-bold">Tarea</label>
-                                    <input type="text" name="tarea" class="form-control" value="{{ $tarea->tarea }}"placeholder="Texto que aparecerá en el desplegable del alumno" required>
-                                </td>
+                            {{-- 1. Notas del alumno --}}
+                            <td>
+                                <input name="notas_alumno" class="form-control form-control-sm text-muted" 
+                                       value="{{ $tarea->notas_alumno }}">
+                            </td>
 
-                                {{-- Descripción --}}
-                                <td>
-                                    <label class="form-label fw-bold">Descripción / Instrucciones</label>
-                                    <textarea name="descripcion" class="form-control" rows="1">{{ $tarea->descripcion }}</textarea>
-                                </td>
+                            {{-- 2. Tarea --}}
+                            <td>
+                                <div>
+                                    <p>{{ $tarea->actividadTarea }}</p>
+                                </div>
+                            </td>
 
-                                {{-- Notas del alumno --}}
-                                <td>
-                                    <input name="notas_alumno" class="form-control" value="{{ $tarea->notas_alumno ?? 'Sin descripción' }}"></input>
-                                </td>
+                            {{-- 3. Descripción --}}
+                            <td>
+                                <p>{{ $tarea->actividadDescripcion }}</p>
+                            </td>
 
-                                {{-- Fecha de creación --}}
-                                <td class="text-center position-relative">
-                                    <input type="date" 
-                                        class="form-control form-control-sm text-center input-fecha-ajax" 
-                                        style="min-width: 130px;"
+                            {{-- 4. Fecha --}}
+                            <td class="text-center position-relative">
+                                <div style="min-width: 140px;">
+                                    <input type="date"
+                                        class="form-control form-control-sm text-center input-fecha-ajax"
                                         value="{{ $tarea->fecha ? \Carbon\Carbon::parse($tarea->fecha)->format('Y-m-d') : '' }}"
-                                        
-                                        {{-- Generamos la ruta aquí para que JS solo tenga que leerla --}}
-                                        data-url="{{ route('gestion.tareas.updateFecha', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
-                                        
-                                    {{-- Pequeño indicador visual de guardado --}}
-                                    <div class="status-indicator" style="font-size: 0.7rem; height: 15px; position: absolute; width: 100%; left: 0;"></div>
-                                </td>
+                                        data-url="{{ route('gestion.tareas.updateFecha', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}">
+                                    
+                                    <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -18px;"></div>
+                                </div>
+                            </td>
 
-                                {{-- Duración --}}
-                                <td class="text-center">
+                            {{-- 5. Duración (CORREGIDO) --}}
+                            <td class="text-center">
+                                <div style="min-width: 100px;">
                                     <x-duration-select
-                                        :selected="$tarea->duracion"
+                                        class="form-select-sm"
+                                        :selected="$tarea->duracion ? \Carbon\Carbon::parse($tarea->duracion)->format('H:i') : ''"
                                         :url="route('gestion.tareas.updateDuracion', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea])"
                                         :disabled="false" />
-                                </td>
+                                     <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
+                                </div>
+                            </td>
 
-                                {{-- Calificación --}}
-                                <td class="text-center position-relative">
-                                    <div class="form-check d-flex justify-content-center">
-                                        <input class="form-check-input border-2 border-secondary" type="checkbox" style="cursor: pointer; transform: scale(1.2);"
-                                            {{-- Estado actual --}}
-                                            {{ $tarea->apto ? 'checked' : '' }}>
-                                    </div>
-                                </td>
+                            {{-- 6. Calificación --}}
+                            <td class="text-center position-relative">
+                                <div class="form-check d-flex justify-content-center">
+                                    <input class="form-check-input check-apto-ajax border-2" 
+                                           type="checkbox" 
+                                           style="cursor: pointer; transform: scale(1.3);"
+                                           data-url="{{ route('gestion.tareas.updateApto', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
+                                           {{ $tarea->apto ? 'checked' : '' }}>
+                                </div>
+                                <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
+                            </td>
 
-                                {{-- Bloqueo (Switch AJAX) --}}
-                                <td class="text-center position-relative">
-                                    <div class="form-check form-switch d-flex justify-content-center">
-                                        <input class="form-check-input check-bloqueo-ajax"
-                                            type="checkbox"
-                                            role="switch"
-                                            style="cursor: pointer;"
+                            {{-- 7. Bloqueo --}}
+                            <td class="text-center position-relative">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input check-bloqueo-ajax"
+                                        type="checkbox"
+                                        role="switch"
+                                        style="cursor: pointer;"
+                                        data-url="{{ route('gestion.tareas.updateBloqueo', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
+                                        {{ $tarea->bloqueado ? 'checked' : '' }}>
+                                </div>
+                                <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
+                            </td>
 
-                                            {{-- Generamos ruta --}}
-                                            data-url="{{ route('gestion.tareas.updateBloqueo', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
-
-                                            {{-- Estado actual --}}
-                                            {{ $tarea->bloqueado ? 'checked' : '' }}>
-                                    </div>
-
-                                    {{-- Indicador visual --}}
-                                    <div class="status-indicator" style="font-size: 0.7rem; height: 15px; position: absolute; width: 100%; left: 0;"></div>
-                                </td>
-
-                                {{-- Acciones --}}
-                                <td class="text-center">
-                                    <button type="submit" class="btn btn-success fw-bold">
-                                        <i class="bi bi-save me-1"></i> Guardar
-                                    </button>
-                                </td>
-                            </tr>
-                        </form>
+                            {{-- 8. Acciones (Botón AJAX) --}}
+                            <td class="text-center">
+                                <button type="button" 
+                                        class="btn btn-success btn-sm fw-bold btn-guardar-fila"
+                                        data-url="{{ route('gestion.tareas.update', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}">
+                                    <i class="bi bi-save"></i> <span class="d-md-inline">Guardar</span>
+                                </button>
+                            </td>
+                        </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center py-5">
-                                <div class="d-flex flex-column align-items-center text-muted">
-                                    <i class="bi bi-inbox fs-1 mb-2"></i>
-                                    <p class="mb-0">Este alumno no tiene tareas registradas en este módulo.</p>
-                                </div>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                No hay tareas registradas.
                             </td>
                         </tr>
                         @endforelse

@@ -1,6 +1,6 @@
 @extends('layouts.default')
 
-@push('scripts')
+@section('scripts')
 <script>
     $(document).ready(function() {
         $('#tablaModulos').DataTable({
@@ -32,12 +32,32 @@
             "pageLength": 10,
             "columnDefs": [
                 // Desactivamos ordenación de acciones
-                { "orderable": false, "targets": 3 } 
+                { 
+                    orderable: false, 
+                    targets: 3 
+                },
+                // 2. CENTRADO VERTICAL
+                {
+                    className: "align-middle",
+                    targets: "_all"
+                },
+
+                // 3. PRIORIDAD RESPONSIVE (Evita que desaparezcan en móvil)
+                // 1 = Máxima prioridad (Tarea)
+                // 2 = Alta prioridad (Acciones)
+                {
+                    responsivePriority: 1,
+                    targets: 0
+                },
+                {
+                    responsivePriority: 2,
+                    targets: 3
+                }
             ]
         });
     });
 </script>
-@endpush
+@endsection
 
 @section('content')
 <div class="container-fluid">
@@ -50,14 +70,33 @@
         </div>
     </div>
 
+    {{-- Mensajes de Feedback --}}
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+        <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>
+    </div>
+    @endif
+
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
-                <table id="tablaModulos" class="table table-striped table-hover dt-responsive nowrap" style="width:100%">
+                <table id="tablaModulos" class="table table-striped table-hover dt-responsive nowrap w-100">
                     <thead>
                         <tr>
-                            <th>Proyecto (BD)</th>
-                            <th>Módulo</th>
+                            <th class="text-start">Módulo</th>
+                            <th class="text-center">Proyecto (BD)</th>
                             <th class="text-center">Alumnos</th>
                             <th class="text-center">Acciones</th>
                         </tr>
@@ -65,13 +104,20 @@
                     <tbody><?php ?>
                         @foreach($modulos as $modulo)
                         <tr>
+                            {{-- 0. Nombre módulo --}}
+                            <td class="fw-bold">{{ $modulo->nombre }}</td>
+
+                            {{-- 1. Nombre proyecto --}}
                             <td>
                                 <span class="badge bg-secondary">{{ $modulo->nombre_proyecto }}</span>
                             </td>
-                            <td class="fw-bold">{{ $modulo->nombre }}</td>
+
+                            {{-- 2. Conteo de alumnos --}}
                             <td class="text-center">
                                 <span class="badge bg-primary rounded-pill">{{ $modulo->alumnos_count }}</span>
                             </td>
+
+                            {{-- 3. Acciones --}}
                             <td class="text-center">
                                 <div class="btn-group gap-2" role="group">
 
