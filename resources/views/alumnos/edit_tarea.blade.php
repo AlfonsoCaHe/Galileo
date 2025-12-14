@@ -23,8 +23,8 @@
     <div class="row justify-content-center mt-4">
         <div class="col-md-8 col-lg-5">
             <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-body p-4 p-md-5">
-                    <h2 class="card-title text-center mb-3 fw-bold text-primary">Editar Tarea</h2>
+                <div class="card-body p-4">
+                    <h2 class="card-title text-center fw-bold text-primary">Editar Tarea</h2>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('alumnado.updateTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tareaPrincipal->id_tarea]) }}" method="POST" novalidate>
@@ -32,7 +32,7 @@
                         @method('PUT')
                         {{-- 1. Tarea (No modificable por el alumno) --}}
                         <div class="mb-3">
-                            <span class="fw-bold text-primary">{{ $tareaPrincipal->tarea }}</span>
+                            <span class="fw-bold">{{ $tareaPrincipal->tarea }}</span>
                         </div>
 
                         {{-- 2. Fecha --}}

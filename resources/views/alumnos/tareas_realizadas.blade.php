@@ -1,116 +1,113 @@
 @extends('layouts.default')
 @include('alumnos.layouts.header')
 
-@push('scripts')
-
+@section('scripts')
     <script>
         $(document).ready(function() {
             $('#tablaTareas').DataTable({
                 responsive: true,
+                autoWidth: false,
                 "language": {
                     "decimal": ",",
-                    "emptyTable": "No hay datos en la tabla",
-                    "info": "Monstrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
-                    "infoEmpty": "",
-                    "infoFiltered": "",
-                    "infoPostFix": "",
-                    "thousands": ".",
+                    "emptyTable": "No hay tareas finalizadas.",
+                    "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+                    "infoFiltered": "(filtrado de _MAX_ registros totales)",
                     "lengthMenu": "Mostrar _MENU_ registros",
                     "loadingRecords": "Cargando...",
                     "processing": "Procesando...",
                     "search": "Buscar:",
-                    "zeroRecords": "No han encontrado registros",
+                    "zeroRecords": "No se encontraron resultados",
                     "paginate": {
                         "first": "Primero",
                         "last": "Último",
                         "next": "Siguiente",
                         "previous": "Anterior"
-                    },
-                    "aria": {
-                        "sortAscending": ": Click/return para ordenar ascendentemente",
-                        "sortDescending": ": Click/return para ordenar descendentemente"
                     }
                 },
-                // Deshabilitar ordenamiento en la columna del checkbox (índice 4)
                 columnDefs: [
-                    { orderable: false, targets: 4 }
+                    // 1. DESHABILITAR ORDENAMIENTO (Duración y Calificación)
+                    { orderable: false, targets: [4, 5] },
+                    
+                    // 2. CENTRADO VERTICAL
+                    { className: "align-middle", targets: "_all" },
+                    
+                    // 3. PRIORIDAD RESPONSIVE
+                    // Mantenemos Tarea (1) y Calificación (5) visibles siempre que se pueda
+                    { responsivePriority: 1, targets: 1 },
+                    { responsivePriority: 2, targets: 5 }
                 ]
             });
         });
     </script>
-@endpush
+@endsection
 
 @section('content')
-<div class="container mx-auto p-6">
-    <div class="p-4 border-b bg-gray-50">
-        <h2 class="fw-bold texto">Tareas Finalizadas</h2>
-    </div>
-
-    {{-- Menú de opciones --}}
-    <div class="d-flex justify-content-end mb-3">
-        <div class="d-flex">
-            <a href="{{ route('alumnos.panel') }}"class="btn btn-danger fw-bold m-2">
-                Volver
+<div class="container-fluid py-4">
+    
+    {{-- Título y Botón Volver --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 bg-light p-3 rounded">
+        <h2 class="fw-bold text-dark m-0">Tareas Finalizadas</h2>
+        <div>
+            <a href="{{ route('alumnos.panel') }}" class="btn btn-danger fw-bold">
+                <i class="bi bi-arrow-return-left"></i> <span class="d-md-inline">Volver</span>
             </a>
         </div>
     </div>
 
-    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-        
-
-        <div class="card shadow-lg p-4">
-            <table id="tablaTareas" class="table table-striped table-hover w-100" style="width:100%">
-                <thead>
+    {{-- Tabla --}}
+    <div class="card shadow border-0">
+        <div class="card-body">
+            <table id="tablaTareas" class="table table-striped table-hover dt-responsive nowrap w-100">
+                <thead class="table-light">
                     <tr>
-                        <th class="py-3 px-6 text-left">Tarea</th>
-                        <th class="py-3 px-6 text-left">Módulo</th>
-                        <th class="py-3 px-6 text-center">Fecha</th>
-                        <th class="py-3 px-6 text-center">Duración</th>
-                        <th class="py-3 px-6 text-center">Calificación</th>
+                        <th class="text-start">Descripción</th>
+                        <th class="none">Tarea</th>{{-- Oculto, sale en el + --}}
+                        <th class="text-start">Módulo</th>
+                        <th class="text-center">Fecha</th>
+                        <th class="text-center">Duración</th>
+                        <th class="text-center">Calificación</th>
                     </tr>
                 </thead>
-                <tbody class="text-gray-600 text-sm font-light">
+                <tbody>
                     @foreach($tareasRealizadas as $tarea)
-                    <tr class="border-b border-gray-200 hover:bg-gray-100">
-                        
-                        {{-- Nombre de la Tarea --}}
-                        <td class="py-3 px-6 text-left whitespace-nowrap">
-                            <span class="font-medium">{{ $tarea->nombre_tarea }}</span>
+                    <tr>
+                        {{-- 0. Descripción (notas_alumno) --}}
+                        <td class="text-muted">
+                            <div class="p-2 bg-light border rounded">
+                                {{ $tarea->notas_alumno ?: 'Sin anotaciones' }}
+                            </div>
                         </td>
 
-                        {{-- Módulo --}}
-                        <td class="py-3 px-6 text-left">
-                            <span>{{ $tarea->nombre_modulo }}</span>
+                        {{-- 1. Tarea --}}
+                        <td class="fw-bold text-primary">
+                            <span class="text-primary">{{ $tarea->nombre_tarea }}</span>
                         </td>
 
-                        {{-- Fecha (Formateada) --}}
-                        <td class="py-3 px-6 text-center">
+                        {{-- 2. Módulo --}}
+                        <td>
+                            {{ $tarea->nombre_modulo }}
+                        </td>
+
+                        {{-- 3. Fecha --}}
+                        <td class="text-center">
                             {{ \Carbon\Carbon::parse($tarea->fecha)->format('d/m/Y') }}
                         </td>
 
-                        {{-- Duración --}}
-                        <td class="py-3 px-6 text-center">
-                            {{ $tarea->duracion ?? 'N/A' }}
+                        {{-- 4. Duración --}}
+                        <td class="text-center">
+                            {{ $tarea->duracion ?? '-' }}
                         </td>
 
-                        {{-- Checkbox Apto/No Apto --}}
-                        <td class="py-3 px-6 text-center">
-                            <div class="flex items-center justify-center space-x-2">
-                                {{-- 
-                                   Lógica: Asumo que si calificacion >= 5 (o true) es APTO.
-                                   Ajusta la condición del if según cómo guardes la nota.
-                                --}}
-                                <input type="checkbox" 
-                                       class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0 cursor-not-allowed disabled:opacity-75" 
-                                       disabled 
-                                       {{-- Ejemplo: Si es mayor o igual a 5, checkeado --}}
-                                       {{ $tarea->apto >= 5 ? 'checked' : '' }}>
-                                
-                                <span class="font-bold {{ $tarea->apto >= 5 ? 'text-green-600' : 'text-red-500' }}">
+                        {{-- 5. Calificación --}}
+                        <td class="text-center">
+                            <div class="d-flex align-items-center justify-content-center gap-2">
+                                <span class="fw-bold {{ $tarea->apto >= 5 ? 'text-success' : 'text-danger' }}">
                                     {{ $tarea->apto >= 5 ? 'Apto' : 'No Apto' }}
                                 </span>
                             </div>
                         </td>
+
                     </tr>
                     @endforeach
                 </tbody>

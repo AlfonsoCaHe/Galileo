@@ -311,17 +311,14 @@ class AlumnadoVistaController extends Controller
             if ($tarea->bloqueado) {
                 return redirect()->back()->with('error', 'No puedes eliminar una tarea que ya ha sido terminada.');
             }
-
-            // Desvinculamos criterios antes de borrar (limpieza pivote)
-            $tarea->criterios()->detach();
             
             $tarea->delete();
 
-            return redirect()->route('alumnos.tareasPendientes', ['proyecto_id' => $proyecto_id])
+            return redirect()->route('alumnado.tareas_pendientes', ['proyecto_id' => $proyecto_id])
                              ->with('success', 'Borrador eliminado correctamente.');
 
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors('Error al eliminar: ' . $e->getMessage());
+            return redirect()->route('alumnado.tareas_pendientes', ['proyecto_id' => $proyecto_id])->withErrors('Error al eliminar: ' . $e->getMessage());
         }
     }
 

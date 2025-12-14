@@ -1,140 +1,193 @@
 @extends('layouts.default')
 @include('alumnos.layouts.header')
 
-@push('scripts')
-
+@section('scripts')
 <script>
     $(document).ready(function() {
         $('#tablaTareas').DataTable({
             responsive: true,
+            autoWidth: false,
             "language": {
                 "decimal": ",",
                 "emptyTable": "No hay datos en la tabla",
-                "info": "Monstrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
-                "infoEmpty": "",
-                "infoFiltered": "",
-                "infoPostFix": "",
-                "thousands": ".",
+                "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
                 "lengthMenu": "Mostrar _MENU_ registros",
                 "loadingRecords": "Cargando...",
                 "processing": "Procesando...",
                 "search": "Buscar:",
-                "zeroRecords": "No han encontrado registros",
+                "zeroRecords": "No se encontraron resultados",
                 "paginate": {
                     "first": "Primero",
                     "last": "Último",
                     "next": "Siguiente",
                     "previous": "Anterior"
-                },
-                "aria": {
-                    "sortAscending": ": Click/return para ordenar ascendentemente",
-                    "sortDescending": ": Click/return para ordenar descendentemente"
                 }
             },
-            // Deshabilitar ordenamiento en la columna del checkbox y acciones (índice 4 y 5)
-            columnDefs: [{
-                orderable: false,
-                targets: [4, 5]
-            }]
+            columnDefs: [
+                // 1. DESHABILITAR ORDENAMIENTO (Duración, Calificación, Acciones)
+                {
+                    orderable: false,
+                    targets: [3, 4, 5]
+                },
+
+                // 2. CENTRADO VERTICAL
+                {
+                    className: "align-middle",
+                    targets: "_all"
+                },
+
+                // 3. PRIORIDAD RESPONSIVE (Evita que desaparezcan en móvil)
+                // 1 = Máxima prioridad (Tarea)
+                // 2 = Alta prioridad (Acciones)
+                {
+                    responsivePriority: 1,
+                    targets: 0
+                },
+                {
+                    responsivePriority: 2,
+                    targets: 5
+                }
+            ]
         });
     });
 </script>
-@endpush
+@endsection
 
 @section('content')
-<div class="container mx-auto p-6">
-    <div class="p-4 border-b bg-gray-50">
-        <h2 class="fw-bold texto">Tareas Sin Finalizar</h2>
-    </div>
+<div class="container-fluid py-4">
 
-    {{-- Menú de opciones --}}
-    <div class="d-flex justify-content-end mb-3">
-        <div class="d-flex">
-            <a href="{{ route('alumnado.createTarea', ['proyecto_id' => $proyecto->id_base_de_datos])}}" class="btn btn-success fw-bold me-2">
-                Crear Tarea
+    {{-- Título y Botones --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 bg-light p-3 rounded">
+        <h2 class="fw-bold text-dark m-0">Tareas Sin Finalizar</h2>
+        <div>
+            <a href="{{ route('alumnado.createTarea', ['proyecto_id' => $proyecto->id_base_de_datos])}}" class="btn btn-success w-100 fw-bold me-2">
+                <i class="bi bi-plus-lg"></i> <span class="d-md-inline">Crear Tarea</span>
             </a>
-            <a href="{{ route('alumnos.panel') }}" class="btn btn-danger fw-bold me-2">
-                Volver
+            <a href="{{ route('alumnos.panel') }}" class="btn btn-danger w-100 fw-bold">
+                <i class="bi bi-arrow-return-left"></i> <span class="d-md-inline">Volver</span>
             </a>
         </div>
     </div>
 
-    <div class="card-body">
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <div class="card shadow-lg p-4">
-                <table id="tablaTareas" class="table table-striped table-hover w-100" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th class="py-3 px-6 text-left">Tarea</th>
-                            <th class="py-3 px-6 text-left">Módulo</th>
-                            <th>Descripción</th>
-                            <th class="py-3 px-6 text-center">Fecha</th>
-                            <th class="py-3 px-6 text-center">Duración</th>
-                            <th class="py-3 px-6 text-center">Calificación</th>
-                            <th class="py-3 px-6 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-600 text-sm font-light">
-                        @foreach($tareasDisponibles as $tarea)
-                        <tr class="border-b border-gray-200 hover:bg-gray-100">
+    {{-- Mensajes de Feedback --}}
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
 
-                            {{-- Nombre de la Tarea --}}
-                            <td class="py-3 px-6 text-left whitespace-nowrap">
-                                <span class="font-medium">{{ $tarea->nombre_tarea }}</span>
-                            </td>
+    @if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+        <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>
+    </div>
+    @endif
 
-                            {{-- Módulo --}}
-                            <td class="py-3 px-6 text-left">
-                                <span>{{ $tarea->nombre_modulo }}</span>
-                            </td>
+    {{-- Tabla --}}
+    <div class="card shadow border-0">
+        <div class="card-body">
+            <table id="tablaTareas" class="table table-striped table-hover dt-responsive nowrap w-100">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start">Descripción</th>
+                        <th class="none">Tarea</th>{{-- Oculto, sale al pulsar + --}}
+                        <th class="text-center">Fecha</th>
+                        <th class="text-center">Duración</th>
+                        <th class="text-center">Apto</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($tareasDisponibles as $tarea)
+                    <tr>
+                        {{-- 0. Descripción (notas_alumno) --}}
+                        <td class="text-muted">
+                            <div class="p-2 bg-light border rounded">
+                                {{ $tarea->notas_alumno ?: 'Sin anotaciones' }}
+                            </div>
+                        </td>
 
-                            {{-- Notas Alumno--}}
-                            <td class="py-3 px-6 text-left">
-                                <span>{{ $tarea->notas_alumno }}</span>
-                            </td>
+                        {{-- 1. Tarea --}}
+                        <td class="fw-bold text-primary">
+                            <span class="text-primary">{{ $tarea->nombre_tarea }}</span>
+                        </td>
 
-                            {{-- Fecha (Formateada) --}}
-                            <td class="py-3 px-6 text-center">
-                                {{ \Carbon\Carbon::parse($tarea->fecha)->format('d/m/Y') }}
-                            </td>
+                        {{-- 2. Fecha --}}
+                        <td class="text-center">
+                            {{ \Carbon\Carbon::parse($tarea->fecha)->format('d/m/Y') }}
+                        </td>
 
-                            {{-- Duración --}}
-                            <td class="py-3 px-6 text-center">
-                                {{ $tarea->duracion ?? 'N/A' }}
-                            </td>
+                        {{-- 3. Duración --}}
+                        <td class="text-center">
+                            {{ $tarea->duracion ?? '-' }}
+                        </td>
 
-                            {{-- Checkbox Apto/No Apto --}}
-                            <td class="py-3 px-6 text-center">
-                                <div class="flex items-center justify-center space-x-2">
-                                    {{--
-                                   Lógica: Asumo que si calificacion >= 5 (o true) es APTO.
-                                   Ajusta la condición del if según cómo guardes la nota.
-                                --}}
-                                    <input type="checkbox"
-                                        class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0 cursor-not-allowed disabled:opacity-75"
-                                        disabled
-                                        {{-- Ejemplo: Si es mayor o igual a 5, checkeado --}}
-                                        {{ $tarea->apto >= 5 ? 'checked' : '' }}>
+                        {{-- 4. Calificación (Badge en vez de checkbox deshabilitado) --}}
+                        <td class="text-center">
+                            @if($tarea->apto >= 5)
+                            <span class="badge bg-success rounded-pill">
+                                <i class="bi bi-check-lg"></i> Apto
+                            </span>
+                            @else
+                            <span class="badge bg-danger rounded-pill">
+                                <i class="bi bi-x-lg"></i> No Apto
+                            </span>
+                            @endif
+                        </td>
 
-                                    <span class="font-bold {{ $tarea->apto >= 5 ? 'text-green-600' : 'text-red-500' }}">
-                                        {{ $tarea->apto >= 5 ? 'Apto' : 'No Apto' }}
-                                    </span>
+                        {{-- 5. Acciones --}}
+                        <td class="text-center">
+                            {{--
+         justify-content-center: Centra los botones cuando sobran espacios (en pantalla grande).
+         min-width: 220px: Asegura que no se aplasten demasiado antes de que entre el modo responsive.
+    --}}
+                            <div class="row g-2 justify-content-center" style="min-width: 220px;">
+
+                                {{--
+            BOTÓN EDITAR 
+            col-6: En móvil/tablet ocupa el 50% del ancho.
+            col-xl-3: En pantalla grande (>1200px) ocupa el 25% del ancho.
+        --}}
+                                <div class="col-6 col-xl-3">
+                                    <a href="{{ route('alumnado.editTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $tarea->modulo_id, 'tarea_id' => $tarea->id_tarea]) }}"
+                                        class="btn btn-warning btn-sm w-100 fw-bold d-flex align-items-center justify-content-center"
+                                        title="Editar">
+                                        <i class="bi bi-pencil-square me-1"></i> Editar
+                                    </a>
                                 </div>
-                            </td>
-                            {{-- Acciones --}}
-                            <td class="text-center">
-                                <a href="{{ route('alumnado.editTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $tarea->modulo_id, 'tarea_id' => $tarea->id_tarea]) }}" class="btn btn-warning fw-bold">
-                                    <i class="bi bi-save me-1"></i> Editar
-                                </a>
-                                <a href="{{ route('alumnado.editTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $tarea->modulo_id, 'tarea_id' => $tarea->id_tarea]) }}" class="btn btn-danger fw-bold">
-                                    <i class="bi bi-trash-fill"></i>Eliminar
-                                </a>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+
+                                {{--
+            BOTÓN ELIMINAR 
+            Misma lógica: 50% en móvil, 25% en escritorio grande.
+        --}}
+                                <div class="col-6 col-xl-3">
+                                    <form action="{{ route('alumnado.destroyTarea', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
+                                        method="POST"
+                                        class="w-100">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="btn btn-danger btn-sm w-100 fw-bold d-flex align-items-center justify-content-center"
+                                            onclick="return confirm('¿Seguro que deseas eliminar esta tarea?')"
+                                            title="Eliminar">
+                                            <i class="bi bi-trash-fill me-1"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
