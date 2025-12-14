@@ -10,6 +10,8 @@ class Proyecto extends Model
 {
     use HasUuids;
 
+    protected $connection = 'mysql';
+
     protected $table = "bases_de_datos";
     
     protected $primaryKey = 'id_base_de_datos';

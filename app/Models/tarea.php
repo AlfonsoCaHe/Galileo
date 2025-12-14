@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tarea extends Model
@@ -16,14 +15,13 @@ class Tarea extends Model
     protected $primaryKey = 'id_tarea';
 
     protected $fillable = [
-        'nombre',
-        'tarea',//Desplegable para los alumnos
-        'descripcion',
+        'actividad_id',
+        'alumno_id',
+        'modulo_id',
+        'tarea',
         'notas_alumno',
         'fecha',
         'duracion',
-        'modulo_id',
-        'alumno_id',
         'apto',
         'bloqueado'
     ];
@@ -38,6 +36,12 @@ class Tarea extends Model
     protected $keyType = 'string';
     public $timestamps = true;
 
+    // Relaciones
+    public function actividad(): BelongsTo
+    {
+        return $this->belongsTo(Actividad::class, 'actividad_id', 'id_actividad');
+    }
+
     public function alumno(): BelongsTo
     {
         return $this->belongsTo(Alumno::class, 'alumno_id', 'id_alumno');
@@ -46,10 +50,5 @@ class Tarea extends Model
     public function modulo(): BelongsTo
     {
         return $this->belongsTo(Modulo::class, 'modulo_id', 'id_modulo');
-    }
-
-    public function criterios(): BelongsToMany
-    {
-        return $this->belongsToMany(Criterio::class, 'tareas_criterios', 'tarea_id', 'criterio_id');
     }
 }

@@ -1,7 +1,11 @@
 @extends('layouts.default')
 
 @section('content')
-@include('gestion.layouts.header')
+@if(auth()->user()->isAdmin())
+    @include('gestion.layouts.header')
+@elseif(auth()->user()->isAlumno())
+    @include('alumnos.layouts.header')
+@endif
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-5">
@@ -22,7 +26,11 @@
                         </div>
                     @endif
 
+                    @if(auth()->user()->isAdmin())
                     <form action="{{ route('gestion.alumnos.update', ['proyecto_id' => $proyecto, 'alumno_id' => $alumno->id_alumno]) }}" method="POST">
+                    @elseif(auth()->user()->isAlumno())
+                    <form action="{{ route('alumno.update', ['proyecto_id' => $proyecto, 'alumno_id' => $alumno->id_alumno]) }}" method="POST">
+                    @endif
                         @csrf
                         @method('PUT')
 
@@ -31,13 +39,25 @@
                             <label for="nombre" class="form-label fw-semibold">
                                 Nombre
                             </label>
+                            @if(auth()->user()->isAdmin())
                             <input id="nombre" name="nombre" required
                                    value="{{ $alumno->nombre }}"
                                    class="form-control rounded-3 @error('nombre') is-invalid @enderror"
-                                   placeholder="Nombre">
+                                   placeholder="Nombre"
+                                   >
                             @error('nombre')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            @endif
+
+                            @if(auth()->user()->isAlumno())
+                            <input id="nombre" name="" required
+                                   value="{{ $alumno->nombre }}"
+                                   class="form-control rounded-3 @error('nombre') is-invalid @enderror"
+                                   placeholder="Nombre"
+                                   disabled>
+                            <input type="hidden" name="nombre" value="{{ $alumno->nombre }}">
+                            @endif
                         </div>
 
                         <!-- Campo Email -->
@@ -45,13 +65,25 @@
                             <label for="email" class="form-label fw-semibold">
                                 Correo Electrónico
                             </label>
+                            @if(auth()->user()->isAdmin())
                             <input id="email" name="email" type="email" autocomplete="email" required
                                    value="{{ $alumno->email }}"
                                    class="form-control rounded-3 @error('email') is-invalid @enderror"
-                                   placeholder="tu.correo@ejemplo.com">
+                                   placeholder="tu.correo@ejemplo.com"
+                                   >
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            @endif
+
+                            @if(auth()->user()->isAlumno())
+                            <input id="email" name="" type="email" autocomplete="email" required
+                                   value="{{ $alumno->email }}"
+                                   class="form-control rounded-3 @error('email') is-invalid @enderror"
+                                   placeholder="tu.correo@ejemplo.com"
+                                   disabled>
+                            <input type="hidden" name="email" value="{{ $alumno->nombre }}">
+                            @endif
                         </div>
 
                         <!-- Campo Contraseña -->

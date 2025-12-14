@@ -1,6 +1,11 @@
 @extends('layouts.default')
 
 @section('content')
+@if(auth()->user()->isAdmin())
+    @include('gestion.layouts.header')
+@else(auth()->user()->isProfesor())
+    @include('profesores.layouts.header')
+@endif
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-5">

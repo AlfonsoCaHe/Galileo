@@ -33,14 +33,7 @@ Route::middleware(['auth'])->group(function () {
     // Route::get('/profesores', [ProfesorController::class, 'indexProfesores'])->name('profesor.index');
     // Route::get('/profesor/{profesor_id}/alumnos', [ProfesorController::class, 'mostrarAlumnos'])->name('profesor.alumnos');
 
-    //----------------------------------Rutas alumnos----------------------------------------------------//
-    Route::middleware([AlumnoCheck::class])->group(function () {
-        Route::get('/alumnos/panel', function () {
-            // En una aplicación real, aquí retornarías la vista específica del alumno
-            return view('alumno.panel'); 
-        })->name('alumno.panel'); 
-
-    });
+    
 
     //----------------------------------Rutas profesores----------------------------------------------------//
     

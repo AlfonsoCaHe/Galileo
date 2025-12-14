@@ -40,15 +40,17 @@
 <div class="container-fluid">
     @if(auth()->user()->isAdmin())
         @include('gestion.layouts.header')
+    @else(auth()->user()->isProfesor())
+        @include('profesores.layouts.header')
     @endif
 
     {{-- Cabecera Simple --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
-        <h2 class="mb-0 texto">Tareas: <strong class="text-info">{{ $modulo->nombre }}</strong></h2>
+        <h2 class="mb-0 texto">Actividades: <strong class="text-info">{{ $modulo->nombre }}</strong></h2>
         <div class="d-flex gap-2">
             @if(auth()->user()->isProfesor() || auth()->user()->isAdmin())
-                <a href="{{ route('gestion.tareas.create', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-success shadow-sm">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Nueva Tarea
+                <a href="{{ route('gestion.actividades.create', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-success shadow-sm">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Nueva Actividad
                 </a>
             @endif
             @if(auth()->user()->isAdmin())
@@ -79,20 +81,20 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($tareasUnicas as $tarea)
+                        @foreach ($actividades as $actividad)
                             <tr>
                                 {{-- 1. NOMBRE --}}
-                                <td class="fw-bold text-primary">{{ $tarea->nombre }}</td>
+                                <td class="fw-bold text-primary">{{ $actividad->nombre }}</td>
 
                                 {{-- 2. DESCRIPCIÓN --}}
                                 <td>
-                                    <small class="text-muted">{{ Str::limit($tarea->descripcion, 80) ?? 'Sin descripción' }}</small>
+                                    <small class="text-muted">{{ Str::limit($actividad->descripcion, 80) ?? 'Sin descripción' }}</small>
                                 </td>
 
                                 {{-- 3. CRITERIOS --}}
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
-                                        @forelse($tarea->criterios as $criterio)
+                                        @forelse($actividad->criterios as $criterio)
                                             <span class="badge bg-light text-dark border" title="{{ $criterio->descripcion }}">
                                                 {{-- Usamos optional por seguridad --}}
                                                 <strong>{{ optional($criterio->ras)->codigo }}</strong> {{ $criterio->ce }}
@@ -106,13 +108,13 @@
                                 {{-- 4. ALUMNOS (POPOVER) --}}
                                 <td class="text-center">
                                     @php
-                                        $datos = $infoAlumnos[$tarea->nombre] ?? ['total' => 0, 'nombres' => ''];
+                                        $datos = $infoAlumnos[$actividad->nombre] ?? ['total' => 0, 'nombres' => ''];
                                     @endphp
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-info rounded-pill fw-bold border-0"
                                             data-bs-toggle="popover" 
                                             data-bs-trigger="hover focus"
-                                            title="Alumnos Asignados" 
+                                            title="Alumnos con la Actividad" 
                                             data-bs-content="{{ $datos['nombres'] }}">
                                         <i class="bi bi-people-fill me-1"></i> {{ $datos['total'] }}
                                     </button>
@@ -124,14 +126,14 @@
                                         @if(auth()->user()->isProfesor() || auth()->user()->isAdmin())
 
                                             {{-- EDITAR --}}
-                                            <a href="{{ route('gestion.tareas.edit', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo, 'tarea_id' => $tarea->id_tarea ]) }}" 
+                                            <a href="{{ route('gestion.actividades.edit', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo, 'actividad_id' => $actividad->id_actividad ]) }}" 
                                                class="btn btn-sm btn-warning shadow-sm">
                                                 <i class="bi bi-pencil-square"></i>Editar
                                             </a>
 
                                             {{-- ELIMINAR --}}
-                                            <form action="{{ route('gestion.tareas.destroy', ['proyecto_id' => $proyecto_id, 'tarea_id' => $tarea->id_tarea]) }}" 
-                                                  method="POST" class="d-inline" onsubmit="return confirm('¿Borrar esta tarea?');">
+                                            <form action="{{ route('gestion.actividades.destroy', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo, 'actividad_id' => $actividad->id_actividad]) }}" 
+                                                  method="POST" class="d-inline" onsubmit="return confirm('¿Borrar esta actividad?');">
                                                 @csrf @method('DELETE')
                                                 <button class="btn btn-sm btn-danger shadow-sm"><i class="bi bi-trash-fill"></i>Eliminar</button>
                                             </form>

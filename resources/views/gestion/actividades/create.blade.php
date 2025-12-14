@@ -11,33 +11,34 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-4 mt-4 texto">Nueva Actividad / Tarea</h2>
-        @if(auth()->user()->isAdmin())
-        <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Cancelar
-        </a>
-        @elseif(auth()->user()->isProfesor())
-        <a href="{{ route('profesores.modulos.alumnos', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Cancelar
-        </a>
-        @endif
+        <div class="d-flex me-4">
+            @if(auth()->user()->isAdmin())
+            <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Cancelar
+            </a>
+            @elseif(auth()->user()->isProfesor())
+            <a href="{{ route('profesores.modulos.alumnos', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Cancelar
+            </a>
+            @endif
+        </div>
     </div>
 
     @if ($errors->any())
         <div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div>
     @endif
 
-    <form action="{{ route('gestion.tareas.store', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" method="POST">
+    <form action="{{ route('gestion.actividades.store', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" method="POST">
         @csrf
-        
         <div class="row">
-            {{-- COLUMNA IZQUIERDA: Definición de la Tarea --}}
-            @if(auth()->user()->isAdmin())
-            <div class="col-lg-8">
-            @else
             <div class="col-lg-12">
-            @endif
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Detalles de la Actividad</h6></div>
+                    <div class="card-header py-3 d-flex justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Detalles de la Actividad</h6>
+                        <button type="submit" class="btn btn-success fw-bold shadow-sm">
+                            <i class="bi bi-save me-1"></i> Crear Actividad
+                        </button>
+                    </div>
                     <div class="card-body">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nombre de la Actividad</label>
@@ -80,35 +81,6 @@
                     </div>
                 </div>
             </div>
-
-            @if(auth()->user()->isAdmin())
-            {{-- COLUMNA DERECHA: Selección de Alumnos --}}
-            <div class="col-lg-4">
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">Asignar a Alumnos</h6>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleAlumnos(true)">Todos</button>
-                    </div>
-                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
-                        @forelse($modulo->alumnos as $alumno)
-                            <div class="form-check mb-2">
-                                <input class="form-check-input chk-alumno" type="checkbox" name="alumnos[]" value="{{ $alumno->id_alumno }}" id="al-{{$alumno->id_alumno}}" checked>
-                                <label class="form-check-label" for="al-{{$alumno->id_alumno}}">
-                                    <i class="bi bi-person me-1 text-gray-400"></i>{{ $alumno->nombre }}
-                                </label>
-                            </div>
-                        @empty
-                            <p class="text-muted text-center small">No hay alumnos matriculados en este módulo.</p>
-                        @endforelse
-                    </div>
-                    <div class="card-footer bg-white border-top-0">
-                        <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
-                            <i class="bi bi-save me-1"></i> Crear y Asignar Tareas
-                        </button>
-                    </div>
-                </div>
-            </div>
-            @endif
         </div>
     </form>
 </div>

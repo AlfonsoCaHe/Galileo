@@ -44,9 +44,7 @@
         @include('gestion.layouts.header')
     @endif
 
-    {{-- CABECERA: Título H1 y Botones --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
-        {{-- Título H1 con clases estrictas --}}
         <h2 class="mb-4 texto">Módulos: {{ $proyecto->proyecto }}</h2>
         
         {{-- Botones de Acción --}}
@@ -62,7 +60,6 @@
         </div>
     </div>
 
-    {{-- BLOQUE DE MENSAJES --}}
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error</h5>
@@ -82,16 +79,13 @@
         </div>
     @endif
 
-    {{-- TARJETA PRINCIPAL --}}
     <div class="card shadow mb-4">
-        {{-- Cabecera de Tarjeta --}}
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Listado de Módulos Formativos</h6>
         </div>
         
         <div class="card-body">
             <div class="table-responsive">
-                {{-- Tabla Bordeada --}}
                 <table class="table table-bordered table-hover align-middle" id="modulos-datatable" width="100%" cellspacing="0">
                     <thead class="table-light">
                         <tr>
@@ -138,10 +132,10 @@
                                     </a>
 
                                     {{-- Tareas --}}
-                                    <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $modulo->id_modulo]) }}" 
+                                    <a href="{{ route('gestion.actividades.index', ['proyecto_id' => $proyecto->id_base_de_datos, 'modulo_id' => $modulo->id_modulo]) }}" 
                                        class="btn btn-sm btn-info text-white shadow-sm me-1" 
                                        title="Gestionar Diario y Tareas">
-                                        Tareas
+                                        Actividades
                                     </a>
 
                                     {{-- Botón Editar --}}

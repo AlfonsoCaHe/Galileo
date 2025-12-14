@@ -6,13 +6,14 @@ use App\Http\Middleware\ProfesorCheck;
 use App\Http\Middleware\TutorLaboralCheck;
 use App\Http\Controllers\CriterioController;
 use App\Http\Controllers\RaController;
-use App\Http\Controllers\TareaController;
+use App\Http\Controllers\ActividadesController;
+use App\Http\Controllers\TareasController;
 use App\Http\Controllers\AlumnoController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Rutas de Gestión Académica (RAs, Criterios, Tareas)
+| Rutas de Gestión Académica (RAs, Criterios, Tareas y Actividades)
 |--------------------------------------------------------------------------
 |
 | Estas rutas manejan la lógica profunda de los proyectos.
@@ -83,26 +84,32 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
     });
 
     // =============================================================
-    // 3. GESTIÓN DE TAREAS
-    // Dependen de un Módulo (El profesor asigna tareas dentro de un módulo)
+    // 3. GESTIÓN DE ACTIVIDADES
+    // Dependen de un Módulo (El profesor crea actividades dentro de un módulo)
     // =============================================================
     Route::prefix('modulos/{modulo_id}')->group(function () {
         
-        // Listar Tareas del módulo
-        Route::get('/tareas', [TareaController::class, 'index'])
-            ->name('gestion.tareas.index');
+        // Listar Actividades del módulo
+        Route::get('/actividades', [ActividadesController::class, 'index'])
+            ->name('gestion.actividades.index');
 
-        // Formulario Crear Tarea (Aquí seleccionaremos alumnos con checkboxes)
-        Route::get('/tareas/create', [TareaController::class, 'create'])
-            ->name('gestion.tareas.create');
+        // Formulario Crear Actividad
+        Route::get('/actividades/create', [ActividadesController::class, 'create'])
+            ->name('gestion.actividades.create');
 
-        // Guardar Tarea (Generación masiva para N alumnos)
-        Route::post('/tareas', [TareaController::class, 'store'])
-            ->name('gestion.tareas.store');
+        // Guardar Actividad
+        Route::post('/actividades', [ActividadesController::class, 'store'])
+            ->name('gestion.actividades.store');
         
         // Editar definición de la tarea (Solo el profesor)
-        Route::get('tareas/{tarea_id}/edit', [TareaController::class, 'edit'])
-            ->name('gestion.tareas.edit');
+        Route::get('/actividades/{actividad_id}/edit', [ActividadesController::class, 'edit'])
+            ->name('gestion.actividades.edit');
+        
+        Route::put('/{actividad_id}/update', [ActividadesController::class, 'update'])
+            ->name('gestion.actividades.update');
+
+        Route::put('/{actividad_id}/destroy', [ActividadesController::class, 'destroy'])
+            ->name('gestion.actividades.destroy');
     });
 
     // =============================================================
@@ -112,32 +119,34 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
     Route::prefix('tareas/{tarea_id}')->group(function () {
         
         // Ver detalle / Evaluar (Tutor Laboral y Profesor)
-        Route::get('/', [TareaController::class, 'show'])
+        Route::get('/', [TareasController::class, 'show'])
             ->name('gestion.tareas.show');
         
-        // Actualizar datos o calificación
-        Route::put('/', [TareaController::class, 'update'])
+        // Actualizar tarea (solo si no está bloqueada)
+        Route::put('/', [TareasController::class, 'updateTarea'])
             ->name('gestion.tareas.update');
 
         // Eliminar tarea (solo si no está evaluada, por seguridad)
-        Route::delete('/', [TareaController::class, 'destroy'])
+        Route::delete('/', [TareasController::class, 'destroy'])
             ->name('gestion.tareas.destroy');
 
         // Bloquea o desbloquea la edición de una tarea (solo el profesor)
-        Route::put('/toggle-bloqueo', [TareaController::class, 'toggleBloqueo'])
+        Route::put('/toggle-bloqueo', [TareasController::class, 'toggleBloqueo'])
             ->name('gestion.tareas.toggleBloqueo');
 
         // Peticiones AJAX
-        Route::put('/update-fecha', [TareaController::class, 'updateFecha'])
+        Route::put('/update-fecha', [TareasController::class, 'updateFecha'])
             ->name('gestion.tareas.updateFecha');
-        Route::put('/update-duracion', [TareaController::class, 'updateDuracion'])
+        Route::put('/update-duracion', [TareasController::class, 'updateDuracion'])
             ->name('gestion.tareas.updateDuracion');
-        Route::put('/bloqueo-masivo', [TareaController::class, 'toggleBloqueoMasivo'])
+        Route::put('/bloqueo-masivo', [TareasController::class, 'toggleBloqueoMasivo'])
             ->name('gestion.tareas.toggleBloqueoMasivo');
-        Route::put('/update-apto', [TareaController::class, 'updateApto'])
+        Route::put('/update-apto', [TareasController::class, 'updateApto'])
             ->name('gestion.tareas.updateApto');
-        Route::put('/update-bloqueo', [TareaController::class, 'updateBloqueo'])
+        Route::put('/update-bloqueo', [TareasController::class, 'updateBloqueo'])
             ->name('gestion.tareas.updateBloqueo');
+        Route::put('update', [TareasController::class, 'updateNotas'])
+            ->name('gestion.tareas.updateNotas');
 
         
     });
@@ -164,8 +173,4 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
     // La ruta AJAX del desplegable de tutores no funciona correctamente si no está fuera del grupo de alumnos
     Route::get('/get-tutores-empresa/{empresa_id}', [AlumnoController::class, 'getTutoresPorEmpresa'])
         ->name('gestion.alumnos.getTutoresEmpresa');
-
-    // Asignar tarea a más alumnos
-    Route::post('/tareas/{tarea_id}/asignar', [TareaController::class, 'asignarAlumnos'])
-        ->name('gestion.tareas.asignar');
 });

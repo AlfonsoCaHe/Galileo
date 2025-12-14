@@ -487,49 +487,4 @@
         </div>
     </div>
 </div>
-
-{{-- MODAL ASIGNAR ALUMNOS --}}
-<div class="modal fade" id="modalAsignarAlumnos" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ route('gestion.tareas.asignar', ['proyecto_id' => $proyecto_id, 'tarea_id' => $tareaPrincipal->id_tarea]) }}" method="POST">
-            @csrf
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Asignar "{{ $tareaPrincipal->nombre }}"</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="small text-muted">Selecciona los alumnos a los que quieres añadir esta tarea:</p>
-                    
-                    @if($alumnosDisponibles->isEmpty())
-                        <div class="alert alert-info small">
-                            <i class="bi bi-info-circle me-1"></i> Todos los alumnos matriculados ya tienen esta tarea asignada.
-                        </div>
-                    @else
-                        <div class="list-group">
-                            {{-- Checkbox "Seleccionar todos" --}}
-                            <label class="list-group-item bg-light fw-bold">
-                                <input class="form-check-input me-2" type="checkbox" id="checkAllAlumnos">
-                                Seleccionar Todos
-                            </label>
-
-                            @foreach($alumnosDisponibles as $alum)
-                                <label class="list-group-item">
-                                    <input class="form-check-input me-2 check-alumno" type="checkbox" name="alumnos[]" value="{{ $alum->id_alumno }}">
-                                    {{ $alum->nombre }}
-                                </label>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    @if(!$alumnosDisponibles->isEmpty())
-                        <button type="submit" class="btn btn-success">Asignar Tarea</button>
-                    @endif
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 @endsection

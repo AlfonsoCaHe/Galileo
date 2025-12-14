@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-// use App\Models\Modulo;
-// use App\Models\Tarea;
 use App\Models\Alumno;
 use App\Models\Proyecto;
 use App\Models\Modulo;
@@ -15,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
 use App\Rules\ValidarTexto;

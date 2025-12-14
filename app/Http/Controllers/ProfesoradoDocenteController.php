@@ -14,56 +14,62 @@ use App\Models\User;
 use App\Models\Alumno;
 use App\Models\Tarea;
 use App\Models\TutorLaboral;
+use App\Models\Actividad;
+use Illuminate\Notifications\Action;
 
 class ProfesoradoDocenteController extends Controller
 {
+    /**
+     * Método para configurar la conexión dinámica y los modelos.
+     */
+    private function setDynamicConnection($proyecto_id)
+    {
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->firstOrFail();
+        $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
+        
+        $config = config('database.connections.mysql');
+        $config['database'] = $proyecto->conexion;
+        Config::set("database.connections.{$connectionName}", $config);
+        DB::purge($connectionName);
+
+        Tarea::getConnectionResolver()->setDefaultConnection($connectionName);
+        Modulo::getConnectionResolver()->setDefaultConnection($connectionName);
+        Actividad::getConnectionResolver()->setDefaultConnection($connectionName);
+        Alumno::getConnectionResolver()->setDefaultConnection($connectionName);
+        
+        return $connectionName;
+    }
+
     /**
      * Muestra el listado de módulos asignados al profesor de todas las bases de datos activas.
      */
     public function indexModulos()
     {
-        $profesor = Auth::user()->rolable;// Profesor logeado
+        $profesor = Auth::user()->rolable;
         
-        // 1. Obtener todos los proyectos activos (no finalizados) de la base de datos 'mysql' (Galileo)
+        // 1. Obtenemos todos los proyectos activos
         $proyectos = Proyecto::where('finalizado', false)->get();
-
-        $modulos = collect(); // Colección para acumular los módulos encontrados
+        $modulos = collect();
 
         // 2. Iteramos sobre cada proyecto para extraer los módulos del profesor
         foreach ($proyectos as $proyecto) {
-            $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
-            $config = config('database.connections.mysql');
-            $config['database'] = $proyecto->conexion;
-            Config::set("database.connections.{$connectionName}", $config);
-            DB::purge($connectionName);
             try {
-                // B. Obtenemos los módulos donde el profesor está asignado
-                // Usamos la conexión 'mysql' que acabamos de configurar
-                $modulosData = DB::connection($connectionName)
-                    ->table('modulos')
-                    ->join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
+                $this->setDynamicConnection($proyecto->id_base_de_datos);
+
+                $modulosData = Modulo::join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
                     ->where('profesor_modulo.profesor_id', $profesor->id_profesor)
                     ->select('modulos.id_modulo', 'modulos.nombre')
-                    ->select([
-                        'modulos.id_modulo', 
-                        'modulos.nombre',
-                        // AÑADIDO: Subconsulta para contar alumnos en la tabla pivote
-                        // Asumimos que la tabla pivote es 'alumno_modulo' y verificamos que no estén borrados (soft delete)
-                        DB::raw('(SELECT COUNT(*) FROM alumno_modulo WHERE alumno_modulo.modulo_id = modulos.id_modulo AND alumno_modulo.deleted_at IS NULL) as alumnos_count')
-                    ])
+                    ->selectRaw('(SELECT COUNT(*) FROM alumno_modulo WHERE alumno_modulo.modulo_id = modulos.id_modulo AND alumno_modulo.deleted_at IS NULL) as alumnos_count')
                     ->get();
 
-                // C. Enriquecer los objetos para la vista
-                // Agregamos datos del proyecto al objeto módulo para usarlo en la tabla y rutas
+                // Añadimos los datos que necesitamos para la vista
                 foreach($modulosData as $mod) {
-                    $mod->nombre_proyecto = $proyecto->proyecto; // Para mostrar en tabla
-                    $mod->id_proyecto_galileo = $proyecto->id_base_de_datos; // Para generar rutas
+                    $mod->nombre_proyecto = $proyecto->proyecto;
+                    $mod->id_proyecto_galileo = $proyecto->id_base_de_datos;
                     $modulos->push($mod);
                 }
 
-            } catch (\Exception $e) {dd($e);
-                // Si una BD falla, logueamos y continuamos con el siguiente proyecto
-                // Esto evita que un error en un tenant rompa todo el panel
+            } catch (\Exception $e) {
                 error_log("Error conectando a proyecto {$proyecto->proyecto}: " . $e->getMessage());
                 continue;
             }
@@ -74,49 +80,45 @@ class ProfesoradoDocenteController extends Controller
     /**
      * Método que redirige a la vista ver Alumnos de un profesor
      */
-    public function verAlumnos($proyecto_id, $modulo_id){
-        // 1. Configuramos la conexión dinámica
+    public function verAlumnos($proyecto_id, $modulo_id)
+    {
         $proyecto = Proyecto::findOrFail($proyecto_id);
-        $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
-        
-        $config = config('database.connections.mysql');
-        $config['database'] = $proyecto->conexion;
-        Config::set("database.connections.{$connectionName}", $config);
-        DB::purge($connectionName);
+        $this->setDynamicConnection($proyecto_id);
 
-        // 2. Obtenemos el módulo para mostrar el título
-        $modulo = DB::connection($connectionName)
-                    ->table('modulos')
-                    ->where('id_modulo', $modulo_id)
-                    ->first();
+        $modulo = Modulo::where('id_modulo', $modulo_id)->first();
 
-        if (!$modulo) {// Por si alguien intenta acceder erróneamente
+        if (!$modulo) {
             abort(404, 'Módulo no encontrado en este proyecto.');
         }
 
-        // 3. Obtenemos alumnos y contamos sus tareas/entregas
-        // Usamos las tablas 'alumnos', pivote 'alumno_modulo' y tabla 'tareas'
-        $alumnos = DB::connection($connectionName)
-            ->table('alumnos')
-            ->join('alumno_modulo', 'alumnos.id_alumno', '=', 'alumno_modulo.alumno_id')
+        $alumnos = Alumno::join('alumno_modulo', 'alumnos.id_alumno', '=', 'alumno_modulo.alumno_id')
             ->where('alumno_modulo.modulo_id', $modulo_id)
             ->whereNull('alumno_modulo.deleted_at')
-            ->select([
-                'alumnos.id_alumno', 
-                'alumnos.nombre',
-                DB::raw("(SELECT COUNT(*) FROM tareas WHERE tareas.alumno_id = alumnos.id_alumno AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
-            ])
+            ->select('alumnos.id_alumno', 'alumnos.nombre')
+            ->selectRaw("(SELECT COUNT(*) 
+                        FROM tareas 
+                        WHERE tareas.alumno_id = alumnos.id_alumno AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
             ->get();
         
-        foreach($alumnos as $alumno){//Buscamos el correo para cada alumno y lo añadimos
+        foreach($alumnos as $alumno){
             $user = User::where('rolable_id', $alumno->id_alumno)
                     ->where('rolable_type', Alumno::class)
                     ->firstOrFail();
 
             $alumno->email = $user->email;
         }
-        // Pasamos proyecto_id y modulo_id para mantener el contexto en los botones de la vista
-        return view('profesores.alumnos', compact('alumnos', 'modulo', 'proyecto'));
+
+        $actividades = Actividad::where('modulo_id', $modulo_id)
+            ->orderBy('nombre', 'asc')
+            ->select('actividades.*')
+            ->selectRaw("(SELECT COUNT(*) 
+                        FROM tareas, actividades 
+                        WHERE tareas.actividad_id = actividades.id_actividad AND tareas.modulo_id = '{$modulo_id}') as actividades_count")
+            ->get();
+
+            $actividades = Actividad::all();
+
+        return view('profesores.alumnos', compact('alumnos', 'modulo', 'proyecto', 'actividades'));
     }
 
     /**
@@ -124,38 +126,26 @@ class ProfesoradoDocenteController extends Controller
      */
     public function verTareasAlumno($proyecto_id, $modulo_id, $alumno_id)
     {
-        // 1. Configurar conexión dinámica
         $proyecto = Proyecto::findOrFail($proyecto_id);
-        $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
+        $this->setDynamicConnection($proyecto_id);
         
-        $config = config('database.connections.mysql');
-        $config['database'] = $proyecto->conexion;
-        Config::set("database.connections.{$connectionName}", $config);
-        DB::purge($connectionName);
-
-        // 2. Obtenemos los datos del alumno
-        $alumno = DB::connection($connectionName)
-            ->table('alumnos')
-            ->where('id_alumno', $alumno_id)
-            ->first();
+        $alumno = Alumno::where('id_alumno', $alumno_id)->first();
 
         if (!$alumno) {
             abort(404, 'Alumno no encontrado.');
         }
 
-        // 3. Obtenemos el módulo
-        $modulo = DB::connection($connectionName)
-            ->table('modulos')
-            ->where('id_modulo', $modulo_id)
-            ->first();
+        $modulo = Modulo::where('id_modulo', $modulo_id)->first();
 
-        // 4. Obtenemos las tareas
-        $tareas = DB::connection($connectionName)
-            ->table('tareas')
-            ->where('alumno_id', $alumno_id)
+        $tareas = Tarea::where('alumno_id', $alumno_id)
             ->where('modulo_id', $modulo_id)
-            ->orderBy('created_at', 'desc') // Ordenamos por las más recientes
+            ->orderBy('created_at', 'desc')
             ->get();
+
+        // Asignamos la información de la actividad para la vista
+        foreach($tareas as $tarea){
+            $tarea->actividad = Actividad::where('id_actividad', $tarea->actividad_id)->first();
+        }
 
         return view('profesores.alumnos_tareas', compact('alumno', 'modulo', 'tareas', 'proyecto'));
     }
@@ -163,22 +153,28 @@ class ProfesoradoDocenteController extends Controller
     /**
      * Método que redirige a la vista para la creación de una nueva tarea
      */
-    public function crearTarea($proyecto_id, $modulo_id){
-        $proyecto = Proyecto::findOrFail($proyecto_id);
-        $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
-        
-        $config = config('database.connections.mysql');
-        $config['database'] = $proyecto->conexion;
-        Config::set("database.connections.{$connectionName}", $config);
-        DB::purge($connectionName);
+    public function crearActividad($proyecto_id, $modulo_id)
+    {
+        $this->setDynamicConnection($proyecto_id);
 
-        $modulo = DB::connection($connectionName)
-            ->table('modulos')
-            ->where('id_modulo', $modulo_id)
+        $modulo = Modulo::where('id_modulo', $modulo_id)
             ->with('ras')
             ->first();
 
-        return view('gestion.tareas.create', compact('proyecto_id', 'modulo'));
+        return view('gestion.actividades.create', compact('proyecto_id', 'modulo'));
+    }
+
+    /**
+     * Método para redirigir a la vista que modifica la tarea de un alumno
+     */
+    public function editTarea($proyecto_id, $tarea_id){
+        $this->setDynamicConnection($proyecto_id);
+
+        $tarea = Tarea::where('id_tarea', $tarea_id);
+
+        $modulo_id = $tarea->modulo_id;
+
+        return view('profesores.tarea_edit', compact('proyecto_id', 'modulo_id', 'tarea'));
     }
 
     /**
@@ -194,27 +190,17 @@ class ProfesoradoDocenteController extends Controller
         $alumnosTutorizados = collect();
 
         foreach ($proyectos as $proyecto) {
-            // --- 1. Configuramos la conexión dinámica
-            $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
-            $config = config('database.connections.mysql');
-            $config['database'] = $proyecto->conexion;
-            Config::set("database.connections.{$connectionName}", $config);
-            DB::purge($connectionName);
-
             try {
-                // --- PASO 1 y 2: Obtener Alumnos + Módulos + Tutor Laboral (BD Proyecto) ---
-                // Usamos GROUP_CONCAT para traer todos los módulos en una sola fila por alumno
-                $alumnos = Alumno::on($connectionName) // Define la conexión en el modelo
-                    ->with('modulos') // ¡Ahora sí funciona! Carga la relación definida en el modelo
-                    ->where('tutor_docente_id', $profesor) // Asumiendo que $profesor es el ID
+                $this->setDynamicConnection($proyecto->id_base_de_datos);
+
+                $alumnos = Alumno::with('modulos')
+                    ->where('tutor_docente_id', $profesor)
                     ->whereHas('modulos', function($q) {
-                        // Opcional: Esto filtra para asegurar que solo traiga alumnos 
-                        // que tengan al menos un módulo activo (similar a tu join)
-                        $q->whereNull('alumno_modulo.deleted_at');
+                        $q->whereNull('alumno_modulo.deleted_at');//Solo para alumnos activos
                     })
                     ->get();
 
-                // --- PASO 3: Inyectar Email desde BD Principal (Galileo) ---
+                // Para obtener el mail desde galileo
                 foreach ($alumnos as $alumno) {
                     // 1. Buscamos el USUARIO en la BD Principal
                     $user = User::find($alumno->usuario_id);
@@ -248,35 +234,27 @@ class ProfesoradoDocenteController extends Controller
     /**
      * Método que redirige a la vista de las tareas de un alumno tutorizado
      */
-    public function tareasAlumnoTutorizado($proyecto_id, $alumno_id){
-        // 1. Conexión Dinámica
+    public function tareasAlumnoTutorizado($proyecto_id, $alumno_id)
+    {
         $proyecto = Proyecto::findOrFail($proyecto_id);
-        $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
-        $config = config('database.connections.mysql');
-        $config['database'] = $proyecto->conexion;
-        Config::set("database.connections.{$connectionName}", $config);
-        DB::purge($connectionName);
 
-        // 2. Obtener datos del Alumno (para la cabecera)
-        $alumno = DB::connection($connectionName)
-                    ->table('alumnos')
-                    ->where('id_alumno', $alumno_id)
-                    ->first();
+        $this->setDynamicConnection($proyecto_id);
+        
+        //Comprobamos que el alumno existe y lo obtenemos
+        $alumno = Alumno::where('id_alumno', $alumno_id)->first();
 
         if (!$alumno) abort(404, 'Alumno no encontrado');
 
-        // 3. Obtener TODAS las tareas del alumno (sin filtrar por módulo)
-        $tareas = DB::connection($connectionName)
-                    ->table('tareas')
-                    ->join('modulos', 'tareas.modulo_id', '=', 'modulos.id_modulo') // Join cosmético para ver el nombre del módulo
-                    ->where('tareas.alumno_id', $alumno_id)
-                    ->select(
-                        'tareas.*', 
-                        'modulos.nombre as nombre_modulo', // Seleccionamos el nombre para mostrarlo en la tabla
-                        'modulos.id_modulo'
-                    )
-                    ->orderBy('tareas.created_at', 'desc')
-                    ->get();
+        // Obtenemos las tareas del alumno
+        $tareas = Tarea::join('modulos', 'tareas.modulo_id', '=', 'modulos.id_modulo')
+            ->where('tareas.alumno_id', $alumno_id)
+            ->select(
+                'tareas.*', 
+                'modulos.nombre as nombre_modulo',
+                'modulos.id_modulo'
+            )
+            ->orderBy('tareas.created_at', 'desc')
+            ->get();
 
         // Reutilizamos la vista de tareas, pero le pasamos null en $modulo porque ya no es uno específico
         return view('profesores.tareas_docente', compact('alumno', 'tareas', 'proyecto'))->with('modulo', null);
@@ -292,9 +270,10 @@ class ProfesoradoDocenteController extends Controller
 
         // 2. Encontrar el registro de usuario asociado (para obtener el email)
         $user = User::where('rolable_id', $profesor->id_profesor)
-                    ->where('rolable_type', Profesor::class)
-                    ->firstOrFail();
+            ->where('rolable_type', Profesor::class)
+            ->firstOrFail();
 
+        // 3. Obtenemos el email de User
         $profesor->email = $user->email;
 
         return view('profesores.edit', compact('profesor'));
@@ -303,9 +282,8 @@ class ProfesoradoDocenteController extends Controller
     /**
      * Método para modificar la contraseña del profesor por él mismo.
      */
-    public function update(Request $request, $profesor_id){
-        // 1. Buscamos el profesor y su usuario asociado
-        // No necesitamos cambiar de conexión, ya estamos en la principal
+    public function update(Request $request, $profesor_id)
+    {
         $profesor = Profesor::findOrFail($profesor_id);
         $user = $profesor->user;
 
@@ -323,7 +301,6 @@ class ProfesoradoDocenteController extends Controller
                 if (!empty($validated['password'])) {
                     $user->password = $validated['password'];
                 }
-                
                 $user->save();
             } else {
                 // Si por alguna corrupción de datos antigua no tiene usuario, lo logueamos
