@@ -29,7 +29,7 @@ class ProjectSchemaManager
         $schema->create('alumnos', function (Blueprint $table) {
             $table->uuid('id_alumno')->primary();
             $table->string('nombre');
-            $table->enum('periodo', ['Periodo 1', 'Periodo 2']);// Periodo de empresa del alumno
+            $table->enum('periodo', ['Periodo 1', 'Periodo 2'])->nullable();// Periodo de empresa del alumno
             $table->uuid('tutor_laboral_id')->nullable(); // FK a la BD principal
             $table->uuid('tutor_docente_id')->nullable(); // FK a la BD principal
             $table->timestamps();

@@ -175,3 +175,7 @@ Route::middleware([AdminCheck::class])->group(function () {
             ->name('gestion.usuarios.toggle');
     });
 });
+
+//--------------------------------------Rutas para importación EXCEL-----------------------------------//
+Route::post('alumnos/importar', [AlumnoController::class, 'importarExcel'])
+    ->name('alumnos.importar');

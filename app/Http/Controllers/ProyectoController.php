@@ -13,7 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\AlumnosModulosImport;
 
 class ProyectoController extends Controller
 {
@@ -61,35 +62,57 @@ class ProyectoController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validación
-        $validated = $request->validate([
-            'year_start' => 'required|integer|min:2020|max:' . (now()->year + 1),// Solo permitimos de 2020 al año próximo al actual
+        // 1. Validación del formulario
+        $request->validate([
+            'year_start'    => 'required|integer|digits:4',
+            'archivo_excel' => 'nullable|file|mimes:xlsx,xls,csv'
         ]);
 
+        $yearStart = $request->year_start;
+        
+        // 2. Ejecutar tu comando existente para crear la estructura
+        // Esto crea la BD física, el registro en 'bases_de_datos' y las tablas (ProjectSchemaManager)
         try {
-            // 2. Llamada al comando
-            $exitCode = Artisan::call('db:crear-proyecto', [ 
-                'year_start' => $validated['year_start'],
+            $exitCode = Artisan::call('db:crear-proyecto', [
+                'year_start' => $yearStart
             ]);
 
-            // 3. Revisar el código de salida del comando
+            // Si el comando devuelve algo distinto de 0, hubo un error (ej. ya existe)
             if ($exitCode !== 0) {
-                // Si el comando devuelve un error (ej. falta de permisos, fallo en migración)
-                $output = Artisan::output();
-                Log::error("Comando 'db:crear-proyecto' falló. Salida: {$output}");
-                
-                return redirect()->back()->withInput()->withErrors(['creacion_bd' => 'Error al ejecutar el comando de creación de proyecto.']);
+                $error = Artisan::output();
+                return back()->with('error', 'Error al crear proyecto: ' . $error);
             }
-            $end_year = $validated['year_start'] + 2;
-            $nombre_proyecto = 'Proyecto ' . $validated['year_start'] . '-' . $end_year;
-
-            return redirect()->route('gestion.proyectos.index')->with('success', "{$nombre_proyecto} creado, base de datos generada y migraciones ejecutadas con éxito.");
 
         } catch (\Exception $e) {
-            // Manejo de errores de ejecución de PHP o Artisan
-            Log::error("Error inesperado en ProyectoController@store: " . $e->getMessage());
-            return redirect()->back()->withInput()->withErrors(['general' => 'Error inesperado al crear el proyecto: ' . $e->getMessage()]);
+            return back()->with('error', 'Excepción al ejecutar comando: ' . $e->getMessage());
         }
+
+        // 3. Recuperar el proyecto recién creado
+        // Tu comando genera el nombre como "proyecto_2025_2027" (mirando CrearProyectoNuevoBD.php)
+        $yearEnd = (int)$yearStart + 2;
+        $nombreProyectoEsperado = "proyecto_{$yearStart}_{$yearEnd}";
+        
+        $proyecto = Proyecto::where('proyecto', $nombreProyectoEsperado)->first();
+
+        if (!$proyecto) {
+            return back()->with('error', 'La base de datos se creó, pero no se pudo recuperar el registro del proyecto.');
+        }
+
+        // 4. Procesar Excel (si se subió)
+        if ($request->hasFile('archivo_excel')) {
+            try {
+                // Pasamos el objeto $proyecto al importador para que sepa dónde conectar
+                Excel::import(new AlumnosModulosImport($proyecto), $request->file('archivo_excel'));
+                
+                return back()->with('success', "Proyecto '$nombreProyectoEsperado' creado y alumnos importados correctamente.");
+            } catch (\Exception $e) {
+                // Si falla el Excel, el proyecto YA existe, así que solo avisamos
+                Log::error("Error importando excel: " . $e->getMessage());
+                return back()->with('warning', "Proyecto creado con éxito, pero falló la importación de alumnos: " . $e->getMessage());
+            }
+        }
+
+        return back()->with('success', "Proyecto '$nombreProyectoEsperado' creado correctamente (sin alumnos).");
     }
 
     /**
@@ -174,7 +197,7 @@ class ProyectoController extends Controller
             // y los fallos en el contexto HTTP.
             $exitCode = Artisan::call('db:eliminar-proyecto', [
                 'nombre_proyecto' => $nombre_bd_conexion,
-                '--no-interaction' => true, // Esta opción fuerza el modo no interactivo
+                '--no-interaction' => true, // Esta opción fuerza el modo no interactivo, de lo contrario habría preguntas por comandos
             ]);
 
             if ($exitCode !== 0) {

@@ -115,8 +115,11 @@
 @endsection
 
 @section('content')
-<div class="container my-5">
-    <h1 class="mb-4 text-primary">Gestión de Proyectos</h1>
+<div class="container-fluid my-5">
+    @if(auth()->user()->isAdmin())
+        @include('gestion.layouts.header')
+    @endif
+    <h1 class="m-4 texto">Gestión de Proyectos</h1>
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -134,23 +137,17 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    {{-- BARRA DE ACCIONES / MENÚ DE NIVEL SUPERIOR --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 p-3">
-        
-        {{-- 1. ENLACE AL PANEL DE ADMINISTRACIÓN --}}
-        <div>
-            <a href="{{ route('admin.panel') }}" class="btn btn-secondary fw-bold">
-                <i class="fas fa-arrow-left me-2"></i> Panel de Administración
-            </a>
-        </div>
+    <div class="d-flex justify-content-end align-items-center">
         <div class="d-flex justify-content-between align-items-center p-3">
-            {{-- 2. LLAMADA AL COMPONENTE CREAR PROYECTO --}}
+            {{-- Botón para crear el proyecto --}}
             <div class="me-4">
                 <x-admin.crear-proyecto-form :year-start="now()->year" /> 
             </div>
-
-            {{-- 3. SELECTOR DE FILTRO DE ESTADO --}}
-            <div class="d-flex align-items-center">
+        </div>
+    </div>
+    <div class="card shadow-lg p-4">
+        {{-- Selector de proyectos (Activo/Inactivo) --}}
+            <div class="d-flex align-items-center mb-2">
                 <label for="filtro-estado" class="form-label me-2 mb-0 align-self-center fw-bold">Estado:</label>
                 <select id="filtro-estado" class="form-select w-auto">
                     <option value="todos">Todos los Proyectos</option>
@@ -158,33 +155,33 @@
                     <option value="finalizados">Proyectos Finalizados</option>
                 </select>
             </div>
-        </div>
-    </div>
-    <div class="card shadow-lg p-4">
         @if($proyectos->isEmpty())
             <p class="alert alert-warning">No hay proyectos registrados.</p>
         @else
             <table id="proyectos-datatable" class="table table-striped table-hover w-100">
                 <thead>
                     <tr>
-                        <th>Nombre del Proyecto</th>
-                        <th class="d-none">ID de Conexión (UUID)</th>
-                        <th class="d-none">Finalizado (Filtro)</th>
-                        <th>Finalizar</th>
-                        <th>Gestionar</th>
+                        <th class="text-start">Nombre del Proyecto</th>
+                        <th class="d-none">ID de Conexión (UUID)</th>{{-- Oculto en la vista --}}
+                        <th class="d-none">Finalizado (Filtro)</th>{{-- Oculto en la vista --}}
+                        <th class="text-center">Finalizar</th>
+                        <th class="text-center">Gestionar</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($proyectos as $proyecto)
                     <tr>
-                        <td>{{ $proyecto->proyecto }}</td> 
+                        {{-- 0. Nombre del proyecto--}}
+                        <td class="text-start">{{ $proyecto->proyecto }}</td>
+
+                        {{-- 1. Id del proyecto (Oculto en la vista) --}}
                         <td><span class="badge bg-secondary">{{ $proyecto->id_base_de_datos }}</span></td>
                         
-                        {{-- Valor para el Filtro de DataTables (OCULTA) --}}
+                        {{-- 2. Valor para el Filtro de DataTables (Oculto en la vista) --}}
                         <td>{{ $proyecto->finalizado ? '1' : '0' }}</td> 
                         
-                        {{-- Checkbox para Finalizar --}}
-                        <td>
+                        {{-- 3. Checkbox para Finalizar --}}
+                        <td class="text-center">
                             <div class="form-check form-switch d-inline-block">
                                 <input class="form-check-input finalizar-proyecto-checkbox" 
                                     type="checkbox" 
@@ -196,8 +193,8 @@
                             </div>
                         </td>
 
-                        {{-- Botón de Gestión --}}
-                        <td>
+                        {{-- 4. Acciones --}}
+                        <td class="text-center">
                             <a href="{{ route('gestion.modulos.index', ['proyecto_id' => $proyecto->id_base_de_datos]) }}"
                                 class="btn btn-sm btn-info text-white ms-1" title="Gestionar Módulos">
                                 Gestionar Módulos
