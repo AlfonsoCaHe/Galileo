@@ -89,14 +89,6 @@ Route::middleware([AdminCheck::class])->group(function () {
             ->name('gestion.proyectos.destroy');
     });
 
-    // // Alumnos (Vistas/Listados)
-    // Route::get('/alumnos', [AlumnoController::class, 'listadoVisibles']) // Listado total de todos los proyectos
-    //     ->name('alumno.listadoVisibles');
-    // Route::get('/proyectos/{proyecto_id}/alumnos', [AlumnoController::class, 'listadoAlumnosProyecto']) // Listado por proyecto
-    //     ->name('admin.alumnosProyecto');
-
-
-
     // --- Rutas CRUD para Módulos (Requieren ID de Proyecto para conexión) ---
     Route::prefix('gestion/proyectos/{proyecto_id}/modulos')->group(function () {
         // Route::resource('/', ModuloController::class)->except(['show']); // Opción más compacta si usas el prefijo

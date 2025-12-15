@@ -444,7 +444,7 @@ class AlumnoController extends Controller
                                 ->whereNotIn('id_modulo', $idsActuales)
                                 ->get();
 
-        return view('gestion.alumnos.show', compact('proyecto', 'alumno', 'profesores', 'empresas', 'modulosDisponibles'));
+        return view('gestion.alumnos.show', compact('proyecto', 'alumno', 'profesores', 'empresas', 'modulosDisponibles', 'proyecto_id'));
     }
 
     /**

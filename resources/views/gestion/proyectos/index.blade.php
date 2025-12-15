@@ -34,7 +34,7 @@
                 },
                 // Deshabilitar ordenación y búsqueda en la columna de Acciones
                 "columnDefs": [
-                    { "orderable": false, "targets": [2, 3] } 
+                    { "orderable": false, "targets": [3, 4] } 
                 ]
             });
 

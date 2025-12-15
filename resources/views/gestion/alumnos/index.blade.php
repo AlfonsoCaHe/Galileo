@@ -189,7 +189,7 @@
                             {{-- Editar Alumno --}}
                             <a href="{{ route('gestion.alumnos.edit', ['proyecto_id' => $alumno->proyecto_galileo_id, 'alumno_id' => $alumno->id_alumno]) }}" 
                                class="btn btn-sm btn-warning" title="Editar">
-                                Editar
+                                Datos Pers.
                             </a>
 
                             {{-- Formulario para Eliminar --}}
