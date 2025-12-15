@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\ProfesoradoDocenteController;
 use App\Http\Controllers\AlumnadoVistaController;
+use App\Http\Controllers\TutoresLaboralesVistaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\ProfesorCheck;
 use App\Http\Middleware\AlumnoCheck;
-use App\Http\Middleware\SetProjectConnection; 
+use App\Http\Middleware\SetProjectConnection;
+use App\Http\Middleware\TutorLaboralCheck;
 
 Route::middleware(['auth'])->group(function () {
     
@@ -78,5 +80,26 @@ Route::middleware(['auth'])->group(function () {
             ->name('alumno.editar');
         Route::put('/alumno/{proyecto_id}/{alumno_id}/update', [AlumnadoVistaController::class, 'update'])
             ->name('alumno.update');
+    });
+
+    //------------------------------Rutas tutores laborales-----------------------------------------------//
+    Route::middleware([TutorLaboralCheck::class])->group(function () {
+
+        //Ruta para el listado de alumnos tutorizados
+        Route::get('/tutor_laboral/tutorizados', [TutoresLaboralesVistaController::class, 'tutorizados'])
+            ->name('tutores_laborales.panel');
+
+        // Ver tareas de un alumno específico (necesita proyecto_id y alumno_id)
+        Route::get('/tutor_laboral/proyecto/{proyecto_id}/alumno/{alumno_id}/tareas', [TutoresLaboralesVistaController::class, 'tareasAlumnoTutorizado'])
+            ->name('tutores_laborales.tareas.alumno');
+
+        // Editar perfil/datos del tutor laboral
+        Route::get('/tutor_laboral/editar/{tutor_laboral_id}', [TutoresLaboralesVistaController::class, 'editar'])
+            ->name('tutores_laborales.editar');
+
+        // Actualizar datos/contraseña del tutor laboral
+        Route::put('/tutor_laboral/update/{tutor_laboral_id}', [TutoresLaboralesVistaController::class, 'update'])
+            ->name('tutores_laborales.update');
+
     });
 });

@@ -1,12 +1,7 @@
 <?php
 
-use App\Http\Controllers\ProfesorController;
-use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\UsuariosController;
-use App\Http\Controllers\TutorLaboralController;
-use App\Http\Middleware\AlumnoCheck;
 
-use App\Http\Middleware\TutorLaboralCheck;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -26,32 +21,6 @@ Route::middleware(['auth'])->group(function () {
     
     // Redirige al panel específico según el rol.
     Route::get('/home', [UsuariosController::class, 'redirectToPanel'])->name('home');
-
-    // Route::get('/alumno/{alumno_id}', [AlumnoController::class, 'showAlumno'])->name('alumno.show');
-
-    //Rutas sin ordenar todavía
-    // Route::get('/profesores', [ProfesorController::class, 'indexProfesores'])->name('profesor.index');
-    // Route::get('/profesor/{profesor_id}/alumnos', [ProfesorController::class, 'mostrarAlumnos'])->name('profesor.alumnos');
-
-    
-
-    //----------------------------------Rutas profesores----------------------------------------------------//
-    
-
-
-    //----------------------------------Rutas tutores laborales--------------------------------------------//
-    Route::middleware([TutorLaboralCheck::class])->group(function () {
-        Route::get('/tutores/panel', function () {
-            return view('tutores.panel'); 
-        })->name('tutores.panel');
-
-        // Route::get('/tutores', [TutorLaboralController::class, 'indexTutoresLaborales'])->name('tutores.index');
-
-        // // Ruta para ver los alumnos del tutor
-        // //Aprovecha la vista alumnos.index
-        // Route::get('/tutores/alumnos', [TutorLaboralController::class, 'mostrarAlumnos'])->name('tutores.alumnos');
-
-    });
 });
 
 require __DIR__ . '/gestion_academica.php';
