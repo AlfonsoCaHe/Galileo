@@ -166,8 +166,12 @@ Route::middleware([AdminCheck::class])->group(function () {
         Route::put('/{id}/toggle', [UsuariosController::class, 'toggleEstado'])
             ->name('gestion.usuarios.toggle');
     });
-});
 
-//--------------------------------------Rutas para importación EXCEL-----------------------------------//
-Route::post('alumnos/importar', [AlumnoController::class, 'importarExcel'])
-    ->name('alumnos.importar');
+    //--------------------------------------Rutas para importación EXCEL-----------------------------------//
+    //Ruta para importar los alumnos y crear los módulos
+    Route::post('alumnos/importar', [AlumnoController::class, 'importarExcel'])
+        ->name('alumnos.importar');
+    //Ruta para añadir los RAs y criterios a los Módulos
+    Route::post('/proyectos/{proyecto_id}/modulos/{modulo_id}/importar-ras', [ModuloController::class, 'importarRas'])
+    ->name('gestion.modulos.importarRas');
+});

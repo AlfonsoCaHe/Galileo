@@ -596,25 +596,4 @@ class AlumnoController extends Controller
             return redirect()->back()->withErrors('Error al restaurar: ' . $e->getMessage());
         }
     }
-
-    /**
-     * Método para la importación de excel
-     */
-    public function importarExcel(Request $request) 
-    {
-        // 1. Validar que se ha subido un archivo válido
-        $request->validate([
-            'archivo_excel' => 'required|mimes:xlsx,xls,csv'
-        ]);
-
-        // 2. Importar
-        try {
-            Excel::import(new AlumnosImport, $request->file('archivo_excel'));
-            
-            return back()->with('success', '¡Datos importados correctamente!');
-        } catch (\Exception $e) {
-            // Capturar errores (ej. formato incorrecto)
-            return back()->with('error', 'Error al importar: ' . $e->getMessage());
-        }
-    }
 }

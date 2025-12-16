@@ -12,6 +12,8 @@ use App\Models\Criterio;
 use App\Models\ProfesorModulo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Imports\RasCriteriosImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ModuloController extends Controller
 {
@@ -219,5 +221,33 @@ class ModuloController extends Controller
         $this->restoreConnection();
         return redirect()->route('gestion.modulos.index', $proyecto_id)
                          ->with('success', 'Módulo eliminado con éxito.');
+    }
+
+    /**
+     * Método para realizar la importación de RAs y criterios a un módulo
+     */
+    public function importarRas(Request $request, $proyecto_id, $modulo_id)
+    {
+        $request->validate([
+            'archivo_ras' => 'required|mimes:csv,xlsx,xls'
+        ]);
+
+        try {
+            // 1. Buscamos el proyecto (necesario para saber la BD)
+            $proyecto = Proyecto::findOrFail($proyecto_id);
+
+            // 2. Validamos que el módulo exista (opcional, pero buena práctica)
+            // Nota: Como el módulo está en otra BD, si quieres validarlo con Eloquent
+            // tendrías que conectar primero. Pero como vamos a confiar en el ID pasado
+            // y el Import gestiona la conexión, podemos pasar directos al Excel.
+
+            // 3. Lanzamos el importador pasando Proyecto y ID del Módulo
+            Excel::import(new RasCriteriosImport($proyecto, $modulo_id), $request->file('archivo_ras'));
+
+            return back()->with('success', 'RAs y Criterios importados correctamente al módulo.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al importar: ' . $e->getMessage());
+        }
     }
 }

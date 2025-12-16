@@ -5,12 +5,14 @@
 @section('scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        if(session('open_ra'))
-            var collapseElement = document.getElementById('collapse-{{ session("open_ra") }}');
+        var openRaId = "{{ session('open_ra') }}"; 
+        if (openRaId) {
+            var collapseElement = document.getElementById('collapse-' + openRaId);
             if (collapseElement) {
                 var bsCollapse = new bootstrap.Collapse(collapseElement, { toggle: true });
                 collapseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+        }
     });
 </script>
 @endsection
@@ -46,6 +48,46 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+
+    {{-- Botón para cargar los RAs y Criterios --}}
+    <button type="button" class="btn btn-sm btn-warning text-white" 
+        data-bs-toggle="modal" 
+        data-bs-target="#modalImportarRas">
+        <i class="fas fa-file-import"></i> Cargar RAs y CEs
+    </button>
+
+    {{-- Modal que se despliega al pulsar el botón para Cargar RAs y Criterios}}
+    <div class="modal fade" id="modalImportarRas" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Importar RAs: {{ $modulo->nombre }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <form action="{{ route('gestion.modulos.importarRas', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" 
+                    method="POST" enctype="multipart/form-data">
+                    @csrf
+                    
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Archivo Excel (.csv, .xlsx)</label>
+                            <input type="file" name="archivo_ras" class="form-control" required>
+                        </div>
+                        <div class="alert alert-info small">
+                            Se borrarán los datos anteriores si decides programarlo así, o se añadirán nuevos.
+                            <br>El sistema buscará filas que empiecen por <b>"RA"</b> y criterios por <b>"a)"</b>.
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Importar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     {{-- ZONA DE CREACIÓN DE NUEVO RA --}}
     <div class="card shadow mb-4 border-left-primary">
