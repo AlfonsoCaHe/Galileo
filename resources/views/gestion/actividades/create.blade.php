@@ -13,7 +13,7 @@
         <h2 class="mb-4 mt-4 texto">Nueva Actividad / Tarea</h2>
         <div class="d-flex me-4">
             @if(auth()->user()->isAdmin())
-            <a href="{{ route('gestion.tareas.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
+            <a href="{{ route('gestion.actividades.index', ['proyecto_id' => $proyecto_id, 'modulo_id' => $modulo->id_modulo]) }}" class="btn btn-danger shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> Cancelar
             </a>
             @elseif(auth()->user()->isProfesor())
@@ -60,7 +60,7 @@
                                 <div class="accordion-item">
                                     <h2 class="accordion-header" id="h-{{$ra->id_ras}}">
                                         <button class="accordion-button collapsed py-2 bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#c-{{$ra->id_ras}}">
-                                            <strong>{{ $ra->codigo }}</strong>: {{ Str::limit($ra->descripcion, 60) }}
+                                            <strong>{{ $ra->codigo }}</strong>: {{ $ra->descripcion }}
                                         </button>
                                     </h2>
                                     <div id="c-{{$ra->id_ras}}" class="accordion-collapse collapse" data-bs-parent="#accCriterios">

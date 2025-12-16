@@ -49,19 +49,19 @@
         </div>
     @endif
 
-    {{-- Botón para cargar los RAs y Criterios --}}
-    <button type="button" class="btn btn-sm btn-warning text-white" 
+    {{-- Botón que abre el modal para la importación de RAs y CEs --}}
+    <button type="button" class="btn btn-sm btn-warning m-2" 
         data-bs-toggle="modal" 
         data-bs-target="#modalImportarRas">
-        <i class="fas fa-file-import"></i> Cargar RAs y CEs
+        <i class="fas fa-file-import"></i> Cargar RAs
     </button>
 
-    {{-- Modal que se despliega al pulsar el botón para Cargar RAs y Criterios}}
+    {{-- Modal para la importación de RAs y CEs --}}
     <div class="modal fade" id="modalImportarRas" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Importar RAs: {{ $modulo->nombre }}</h5>
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-excel"></i> Importar RAs y Criterios</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 
@@ -70,19 +70,46 @@
                     @csrf
                     
                     <div class="modal-body">
+                        
+                        {{-- Instrucciones de Formato --}}
+                        <div class="alert alert-light border shadow-sm">
+                            <h6 class="alert-heading fw-bold"><i class="fas fa-info-circle"></i> Requisitos del Excel</h6>
+                            <p class="mb-2 small text-muted">El sistema detectará automáticamente la estructura si sigue este patrón:</p>
+                            
+                            <div class="table-responsive small bg-white border p-2 mb-2">
+                                <table class="table table-bordered table-sm mb-0 text-center" style="font-size: 0.8rem;">
+                                    <thead class="table-light">
+                                        <tr><th>Columna A</th><th>Columna B</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="text-primary fw-bold">RA1. Título...</td><td class="text-muted"></td></tr>
+                                        <tr><td></td><td>a) Criterio...</td></tr>
+                                        <tr><td></td><td>b) Criterio...</td></tr>
+                                        <tr><td class="text-primary fw-bold">RA2. Título...</td><td></td></tr>
+                                        <tr><td></td><td>a) Criterio...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <ul class="mb-0 small text-muted ps-3">
+                                <li>Ignoraremos las primeras filas de cabecera.</li>
+                                <li>Los <b>RAs</b> deben empezar por "RA" (Col A).</li>
+                                <li>Los <b>Criterios</b> deben empezar por letra y paréntesis "a)" (Col B).</li>
+                                <li><span class="text-danger fw-bold">ES MUY IMPORTANTE QUE EL EXCEL SOLO CONTENGA LOS DATOS DE UN MÓDULO</span></li>
+                            </ul>
+                        </div>
+
                         <div class="mb-3">
-                            <label class="form-label">Archivo Excel (.csv, .xlsx)</label>
-                            <input type="file" name="archivo_ras" class="form-control" required>
+                            <label class="form-label fw-bold">Seleccionar Archivo (.csv, .xlsx)</label>
+                            <input type="file" name="archivo_ras" class="form-control" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
                         </div>
-                        <div class="alert alert-info small">
-                            Se borrarán los datos anteriores si decides programarlo así, o se añadirán nuevos.
-                            <br>El sistema buscará filas que empiecen por <b>"RA"</b> y criterios por <b>"a)"</b>.
-                        </div>
+
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Importar</button>
+                        <button type="submit" class="btn btn-warning text-dark fw-bold">
+                            <i class="fas fa-upload"></i> Procesar e Importar
+                        </button>
                     </div>
                 </form>
             </div>
@@ -183,8 +210,8 @@
                                                     <form action="{{ route('gestion.criterios.destroy', ['proyecto_id' => $proyecto_id, 'criterio_id' => $criterio->id_criterio]) }}" method="POST">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-link text-danger p-0">
-                                                            <i class="bi bi-x-circle-fill fs-5"></i>
+                                                        <button type="submit" class="btn btn-danger pt-0 pb-0">
+                                                            <i class="bi bi-x-circle-fill fs-5"></i>Eliminar
                                                         </button>
                                                     </form>
                                                 </td>

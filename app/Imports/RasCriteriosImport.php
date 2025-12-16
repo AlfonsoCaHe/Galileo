@@ -3,101 +3,106 @@
 namespace App\Imports;
 
 use App\Models\Proyecto;
-use App\Models\Ras;
-use App\Models\Criterio;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Carbon\Carbon;
 
 class RasCriteriosImport implements ToCollection
 {
     protected $proyecto;
-    protected $moduloId; // ID del módulo forzado
+    protected $moduloId;
+    protected $connectionName;
 
     public function __construct(Proyecto $proyecto, $moduloId)
     {
         $this->proyecto = $proyecto;
         $this->moduloId = $moduloId;
-
-        // Configuramos la conexión dinámica inmediatamente
+        
+        // Configuramos la conexión dinámica al instanciar la clase
         $this->setDynamicConnection();
     }
 
+    /**
+     * Este método recibe todas las filas del Excel y las procesa
+     */
     public function collection(Collection $rows)
     {
-        $currentRa = null; // Memoria del último RA procesado
+        $currentRaId = null; // Aquí recordaremos el ID del último RA encontrado
+        $now = Carbon::now();
 
         foreach ($rows as $row) {
-            $textoColumnaA = $row[0] ?? null; 
-            $textoColumnaB = $row[1] ?? null;
+            // 1. Limpieza de datos (Quitar espacios, comillas, caracteres invisibles)
+            $colA = isset($row[0]) ? trim((string)$row[0], " \t\n\r\0\x0B\"") : '';
+            $colB = isset($row[1]) ? trim((string)$row[1], " \t\n\r\0\x0B\"") : '';
 
-            // Saltar filas vacías
-            if (!$textoColumnaA && !$textoColumnaB) continue;
+            // Si la fila está vacía, la saltamos
+            if ($colA === '' && $colB === '') continue;
 
             // ---------------------------------------------------------
-            // CASO 1: Es un RA (Columna A empieza por "RA")
+            // DETECTAR RA (Patrón: "RA" seguido de números)
             // ---------------------------------------------------------
-            if ($textoColumnaA && Str::startsWith(trim($textoColumnaA), 'RA')) {
+            // Al encontrar un RA, ignoramos las cabeceras del Excel (filas 1-10)
+            // porque no cumplen este patrón.
+            if (preg_match('/^RA\s*(\d+)[\.:\s]+(.*)$/i', $colA, $matches)) {
                 
-                // Parseamos "RA1. Descripción..." o "RA 1: Descripción"
-                // Usamos una regex simple para separar "RA" + "Numero" del resto
-                preg_match('/^(RA\s*\d+)[\.:\s]+(.*)$/i', trim($textoColumnaA), $matches);
+                $codigo = 'RA' . $matches[1]; // Ej: RA1
+                $descripcion = trim($matches[2], " \t\n\r\0\x0B\".");
+                
+                // Generamos UUID manual
+                $currentRaId = Str::uuid()->toString();
 
-                $codigoRa      = $matches[1] ?? substr(trim($textoColumnaA), 0, 4); // Fallback
-                $descripcionRa = $matches[2] ?? substr(trim($textoColumnaA), 4);
-
-                // Creamos el RA vinculado al MÓDULO PASADO EN EL CONSTRUCTOR
-                $currentRa = Ras::create([
-                    'codigo'      => trim($codigoRa),
-                    'descripcion' => trim($descripcionRa),
-                    'modulo_id'   => $this->moduloId // <--- AQUÍ USAMOS EL ID DIRECTO
+                // Insertamos directamente en la tabla 'ras' usando la conexión dinámica
+                DB::connection($this->connectionName)->table('ras')->insert([
+                    'id_ras'      => $currentRaId,
+                    'codigo'      => $codigo,
+                    'descripcion' => $descripcion,
+                    'modulo_id'   => $this->moduloId, // Vinculamos al módulo de la URL
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
                 ]);
                 
-                continue; 
+                continue; // Pasamos a la siguiente fila
             }
 
             // ---------------------------------------------------------
-            // CASO 2: Es un Criterio (Columna B empieza por letra + paréntesis)
+            // DETECTAR CRITERIO (Patrón: letra + paréntesis "a)")
             // ---------------------------------------------------------
-            // A veces Séneca pone el criterio en la Columna A si no hay RA en esa fila, 
-            // chequeamos ambas priorizando B.
-            $textoCriterio = $textoColumnaB ? $textoColumnaB : ($textoColumnaA ? $textoColumnaA : null);
+            // Buscamos en Columna B (prioridad) o Columna A
+            $textoCriterio = $colB ?: $colA; 
 
-            // Buscamos patrón "a) ...", "b) ...", "a. ..."
-            if ($currentRa && $textoCriterio && preg_match('/^([a-zñ]{1})\)/i', trim($textoCriterio), $matches)) {
+            // Solo insertamos si ya hemos encontrado un RA ($currentRaId no es null)
+            if ($currentRaId && preg_match('/^([a-zñ]{1})\)(.*)$/i', $textoCriterio, $matches)) {
                 
-                $letra = $matches[1]; // "a"
-                $ce = $letra . ')';   // "a)"
-                
-                // Limpiamos la descripción quitando el "a) " del principio
-                $descripcion = Str::after(trim($textoCriterio), ')');
+                $ce = $matches[1] . ')'; // Ej: a)
+                $descCriterio = trim($matches[2], " \t\n\r\0\x0B\".");
 
-                Criterio::create([
+                DB::connection($this->connectionName)->table('criterios')->insert([
+                    'id_criterio' => Str::uuid()->toString(),
                     'ce'          => $ce,
-                    'descripcion' => trim($descripcion),
-                    'ras_id'      => $currentRa->id_ras
+                    'descripcion' => $descCriterio,
+                    'ras_id'      => $currentRaId, // Vinculamos al RA anterior
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
                 ]);
             }
         }
     }
 
     /**
-     * Configuración de la conexión dinámica
+     * Configura la conexión a la base de datos del proyecto
      */
     private function setDynamicConnection()
     {
-        $connectionName = 'dynamic_import_ras_' . $this->proyecto->id_base_de_datos;
+        $this->connectionName = 'dynamic_import_' . $this->proyecto->id_base_de_datos;
         
+        // Clonamos la config de mysql y cambiamos la BD target
         $config = config('database.connections.mysql');
         $config['database'] = $this->proyecto->conexion;
         
-        Config::set("database.connections.{$connectionName}", $config);
-        DB::purge($connectionName);
-
-        // Forzamos conexión en los modelos
-        Ras::getConnectionResolver()->setDefaultConnection($connectionName);
-        Criterio::getConnectionResolver()->setDefaultConnection($connectionName);
+        Config::set("database.connections.{$this->connectionName}", $config);
+        DB::purge($this->connectionName);
     }
 }

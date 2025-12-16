@@ -36,10 +36,24 @@ class RaController extends Controller
      */
     public function index($proyecto_id, $modulo_id)
     {
+
         $this->setDynamicConnection($proyecto_id);
 
-        // Cargamos el módulo con sus RAs y los Criterios de esos RAs (Eager Loading anidado)
         $modulo = Modulo::with('ras.criterios')->findOrFail($modulo_id);
+
+        // Ordenamos los RAs
+        $rasOrdenados = $modulo->ras->sortBy('codigo', SORT_NATURAL)->values();
+
+        $rasOrdenados->each(function ($ra) {
+            // Ordenamos los criterios de este RA por el campo 'ce' (a), b), etc.)
+            $criteriosOrdenados = $ra->criterios->sortBy('ce', SORT_NATURAL)->values();
+            
+            // Sobrescribimos la relación en memoria para que la vista la reciba ordenada
+            $ra->setRelation('criterios', $criteriosOrdenados);
+        });
+
+        // Sobrescribimos la relación principal en el objeto Módulo
+        $modulo->setRelation('ras', $rasOrdenados);
 
         return view('gestion.ras.index', compact('proyecto_id', 'modulo'));
     }
