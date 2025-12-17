@@ -40,11 +40,19 @@ class ActividadesController extends Controller
         $this->setDynamicConnection($proyecto_id);
         $modulo = Modulo::findOrFail($modulo_id);
 
-        // Obtenemos las actividades directamente con sus ras y criterios asociados
-        $actividades = Actividad::with('criterios.ras')
-                        ->where('modulo_id', $modulo_id)
-                        ->orderBy('created_at', 'desc')
-                        ->get();
+        $actividades = Actividad::with([// Usamos with para recuperar los criterios y los ras
+            // 1. Ordenamos los criterios de la actividad por 'ce'
+            'criterios' => function ($query) {
+                $query->orderBy('ce', 'asc');
+            },
+            // 2. Ordenamos los RAs de esos criterios por 'codigo'
+            'criterios.ras' => function ($query) {
+                $query->orderBy('codigo', 'asc');
+            }
+        ])
+        ->where('modulo_id', $modulo_id)
+        ->orderBy('created_at', 'desc')
+        ->get();
 
         return view('gestion.actividades.index', compact('proyecto_id', 'modulo', 'actividades'));
     }
@@ -126,10 +134,18 @@ class ActividadesController extends Controller
     {
         $this->setDynamicConnection($proyecto_id);
         
-        $modulo = Modulo::with('ras.criterios')->findOrFail($modulo_id);
+        $modulo = Modulo::with([
+            'ras' => function($query) {
+                $query->orderBy('codigo', 'asc'); 
+            },
+            'ras.criterios' => function ($query) {
+                $query->orderBy('ce', 'asc'); 
+            }
+        ])->findOrFail($modulo_id);
+
         $actividad = Actividad::with('criterios')->findOrFail($actividad_id);
 
-        // Obtenemos los IDs de la pivote para marcar los checkbox
+        // Obtenemos los IDs de la tabla pivote para marcar los checkbox
         $criteriosIds = $actividad->criterios->pluck('id_criterio')->toArray();
 
         return view('gestion.actividades.edit', compact('proyecto_id', 'modulo', 'actividad', 'criteriosIds'));
@@ -179,7 +195,7 @@ class ActividadesController extends Controller
     /**
      * Eliminar actividad.
      */
-    public function destroy($proyecto_id, $actividad_id)
+    public function destroy($proyecto_id, $modulo, $actividad_id)
     {
         $this->setDynamicConnection($proyecto_id);
 

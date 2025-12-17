@@ -17,7 +17,8 @@ class Modulo extends Model
     protected $table = "modulos";
     protected $primaryKey = 'id_modulo';
     protected $fillable = [
-        'nombre', 
+        'nombre',
+        'unidad', //Unidad al que pertenece el módulo
         'proyecto_id'  // Identificador del proyecto (BD Galileo)
     ];
     public $incrementing = false;

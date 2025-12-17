@@ -42,11 +42,11 @@
                 </div>
 
                 <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-danger fw-bold rounded-3 shadow-sm" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success fw-bold rounded-3 shadow-sm"
                         onclick="this.disabled=true; this.innerText='Creando...'; this.form.submit();">
                         Crear e Importar
                     </button>
+                    <button type="button" class="btn btn-danger fw-bold rounded-3 shadow-sm" data-bs-dismiss="modal">Cancelar</button>
                 </div>
             </form>
 

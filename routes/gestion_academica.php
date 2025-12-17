@@ -108,7 +108,7 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
         Route::put('/{actividad_id}/update', [ActividadesController::class, 'update'])
             ->name('gestion.actividades.update');
 
-        Route::put('/{actividad_id}/destroy', [ActividadesController::class, 'destroy'])
+        Route::delete('/{actividad_id}/destroy', [ActividadesController::class, 'destroy'])
             ->name('gestion.actividades.destroy');
     });
 
@@ -117,10 +117,6 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
     // Dependen de la tarea
     // =============================================================
     Route::prefix('tareas/{tarea_id}')->group(function () {
-        
-        // Ver detalle / Evaluar (Tutor Laboral y Profesor)
-        Route::get('/', [TareasController::class, 'show'])
-            ->name('gestion.tareas.show');
         
         // Actualizar tarea (solo si no está bloqueada)
         Route::put('/', [TareasController::class, 'updateTarea'])
@@ -143,6 +139,8 @@ Route::middleware(['auth'])->prefix('gestion/proyectos/{proyecto_id}')->group(fu
             ->name('gestion.tareas.toggleBloqueoMasivo');
         Route::put('/update-apto', [TareasController::class, 'updateApto'])
             ->name('gestion.tareas.updateApto');
+        Route::put('/update-calificacion', [TareasController::class, 'updateCalificacion'])
+            ->name('gestion.tareas.updateCalificacion');
         Route::put('/update-bloqueo', [TareasController::class, 'updateBloqueo'])
             ->name('gestion.tareas.updateBloqueo');
         Route::put('update', [TareasController::class, 'updateNotas'])

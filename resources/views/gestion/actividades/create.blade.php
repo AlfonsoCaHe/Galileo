@@ -66,7 +66,7 @@
                                     <div id="c-{{$ra->id_ras}}" class="accordion-collapse collapse" data-bs-parent="#accCriterios">
                                         <div class="accordion-body p-2">
                                             @foreach($ra->criterios as $crit)
-                                                <div class="form-check">
+                                                <div class="form-check mb-2">
                                                     <input class="form-check-input" type="checkbox" name="criterios[]" value="{{ $crit->id_criterio }}" id="cr-{{$crit->id_criterio}}">
                                                     <label class="form-check-label small" for="cr-{{$crit->id_criterio}}">
                                                         <span class="badge bg-secondary me-1">{{ $crit->ce }}</span> {{ $crit->descripcion }}

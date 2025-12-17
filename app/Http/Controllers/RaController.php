@@ -102,6 +102,4 @@ class RaController extends Controller
             return redirect()->back()->withErrors('Error al eliminar RA: ' . $e->getMessage());
         }
     }
-    
-    // De momento dejamos edit/update pendientes o los implementamos inline si prefieres después.
 }

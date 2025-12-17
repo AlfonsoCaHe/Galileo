@@ -58,7 +58,7 @@ class ProfesoradoDocenteController extends Controller
 
                 $modulosData = Modulo::join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
                     ->where('profesor_modulo.profesor_id', $profesor->id_profesor)
-                    ->select('modulos.id_modulo', 'modulos.nombre')
+                    ->select('modulos.id_modulo', 'modulos.nombre', 'modulos.unidad')
                     ->selectRaw('(SELECT COUNT(*) FROM alumno_modulo WHERE alumno_modulo.modulo_id = modulos.id_modulo AND alumno_modulo.deleted_at IS NULL) as alumnos_count')
                     ->get();
 

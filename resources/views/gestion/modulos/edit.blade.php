@@ -39,6 +39,16 @@
                         </div>
 
                         <div class="mb-4">
+                            <label for="unidad" class="form-label fw-semibold">Unidad</label>
+                            <input type="text" 
+                                   name="unidad" 
+                                   id="unidad" 
+                                   class="form-control" 
+                                   value="{{ old('unidad', $modulo->unidad) }}" 
+                                   required>
+                        </div>
+
+                        <div class="mb-4">
                             <label for="profesores" class="form-label fw-semibold">
                                 Profesor(es) Asignado(s)
                                 <small class="text-muted">(Mantener Ctrl/Cmd para seleccionar varios)</small>

@@ -44,9 +44,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'rol',           // Campo de rol
-        'rolable_id',    // Clave polimórfica
-        'rolable_type',  // Tipo polimórfico
+        'rol', // Campo de rol
+        'rolable_id', // Clave polimórfica
+        'rolable_type', // Tipo polimórfico
     ];
 
     /**
@@ -128,7 +128,6 @@ class User extends Authenticatable
     */
     public static function createRolableUser(Model $rolableModel, array $userData): User
     {
-        // Utilizamos la relación 'user()' definida en el modelo TutorLaboral (MorphOne('rolable')).
         // Laravel se encarga de:
         // 1. Llamar al método user() en $rolableModel.
         // 2. Setear los campos rolable_id y rolable_type en la tabla users.

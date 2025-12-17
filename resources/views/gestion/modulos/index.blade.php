@@ -5,12 +5,12 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
-            // Inicialización de DataTables (Patrón visual estricto)
+            // 1. Inicialización estándar de DataTables
             $('#modulos-datatable').DataTable({
                 "language": {
                     "decimal": ",",
                     "emptyTable": "No hay módulos definidos en este proyecto.",
-                    "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
                     "infoEmpty": "Mostrando 0 a 0 de 0 registros",
                     "infoFiltered": "(filtrado de _MAX_ registros totales)",
                     "lengthMenu": "Mostrar _MENU_ registros",
@@ -30,8 +30,24 @@
                     }
                 },
                 "columnDefs": [
-                    { "orderable": false, "targets": [3] } // Desactivar orden en Acciones
+                    { "orderable": false, "targets": [3, 4] } // Desactiva orden en Alumnos y Acciones
                 ]
+            });
+
+            // 2. Filtro de unidad
+            $(document).on('change', '#filtro-unidad', function() {
+                var valor = $(this).val();
+
+                // Apuntamos a la tabla
+                var table = $('#modulos-datatable').DataTable();
+
+                if (valor) {
+                    // Busca el valor de la columna 1 (Unidad)
+                    table.column(1).search(valor).draw();
+                } else {
+                    // Si el select está vacío, limpia el filtro y redibuja
+                    table.column(1).search('').draw();
+                }
             });
         });
     </script>
@@ -43,6 +59,10 @@
     @if(auth()->user()->isAdmin())
         @include('gestion.layouts.header')
     @endif
+
+    @php
+        $unidades = $modulos->pluck('unidad')->unique()->filter()->sort();// Extraemos las unidades únicas, eliminamos nulos y ordenamos alfabéticamente
+    @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
         <h2 class="mb-4 texto">Módulos: {{ $proyecto->proyecto }}</h2>
@@ -85,11 +105,24 @@
         </div>
         
         <div class="card-body">
+            {{-- Filtro de Unidades --}}
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="filtro-unidad" class="form-label fw-bold">Filtrar por Unidad:</label>
+                    <select id="filtro-unidad" class="form-select shadow-sm">
+                        <option value="">Todas las unidades</option>
+                        @foreach($unidades as $unidad)
+                            <option value="{{ $unidad }}">{{ $unidad }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover align-middle" id="modulos-datatable" width="100%" cellspacing="0">
                     <thead class="table-light">
                         <tr>
                             <th>Nombre del Módulo</th>
+                            <th>Unidad</th>
                             <th>Profesor(es) Asignado(s)</th>
                             <th class="text-center" style="width: 120px;">Alumnos</th>
                             <th class="text-center" style="width: 300px;">Gestión</th>
@@ -101,6 +134,10 @@
                                 {{-- 1. Nombre --}}
                                 <td class="fw-bold text-primary">
                                     {{ $modulo->nombre }}
+                                </td>
+
+                                <td class="fw-bold text-success">
+                                    {{ $modulo->unidad}}
                                 </td>
 
                                 {{-- 2. Profesores --}}

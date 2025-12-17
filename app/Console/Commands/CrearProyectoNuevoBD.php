@@ -21,7 +21,7 @@ class CrearProyectoNuevoBD extends Command
         $yearStart = $this->argument('year_start') ?? now()->year;
         
         if (!is_numeric($yearStart) || strlen($yearStart) != 4) {
-            $this->error("❌ El año debe ser un número de 4 dígitos.");
+            $this->error("El año debe ser un número de 4 dígitos.");
             return 1;
         }
 
@@ -29,7 +29,7 @@ class CrearProyectoNuevoBD extends Command
         $dbName = "proyecto_{$yearStart}_{$yearEnd}";
         $nombreProyecto = "proyecto_{$yearStart}_{$yearEnd}";
 
-        $this->info("🚀 Iniciando creación del proyecto: '{$nombreProyecto}' (BD: {$dbName})...");
+        $this->info("Iniciando creación del proyecto: '{$nombreProyecto}' (BD: {$dbName})...");
 
         // 2. CREAR LA BASE DE DATOS FÍSICA
         // Usamos una conexión temporal sin seleccionar BD
@@ -50,14 +50,14 @@ class CrearProyectoNuevoBD extends Command
             $this->comment("📋 Proyecto registrado en Galileo (ID: {$proyecto->id_base_de_datos})");
 
         } catch (Throwable $e) {
-            $this->error("❌ Error: No se pudo registrar el proyecto en Galileo.");
+            $this->error("Error: No se pudo registrar el proyecto en Galileo.");
             $this->error("¿Has ejecutado 'php artisan db:crear-galileo' primero?");
             return 1;
         }
 
         // 4. CREAR LAS TABLAS (SCHEMA) DENTRO DEL PROYECTO
         if ($this->crearEsquemaTablas($dbName, $proyecto->id_base_de_datos)) {
-            $this->info("✨ ¡Proyecto '{$nombreProyecto}' desplegado correctamente!");
+            $this->info("¡Proyecto '{$nombreProyecto}' desplegado correctamente!");
             return 0;
         }
 
@@ -74,7 +74,7 @@ class CrearProyectoNuevoBD extends Command
             DB::connection('mysql_temp_creation')->statement("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
             return true;
         } catch (Throwable $e) {
-            $this->error("❌ Error al crear la BD física '{$dbName}': " . $e->getMessage());
+            $this->error("Error al crear la BD física '{$dbName}': " . $e->getMessage());
             return false;
         }
     }
@@ -92,7 +92,7 @@ class CrearProyectoNuevoBD extends Command
             ProjectSchemaManager::createAllTables($connectionName, $proyectoId);
             return true;
         } catch (Throwable $e) {
-            $this->error("❌ Error creando tablas en '{$dbName}'.");
+            $this->error("Error creando tablas en '{$dbName}'.");
             $this->line($e->getMessage());
             
             // Opcional: Eliminar la BD si falla el esquema para no dejar basura

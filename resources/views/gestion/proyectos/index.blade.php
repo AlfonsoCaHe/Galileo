@@ -150,9 +150,9 @@
             <div class="d-flex align-items-center mb-2">
                 <label for="filtro-estado" class="form-label me-2 mb-0 align-self-center fw-bold">Estado:</label>
                 <select id="filtro-estado" class="form-select w-auto">
-                    <option value="todos">Todos los Proyectos</option>
                     <option value="activos">Proyectos Activos</option>
                     <option value="finalizados">Proyectos Finalizados</option>
+                    <option value="todos">Todos los Proyectos</option>
                 </select>
             </div>
         @if($proyectos->isEmpty())

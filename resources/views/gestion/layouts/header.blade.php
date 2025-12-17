@@ -67,3 +67,9 @@
         </div>
     </div>
 </div>
+
+@if(session('warning_import'))
+    <div class="alert alert-warning">
+        {{ session('warning_import') }}
+    </div>
+@endif

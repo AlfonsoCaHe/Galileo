@@ -152,12 +152,12 @@ Route::middleware([AdminCheck::class])->group(function () {
         //Rutas de Recuperación de cuentas de usuarios
         Route::get('/index', [UsuariosController::class, 'index'])
             ->name('gestion.usuarios.index');
-        Route::post('/{i}/edit', [UsuariosController::class, 'edit'])
+        Route::get('/{id}/edit', [UsuariosController::class, 'edit'])
             ->name('gestion.usuarios.edit');
+        Route::put('/{id}/update', [UsuariosController::class, 'update']) // Procesar actualización
+            ->name('gestion.usuarios.update');
         Route::post('/store', [UsuariosController::class, 'store']) // Guardar nuevo usuario
             ->name('gestion.usuarios.store');
-        Route::post('/{id}/update', [UsuariosController::class, 'update']) // Procesar actualización
-            ->name('gestion.usuarios.update');
         // DataTables y Creación por Rol
         Route::post('/showDataTable', [UsuariosController::class, 'showDataTable'])
             ->name('gestion.usuarios.showDataTable');

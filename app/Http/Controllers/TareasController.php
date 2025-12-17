@@ -205,6 +205,42 @@ class TareasController extends Controller
     }
 
     /**
+     * Actualiza la calificación y modifica el campo APTO
+     */
+    public function updateCalificacion(Request $request, $proyecto_id, $tarea_id)
+    {
+        //Buscamos el proyecto para asegurarnos que es válido
+        $proyecto = Proyecto::findOrFail($proyecto_id);
+        //Establecemos la conexión
+        $this->setDynamicConnection($proyecto_id);
+        // 1. Buscamos la tarea
+        $tarea = Tarea::findOrFail($tarea_id);
+
+        // 2. Validamos que llegue un número de 0 a 10
+        $request->validate([
+            'calificacion' => 'required|integer|min:0|max:10'
+        ]);
+
+        // 3. Obtenemos el valor
+        $nota = $request->input('calificacion');
+
+        // 4. Si la nota >= 5 es APTO (1), si no, NO APTO (0)
+        $esApto = $nota >= 5 ? 1 : 0;
+
+        // 5. Actualizamos AMBOS campos a la vez
+        $tarea->update([
+            'calificacion' => $nota,
+            'apto' => $esApto
+        ]);
+
+        return response()->json([
+            'success' => true, 
+            'mensaje' => 'Calificación guardada',
+            'apto' => $esApto
+        ]);
+    }
+
+    /**
      * Actualiza el estado de BLOQUEO vía AJAX.
      */
     public function updateBloqueo(Request $request, $proyecto_id, $tarea_id)

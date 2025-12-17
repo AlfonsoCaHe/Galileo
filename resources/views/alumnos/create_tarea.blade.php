@@ -43,26 +43,25 @@
                         </div>
 
                         {{-- 2. Fecha --}}
-                        {{-- 2. Fecha --}}
-<div class="mb-3">
-    <label for="fecha" class="form-label font-weight-bold">Fecha</label>
-    <input 
-        type="date" 
-        class="form-control @error('fecha') is-invalid @enderror" 
-        id="fecha" 
-        name="fecha" 
-        {{-- Corregido: el nombre del campo old debe coincidir con el name --}}
-        value="{{ old('fecha') }}"
-        required
-        {{-- TRUCO PARA MÓVIL: Fuerza a abrir el calendario al tocar cualquier parte del input --}}
-        onclick="try{this.showPicker()}catch(e){}"
-    >
-    @error('fecha')
-        <div class="invalid-feedback">
-            {{ $message }}
-        </div>
-    @enderror
-</div>
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label font-weight-bold">Fecha</label>
+                            <input 
+                                type="date" 
+                                class="form-control @error('fecha') is-invalid @enderror" 
+                                id="fecha" 
+                                name="fecha" 
+                                {{-- Corregido: el nombre del campo old debe coincidir con el name --}}
+                                value="{{ old('fecha') }}"
+                                required
+                                {{-- TRUCO PARA MÓVIL: Fuerza a abrir el calendario al tocar cualquier parte del input --}}
+                                onclick="try{this.showPicker()}catch(e){}"
+                            >
+                            @error('fecha')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                        </div>
 
                         {{-- 3. Duración --}}
                         <div class="mb-4">

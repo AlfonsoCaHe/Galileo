@@ -22,6 +22,7 @@ class Tarea extends Model
         'fecha',
         'duracion',
         'apto',
+        'calificacion',
         'bloqueado'
     ];
 

@@ -1,7 +1,5 @@
 @extends('layouts.default')
 
-@extends('gestion.layouts.header')
-
 @section('title', 'Gestión de Usuarios')
 
 @section('scripts')
@@ -47,7 +45,7 @@
                 { data: 'id', name: 'id', visible: false }, 
                 { data: 'name', name: 'name' }, 
                 { data: 'email', name: 'email' },
-                { data: 'rol', name: 'rol', className: "text-center" },
+                { data: 'rol', name: 'rol', orderable: true, searchable: true, className: "text-center" },
                 // Nueva columna ESTADO (Switch)
                 { data: 'estado', name: 'estado', orderable: false, searchable: false, className: "text-center" },
                 // Columna Acciones (Solo Editar)
@@ -65,7 +63,10 @@
 
 @section('content')
 <div class="container-fluid my-5">
-    
+    @if(auth()->user()->isAdmin())
+        @include('gestion.layouts.header')
+    @endif
+
     {{-- Cabecera --}}
     <h1 class="mb-4 texto">Gestión de Usuarios</h1>
 

@@ -389,7 +389,7 @@ class ProfesorController extends Controller
                     ->firstOrFail();
 
         $profesor->email = $user->email;
-        // dd($profesor);
+
         return view('gestion.profesores.edit', compact('profesor'));
     }
 

@@ -73,8 +73,8 @@
                 <table class="table table-bordered table-hover align-middle" id="tareas-datatable" width="100%">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 25%;">Nombre Tarea</th>
-                            <th style="width: 30%;">Descripción</th>
+                            <th style="width: 25%;">Nombre Actividad</th>
+                            <th style="width: 30%;">Tarea</th>
                             <th style="width: 20%;">Criterios (RAs)</th>
                             <th class="text-center" style="width: 10%;">Alumnos</th>
                             <th class="text-center" style="width: 15%;">Acciones</th>
@@ -86,9 +86,9 @@
                                 {{-- 1. NOMBRE --}}
                                 <td class="fw-bold text-primary">{{ $actividad->nombre }}</td>
 
-                                {{-- 2. DESCRIPCIÓN --}}
+                                {{-- 2. TAREA --}}
                                 <td>
-                                    <small class="text-muted">{{ Str::limit($actividad->descripcion, 80) ?? 'Sin descripción' }}</small>
+                                    <small class="text-muted">{{ Str::limit($actividad->tarea, 80) ?? 'Sin título' }}</small>
                                 </td>
 
                                 {{-- 3. CRITERIOS --}}

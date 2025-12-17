@@ -6,7 +6,7 @@
         var $table = $('#tablaTutorizados').DataTable({
             "language": {
                 "decimal": ",",
-                "emptyTable": "No hay tareas registradas.",
+                "emptyTable": "No hay alumnos tutorizados.",
                 "info": "Mostrando _START_ a _END_ de _TOTAL_",
                 "infoEmpty": "",
                 "infoFiltered": "(filtrado)",
@@ -16,17 +16,17 @@
                 "search": "Buscar:",
                 "zeroRecords": "No hay coincidencias",
                 "paginate": {
-                    "first": "First",
-                    "last": "Last",
-                    "next": "Next",
-                    "previous": "Prev"
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
                 }
             },
             responsive: true,
             autoWidth: false,
             columnDefs: [{
                     orderable: false,
-                    targets: [2, 3]
+                    targets: [1, 2, 3, 4]
                 },
                 {
                     className: "align-middle",
@@ -55,7 +55,13 @@
             let $input = $(this); 
             let $indicator = $input.siblings('.status-indicator');
 
+            // Feedback visual
             $input.removeClass('border-success border-danger').addClass('border-warning');
+            // Si el indicador no existe (porque está dentro del componente), intentar buscarlo cerca o usar un toast
+            if($indicator.length === 0) {
+                 // Fallback por si el componente no renderiza el hermano directo
+                 $indicator = $input.closest('td').find('.status-indicator');
+            }
             $indicator.html('<span class="text-warning fw-bold">...</span>');
 
             $.ajax({
@@ -81,8 +87,8 @@
                 error: function(xhr) {
                     $input.removeClass('border-warning').addClass('border-danger');
                     $indicator.html('<span class="text-danger fw-bold">Error</span>');
-                    
-                    alert.error(xhr.responseText);
+                    console.error(xhr.responseText);
+                    alert('Error al actualizar el periodo');
                     location.reload();
                 }
             });
@@ -118,14 +124,14 @@
     @if (session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-        <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table id="tablaTutorizados" class="table table-hover align-middle ">
+                <table id="tablaTutorizados" class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Alumno / Email</th>
@@ -152,7 +158,6 @@
                             {{-- 1. Módulos matriculados --}}
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
-
                                     @foreach($alumno->modulos as $mod)
                                     <span class="badge bg-secondary text-white me-1">
                                         {{ $mod->nombre }}
@@ -169,6 +174,8 @@
                                     data-proyecto="{{ $alumno->proyecto_id }}"
                                     :selected="$alumno->periodo" 
                                 />
+                                {{-- Indicador visual para AJAX --}}
+                                <div class="status-indicator small text-muted mt-1" style="min-height:20px;"></div>
                             </td>
 
                             {{-- 3. Tutor Laboral --}}
@@ -207,6 +214,4 @@
         </div>
     </div>
 </div>
-
-
 @endsection

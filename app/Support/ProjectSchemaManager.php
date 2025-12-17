@@ -21,6 +21,7 @@ class ProjectSchemaManager
         $schema->create('modulos', function (Blueprint $table) use ($proyectoId) {
             $table->uuid('id_modulo')->primary();
             $table->string('nombre');
+            $table->string('unidad');
             $table->uuid('proyecto_id')->default($proyectoId); // FK a la BD principal (Galileo)
             $table->timestamps();
         });
@@ -79,6 +80,7 @@ class ProjectSchemaManager
             $table->time('duracion')->nullable();
             $table->date('fecha')->nullable();
             $table->boolean('apto')->default(false);
+            $table->integer('calificacion')->nullable();
             $table->boolean('bloqueado')->default(false);
 
             $table->timestamps();

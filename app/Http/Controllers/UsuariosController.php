@@ -194,15 +194,6 @@ class UsuariosController extends Controller
     }
 
     /**
-     * Redirige al listado de usuarios de la base de datos
-     */
-    // public function show(){
-    //     $usuarios = User::all();
-
-    //     return view('usuarios.show',compact('usuarios'));
-    // }
-
-    /**
      * Procesa la petición AJAX de DataTables.
      */
     public function showDataTable(Request $request)
@@ -251,7 +242,7 @@ class UsuariosController extends Controller
                     </form>
                 ';
             })
-            ->addColumn('rol', function($usuario) {
+            ->editColumn('rol', function($usuario) {
                 // Formato visual de roles
                 $colors = [
                     'admin' => 'danger',
@@ -259,12 +250,15 @@ class UsuariosController extends Controller
                     'alumno' => 'info text-dark',
                     'tutor_laboral' => 'success'
                 ];
+                // Si por alguna razón el rol no coincide, usa 'secondary'
                 $color = $colors[$usuario->rol] ?? 'secondary';
+                
+                // Retornamos el HTML
                 return '<span class="badge bg-'.$color.'">'.strtoupper($usuario->rol).'</span>';
             })
             ->addColumn('acciones', function ($usuario) {
                 return '
-                    <form action="'.route('gestion.usuarios.edit', $usuario->id).'" method="POST" class="d-inline">
+                    <form action="'.route('gestion.usuarios.edit', $usuario->id).'" method="GET" class="d-inline">
                         '.csrf_field().' 
                         <button type="submit" class="btn btn-sm btn-warning shadow-sm" title="Editar">
                             Editar
@@ -310,27 +304,6 @@ class UsuariosController extends Controller
             return redirect()->back()->withErrors('Error al cambiar estado: ' . $e->getMessage());
         }
     }
-
-    /**
-     * Método para eliminar un usuario
-     */
-    // public function eliminar(Request $request) {
-
-    //     $usuario = User::find($request->id);
-
-    //     //El usuario admin no se puede eliminar
-    //     if ($usuario && $usuario->isAdmin()) {
-    //         return response()->json(['error' => 'No se puede eliminar un usuario con rol de Administrador.'], 403);
-    //     }
-
-    //     if ($usuario) {
-    //         $usuario->delete();
-    //         return response()->json(['success' => 'Usuario eliminado correctamente.'], 200);
-    //     }
-        
-    //     // Si el usuario no existe
-    //     return response()->json(['error' => 'Usuario no encontrado.'], 404);
-    // }
 
     /**
      * Realiza un Soft Delete del usuario.

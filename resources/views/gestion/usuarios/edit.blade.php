@@ -1,10 +1,31 @@
 @extends('layouts.default')
 
-@extends('gestion.layouts.header')
-
 @section('content')
 <div class="container my-5">
+    @if(@auth()->user()->isAdmin())
+        @include('gestion.layouts.header')
+    @endif
     <div class="row justify-content-center">
+
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error</h5>
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <div class="col-md-8 col-lg-7">
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-4 p-md-5">
@@ -12,6 +33,7 @@
 
                     <form method="POST" action="{{ route('gestion.usuarios.update', ['id' => $usuario->id]) }}">
                         @csrf
+                        @method('PUT')
                         {{-- Campo Nombre --}}
                         <div class="mb-3">
                             <label for="name" class="form-label">Nombre</label>

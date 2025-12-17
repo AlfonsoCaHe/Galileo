@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Models\Proyecto;
 use App\Models\TutorLaboral;
 use App\Models\User;
@@ -27,7 +26,7 @@ class AlumnadoVistaController extends Controller
         $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
         
         $config = config('database.connections.mysql');
-        $config['database'] = $proyecto->conexion;
+        $config['database'] = $proyecto->proyecto;
         Config::set("database.connections.{$connectionName}", $config);
         DB::purge($connectionName);
 
@@ -42,50 +41,48 @@ class AlumnadoVistaController extends Controller
     /**
      * Vista principal del alumnado
      */
-    public function index(){
+    public function index()
+    {
         $userAlumno = Auth::user()->rolable_id; 
 
-        // Buscamos el proyecto del alumno
+        // 1. Buscamos el proyecto activo del alumno
         $proyectos = Proyecto::where('finalizado', false)->get();
+
         $proyecto = null;
         $connectionName = null;
-        $tutorLaboral = null;
-        $tutorDocente = null;
 
         foreach ($proyectos as $pro) {
-            $tempConnName = 'dynamic_' . $pro->id_base_de_datos;
-            
-            $config = config('database.connections.mysql');
-            $config['database'] = $pro->conexion;
-            Config::set("database.connections.{$tempConnName}", $config);
-            DB::purge($tempConnName);
+            // Configuramos la conexión TEMPORALMENTE para comprobar
+            $tempConnectionName = $this->setDynamicConnection($pro->id_base_de_datos);
 
-            $existe = DB::connection($tempConnName)
-                ->table('alumnos')
-                ->where('id_alumno', $userAlumno)
-                ->exists();
+            // Usamos 'on' para asegurar que buscamos en esa BD específica sin afectar globales
+            $existe = Alumno::on($tempConnectionName)
+                        ->where('id_alumno', $userAlumno)
+                        ->exists(); 
 
             if ($existe) {
                 $proyecto = $pro;
-                $connectionName = $tempConnName;
+                $connectionName = $tempConnectionName; // Guardamos la conexión ganadora
                 break;
             }
         }
 
-        if (!$proyecto) {
+        if (!$proyecto || !$connectionName) {
             abort(404, 'No se ha encontrado matrícula activa para este alumno.');
         }
 
-        // Recuperamos alumno y tutores
-        $alumno = DB::connection($connectionName)
-            ->table('alumnos')
-            ->where('id_alumno', $userAlumno)
-            ->first();
-        
-        $tutorLaboral = TutorLaboral::where('id_tutor_laboral', $alumno->tutor_laboral_id)->first();
-        $tutorDocente = Profesor::where('id_profesor',  $alumno->tutor_docente_id)->first();
+        // A PARTIR DE AQUÍ USAMOS $connectionName PARA LA BD DINÁMICA
 
-        // Obtenemos módulos
+        // 2. Recuperamos el alumno usando la conexión correcta
+        $alumno = Alumno::on($connectionName)->find($userAlumno);
+
+        // 3. Recuperamos tutores
+        
+        $tutorLaboral = TutorLaboral::find($alumno->tutor_laboral_id);
+
+        $tutorDocente = Profesor::find($alumno->tutor_docente_id);
+
+        // 4. Obtenemos módulos (Usando Query Builder con la conexión explícita)
         $modulos = DB::connection($connectionName)
             ->table('modulos')
             ->join('alumno_modulo', 'modulos.id_modulo', '=', 'alumno_modulo.modulo_id')
@@ -94,8 +91,9 @@ class AlumnadoVistaController extends Controller
             ->select('modulos.id_modulo', 'modulos.nombre')
             ->get();
 
-        $alumno->tutor_docente = $tutorDocente->nombre;
-        $alumno->tutor_laboral = $tutorLaboral->nombre;
+        // 5. Asignamos nombres evitando errores si son null
+        $alumno->tutor_docente = $tutorDocente ? $tutorDocente->nombre : 'No asignado';
+        $alumno->tutor_laboral = $tutorLaboral ? $tutorLaboral->nombre : 'No asignado';
 
         return view('alumnos.panel', compact('proyecto', 'modulos', 'alumno'));
     }

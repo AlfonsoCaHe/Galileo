@@ -92,6 +92,7 @@ class ModuloController extends Controller
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:70',
+            'unidad' => 'required',
             'profesores' => 'required|array', 
             'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor', // Validamos que los UUIDs existan en la tabla profesores de la conexión 'mysql'
             'alumnos' => 'nullable|array',
@@ -104,6 +105,7 @@ class ModuloController extends Controller
                 // 1. Crear el Módulo (sin profesor_id)
                 $modulo = Modulo::create([
                     'nombre' => $validated['nombre'],
+                    'unidad' => $validated['unidad'],
                     'proyecto_id' => $proyecto->id_base_de_datos, 
                 ]);
                 // 2. Asociar Profesores (Many-to-Many)
@@ -153,6 +155,7 @@ class ModuloController extends Controller
         
         $validated = $request->validate([
             'nombre' => 'required|string|max:70',
+            'unidad' => 'required',
             'profesores' => 'required|array',
             'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor', // Validamos que los UUIDs existan en la tabla profesores de la conexión 'mysql'
             'alumnos' => 'nullable|array',
@@ -165,6 +168,7 @@ class ModuloController extends Controller
                 // 1. Actualizar datos del Módulo (sin profesor_id)
                 $modulo->update([
                     'nombre' => $validated['nombre'],
+                    'unidad' => $validated['unidad'],
                 ]);
 
                 // 2. Sincronizar Profesores (añadir/eliminar relaciones)
@@ -236,12 +240,7 @@ class ModuloController extends Controller
             // 1. Buscamos el proyecto (necesario para saber la BD)
             $proyecto = Proyecto::findOrFail($proyecto_id);
 
-            // 2. Validamos que el módulo exista (opcional, pero buena práctica)
-            // Nota: Como el módulo está en otra BD, si quieres validarlo con Eloquent
-            // tendrías que conectar primero. Pero como vamos a confiar en el ID pasado
-            // y el Import gestiona la conexión, podemos pasar directos al Excel.
-
-            // 3. Lanzamos el importador pasando Proyecto y ID del Módulo
+            // 2. Lanzamos el importador pasando Proyecto y ID del Módulo
             Excel::import(new RasCriteriosImport($proyecto, $modulo_id), $request->file('archivo_ras'));
 
             return back()->with('success', 'RAs y Criterios importados correctamente al módulo.');
