@@ -42,10 +42,10 @@
 
 @section('content')
 <div class="container-fluid my-5">
-    <h1 class="mb-4 texto">Gestión de Empresas y Tutores Laborales</h1>
+    <h1 class="m-4 texto">Gestión de Empresas y Tutores Laborales</h1>
     
     <div class="d-flex justify-content-end">
-        <a href="{{ route('gestion.empresas.create') }}" class="btn btn-success m-2">
+        <a href="{{ route('gestion.empresas.create') }}" class="btn btn-success m-2 fw-bold">
             Crear Nueva Empresa
         </a>
     </div>

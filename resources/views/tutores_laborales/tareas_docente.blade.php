@@ -396,7 +396,7 @@
                                         step="1"
                                         placeholder="-"
                                         value="{{ $tarea->calificacion ?? '' }}"
-                                        data-url="{{ route('gestion.tareas.updateApto', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
+                                        data-url="{{ route('gestion.tareas.updateCalificacion', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
                                         {{ $tarea->bloqueado ? 'disabled' : '' }}>
                                     
                                     {{-- Indicador de estado (guardando/error) --}}

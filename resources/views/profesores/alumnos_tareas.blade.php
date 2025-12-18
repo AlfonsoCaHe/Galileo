@@ -75,6 +75,82 @@
                 ajaxRequest(input, input.val(), 'notas_alumno');
             });
 
+            // AJAX - Cambiar Calificación
+        $('body').on('change', '.input-calificacion-ajax', function() {
+            var input = $(this);
+            var url = input.data('url');
+            var valor = input.val();
+            var indicator = input.siblings('.status-indicator');
+
+            // --- A) VALIDACIÓN FRONTEND ---
+            // Si está vacío lo permitimos (quizás quiera borrar la nota), pero si tiene valor, debe ser 0-10
+            if (valor !== '' && (valor < 0 || valor > 10)) {
+                alert('La calificación debe ser un número entre 0 y 10.');
+                input.val(''); // Limpiamos o restauramos
+                input.addClass('border-danger');
+                return;
+            }
+
+            // --- B) ESTADO GUARDANDO ---
+            input.removeClass('border-success border-danger border-secondary').addClass('border-warning');
+            indicator.html('<span class="text-warning fw-bold">Guardando...</span>');
+
+            $.ajax({
+                url: url,
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                data: {
+                    calificacion: valor
+                },
+                success: function(response) {
+                    // --- C) LÓGICA DE ÉXITO Y COLORES ---
+                    // Convertimos a float para comparar
+                    var notaNumerica = parseFloat(valor);
+
+                    // Limpiamos colores previos
+                    input.removeClass('border-warning border-danger border-success');
+
+                    if (valor === "") {
+                        // Si borró la nota, borde neutro
+                        input.addClass('border-secondary');
+                    } else if (notaNumerica >= 5) {
+                        // APROBADO: Borde VERDE
+                        input.addClass('border-success').css('border-width', '2px');
+                    } else {
+                        // SUSPENSO: Borde ROJO (pero con check de guardado)
+                        input.addClass('border-danger').css('border-width', '2px');
+                    }
+
+                    indicator.html('<span class="text-success fw-bold"><i class="bi bi-check"></i> Guardado</span>');
+
+                    // --- D) LIMPIEZA VISUAL TRAS 2 SEGUNDOS ---
+                    setTimeout(function() {
+                        // Quitamos el grosor extra del borde pero mantenemos el color semántico
+                        // para que el profesor vea rápido cuáles están rojas/verdes
+                        input.css('border-width', '1px');
+                        
+                        // Ocultamos el texto "Guardado"
+                        indicator.fadeOut(500, function() {
+                            $(this).html('').show();
+                        });
+                    }, 2000);
+                },
+                error: function(xhr) {
+                    // --- E) ERROR ---
+                    input.removeClass('border-warning border-success').addClass('border-danger');
+                    indicator.html('<span class="text-danger fw-bold">Error</span>');
+                    
+                    var msg = 'Error al guardar.';
+                    if(xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    alert(msg);
+                }
+            });
+        });
+
             // Función reutilizable para evitar repetir código
             function ajaxRequest(input, value, fieldName) {
                 var url = input.data('url');
@@ -209,17 +285,22 @@
                                 />
                             </td>
                             
-                            {{-- 6. Calificación --}}
+                            {{-- 6. Calificación (Numérica 0-10) --}}
                             <td class="text-center position-relative">
-                                <div class="form-check d-flex justify-content-center">
-                                    <input class="form-check-input border-2 border-secondary check-apto-ajax" 
-                                           type="checkbox" 
-                                           style="cursor: pointer; transform: scale(1.2);"
-                                           {{ $tarea->apto ? 'checked bg-success' : '' }}
-                                           data-url="{{ route('gestion.tareas.updateApto', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
-                                    >
+                                <div style="max-width: 100px; margin: 0 auto;">
+                                    <input type="number" 
+                                        class="form-control form-control-sm text-center input-calificacion-ajax"
+                                        min="0" 
+                                        max="10" 
+                                        step="1"
+                                        placeholder="-"
+                                        value="{{ $tarea->calificacion ?? '' }}"
+                                        data-url="{{ route('gestion.tareas.updateCalificacion', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
+                                        {{ $tarea->bloqueado ? 'disabled' : '' }}>
+                                    
+                                    {{-- Indicador de estado (guardando/error) --}}
+                                    <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -18px;"></div>
                                 </div>
-                                <div class="status-indicator" style="font-size: 0.7rem; height: 15px;"></div>
                             </td>
 
                             {{-- 7. BLOQUEO --}}

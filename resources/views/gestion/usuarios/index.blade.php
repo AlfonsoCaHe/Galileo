@@ -68,7 +68,7 @@
     @endif
 
     {{-- Cabecera --}}
-    <h1 class="mb-4 texto">Gestión de Usuarios</h1>
+    <h1 class="m-4 texto">Gestión de Usuarios</h1>
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">

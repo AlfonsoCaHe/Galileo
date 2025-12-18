@@ -99,14 +99,29 @@ class ProfesoradoDocenteController extends Controller
                         FROM tareas 
                         WHERE tareas.alumno_id = alumnos.id_alumno AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
             ->get();
-        
-        foreach($alumnos as $alumno){
-            $user = User::where('rolable_id', $alumno->id_alumno)
-                    ->where('rolable_type', Alumno::class)
-                    ->firstOrFail();
 
-            $alumno->email = $user->email;
-        }
+        $mainDb = config('database.connections.mysql.database'); 
+
+        $alumnos = Alumno::join('alumno_modulo', 'alumnos.id_alumno', '=', 'alumno_modulo.alumno_id')
+            // AQUÍ EL TRUCO: Concatenamos el nombre de la BD principal + punto + tabla
+            ->leftJoin("$mainDb.users as u", function($join) {
+                $join->on('u.rolable_id', '=', 'alumnos.id_alumno')
+                    ->where('u.rolable_type', '=', Alumno::class);
+            })
+            ->where('alumno_modulo.modulo_id', $modulo_id)
+            ->whereNull('alumno_modulo.deleted_at')
+            // Seleccionamos también el email
+            ->select(
+                'alumnos.id_alumno', 
+                'alumnos.nombre', 
+                'alumnos.periodo',
+                'u.email' // <--- Traemos el email directamente
+            )
+            ->selectRaw("(SELECT COUNT(*) 
+                        FROM tareas 
+                        WHERE tareas.alumno_id = alumnos.id_alumno 
+                        AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
+            ->get();
 
         $actividades = Actividad::where('modulo_id', $modulo_id)
             ->orderBy('nombre', 'asc')

@@ -1,7 +1,10 @@
 :root {
     --color_background: #008080;
     --color_texto: white;
-    --color_botones: #134c6d;
+    --color_primary: #4D81DB;
+    --color_success: #4DDBAB;
+    --color_info: #4DAEDB;
+    --color_warning: #DB4DB5;
 }
 
 body {
@@ -23,6 +26,90 @@ body {
 
 .responsive-input {
     min-width: 150px;
+}
+
+/************************************** Botón Primary ****************************************************/
+.btn-primary {
+    /* Estado Normal: Usa el color base */
+    background-color: var(--color_primary);
+    border-color: var(--color_primary);
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    /* CÁLCULO: Mezcla el color base con 15% de negro (lo oscurece) */
+    background-color: color-mix(in srgb, var(--color_primary), black 15%);
+    border-color: color-mix(in srgb, var(--color_primary), black 15%);
+}
+
+.btn-primary:active {
+    /* CÁLCULO: Mezcla el color base con 30% de negro (más oscuro aún) */
+    background-color: color-mix(in srgb, var(--color_primary), black 30%);
+    border-color: color-mix(in srgb, var(--color_primary), black 30%);
+}
+
+/************************************** Botón Success ****************************************************/
+.btn-success {
+    /* Estado Normal: Usa el color base */
+    background-color: var(--color_success);
+    border-color: var(--color_success);
+    color: black;
+    transition: background-color 0.2s;
+}
+
+.btn-success:hover {
+    /* CÁLCULO: Mezcla el color base con 15% de negro (lo oscurece) */
+    background-color: color-mix(in srgb, var(--color_success), black 15%);
+    border-color: color-mix(in srgb, var(--color_success), black 15%);
+}
+
+.btn-success:active {
+    /* CÁLCULO: Mezcla el color base con 30% de negro (más oscuro aún) */
+    background-color: color-mix(in srgb, var(--color_success), black 30%);
+    border-color: color-mix(in srgb, var(--color_success), black 30%);
+}
+
+/************************************** Botón Info ****************************************************/
+.btn-info {
+    /* Estado Normal: Usa el color base */
+    background-color: var(--color_info);
+    border-color: var(--color_info);
+    color: black;
+    transition: background-color 0.2s;
+}
+
+.btn-info:hover {
+    /* CÁLCULO: Mezcla el color base con 15% de negro (lo oscurece) */
+    background-color: color-mix(in srgb, var(--color_info), black 15%);
+    border-color: color-mix(in srgb, var(--color_info), black 15%);
+}
+
+.btn-info:active {
+    /* CÁLCULO: Mezcla el color base con 30% de negro (más oscuro aún) */
+    background-color: color-mix(in srgb, var(--color_info), black 30%);
+    border-color: color-mix(in srgb, var(--color_info), black 30%);
+}
+
+/************************************** Botón Warning ****************************************************/
+.btn-warning {
+    /* Estado Normal: Usa el color base */
+    background-color: var(--color_warning);
+    border-color: var(--color_warning);
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.btn-warning:hover {
+    /* CÁLCULO: Mezcla el color base con 15% de negro (lo oscurece) */
+    background-color: color-mix(in srgb, var(--color_warning), black 15%);
+    border-color: color-mix(in srgb, var(--color_warning), black 15%);
+}
+
+.btn-warning:active {
+    /* CÁLCULO: Mezcla el color base con 30% de negro (más oscuro aún) */
+    background-color: color-mix(in srgb, var(--color_warning), black 30%);
+    border-color: color-mix(in srgb, var(--color_warning), black 30%);
 }
 
 /* SOLO MÓVIL (Pantallas menores a 500px) */

@@ -36,7 +36,7 @@
                     <div class="mb-3">
                         <label for="archivo_excel" class="form-label fw-semibold">Importar Alumnos y Módulos (Opcional)</label>
                         <p class="text-muted small">Selecciona el CSV/Excel de Séneca para matricular alumnos automáticamente.</p>
-                        <p class="text-muted small">¡Importante! Es necesario sustituir la columna nivel por los correos electrónicos.</p>
+                        <p class="small text-danger fw-bold">¡Importante! Debe contener el nombre del alumno, la unidad, los módulos matriculados y el correo electrónico.</p>
                         <input type="file" name="archivo_excel" id="archivo_excel" class="form-control">
                     </div>
                 </div>

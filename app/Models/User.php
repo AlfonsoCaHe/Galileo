@@ -14,7 +14,8 @@ use Illuminate\Database\Eloquent\Builder; // Importar Builder de consultas (Exte
 
 /**
  * Agregamos este DocBlock para que el IDE (Intelephense) reconozca los métodos personalizados que hemos añadido y no encuentra de otra forma.
- *
+ * Si no se agregan da un falso error de identificación.
+ * 
  * @property string $rol // Nombre del campo en español
  * @method static \Illuminate\Database\Eloquent\Builder|User admin()
  * @method static \Illuminate\Database\Eloquent\Builder|User alumno()

@@ -45,7 +45,7 @@ class UsuariosController extends Controller
 
         if ($user->isTutorLaboral()) {
             // Asume que tienes una ruta con nombre 'tutor.panel'
-            return redirect()->route('tutores.panel');
+            return redirect()->route('tutores_laborales.panel');
         }
 
         // Si el rol no estuviera definido en la bd (debería ser imposible si el Enum funciona bien)

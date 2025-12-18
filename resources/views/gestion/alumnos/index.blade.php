@@ -101,7 +101,7 @@
 @section('content')
 @include('gestion.layouts.header')
 <div class="container-fluid my-5">
-    <h2 class="m-4 texto">Listado de Alumnos</h2>
+    <h1 class="m-4 texto">Listado de Alumnos</h1>
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">

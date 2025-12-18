@@ -140,7 +140,7 @@
     <div class="d-flex justify-content-end align-items-center">
         <div class="d-flex justify-content-between align-items-center p-3">
             {{-- Botón para crear el proyecto --}}
-            <div class="me-4">
+            <div class="m-2">
                 <x-admin.crear-proyecto-form :year-start="now()->year" /> 
             </div>
         </div>
