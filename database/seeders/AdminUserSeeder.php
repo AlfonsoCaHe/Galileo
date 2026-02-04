@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminEmail = 'admin@ies.galileo.com';
+        $adminEmail = 'admin@dual.iesgalileoalmeria.es';
         
         // 1. Comprobamos si el usuario admin ya existe
         $user = User::where('email', $adminEmail)->first();

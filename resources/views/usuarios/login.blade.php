@@ -3,6 +3,11 @@
 @section('title', 'Iniciar Sesión')
 
 @section('content')
+<div class="col-12 col-xl-auto text-center">
+    <div class="d-inline-block rounded-circle shadow-sm p-1 border">
+        <img src="{{ asset('img/logo_galileo_f.png') }}" class="rounded-circle" style="width: min(5rem, 8rem); height: min(5rem, 8rem); object-fit: cover;" alt="IES GALILEO" />
+    </div>
+</div>
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-5">
@@ -17,14 +22,14 @@
 
                     <!-- Bloque de Errores de Validación de Laravel -->
                     @if ($errors->any())
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     @endif
 
                     <form action="{{ url('/login') }}" method="POST">
@@ -36,11 +41,11 @@
                                 Correo Electrónico
                             </label>
                             <input id="email" name="email" type="email" autocomplete="email" required
-                                   value="{{ old('email') }}"
-                                   class="form-control rounded-3 @error('email') is-invalid @enderror"
-                                   placeholder="tu.correo@ejemplo.com">
+                                value="{{ old('email') }}"
+                                class="form-control rounded-3 @error('email') is-invalid @enderror"
+                                placeholder="tu.correo@ejemplo.com">
                             @error('email')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
@@ -50,10 +55,10 @@
                                 Contraseña
                             </label>
                             <input id="password" name="password" type="password" autocomplete="current-password"
-                                   class="form-control rounded-3 @error('password') is-invalid @enderror"
-                                   placeholder="••••••••">
+                                class="form-control rounded-3 @error('password') is-invalid @enderror"
+                                placeholder="••••••••">
                             @error('password')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
@@ -75,7 +80,7 @@
                         <!-- Botón de Enviar -->
                         <div class="d-grid gap-2">
                             <button type="submit"
-                                    class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
+                                class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm">
                                 Acceder
                             </button>
                         </div>

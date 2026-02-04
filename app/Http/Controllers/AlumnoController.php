@@ -316,7 +316,7 @@ class AlumnoController extends Controller
 
         $user = User::where('rolable_id',$alumno_id)->first();
 
-        $alumno->email = $user->email;
+        $alumno->email = $user->email ?? null;
 
         return view('gestion.alumnos.edit', compact('proyecto', 'alumno'));
     }

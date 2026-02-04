@@ -137,7 +137,7 @@
 @section('content')
 <div class="container-fluid">
     @if(auth()->user()->isAdmin())
-        @include('gestion.layouts.header')
+    @include('gestion.layouts.header')
     @endif
 
     {{-- CABECERA --}}
@@ -153,15 +153,15 @@
 
     {{-- Bloque de errores --}}
     @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <h4 class="alert-heading">¡Error al eliminar el Proyecto!</h4>
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h4 class="alert-heading">¡Error al eliminar el Proyecto!</h4>
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     @endif
 
     {{-- 1. DATOS PERSONALES --}}
@@ -177,7 +177,9 @@
                 </div>
                 <div class="col-md-4">
                     <label class="small text-muted fw-bold">Correo Electrónico</label>
-                    <p class="text-dark">{{ $alumno->user->email }}</p>
+                    <p class="text-dark">
+                        {{ $alumno->user->email ?? 'Sin cuenta de usuario' }}
+                    </p>
                 </div>
                 <div class="col-md-2 text-center">
                     <label class="small text-muted fw-bold">Estado</label><br>
@@ -239,9 +241,9 @@
                             <select id="select-tutor-laboral" class="form-select form-select-sm" {{ $alumno->tutor_laboral_id ? '' : 'disabled' }}>
                                 <option value="" selected>--- Sin Tutor ---</option>
                                 @if($alumno->tutor_laboral_id)
-                                    <option value="{{ $alumno->tutor_laboral_id }}" selected>{{ $alumno->tutorLaboral->nombre }}</option>
+                                <option value="{{ $alumno->tutor_laboral_id }}" selected>{{ $alumno->tutorLaboral->nombre }}</option>
                                 @else
-                                    <option value="">Selecciona empresa primero</option>
+                                <option value="">Selecciona empresa primero</option>
                                 @endif
                             </select>
                         </div>
@@ -253,8 +255,7 @@
                                 class="select-periodo"
                                 data-id="{{ $alumno->id_alumno }}"
                                 data-proyecto="{{ $proyecto_id }}"
-                                :selected="$alumno->periodo" 
-                                />
+                                :selected="$alumno->periodo" />
                         </div>
                     </div>
                 </div>
