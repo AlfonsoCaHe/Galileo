@@ -6,7 +6,7 @@
         var $table = $('#tablaTutorizados').DataTable({
             "language": {
                 "decimal": ",",
-                "emptyTable": "No hay alumnos tutorizados.",
+                "emptyTable": "No tienes alumnos asignados como tutor docente en los proyectos activos.",
                 "info": "Mostrando _START_ a _END_ de _TOTAL_",
                 "infoEmpty": "",
                 "infoFiltered": "(filtrado)",
@@ -14,7 +14,7 @@
                 "loadingRecords": "Cargando...",
                 "processing": "Procesando...",
                 "search": "Buscar:",
-                "zeroRecords": "No hay coincidencias",
+        	"zeroRecords": "No se encontraron resultados",
                 "paginate": {
                     "first": "Primero",
                     "last": "Último",
@@ -142,7 +142,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($alumnosTutorizados as $alumno)
+                        @foreach($alumnosTutorizados as $alumno)
                         <tr>
                             {{-- 0. Datos de Alumno --}}
                             <td>
@@ -200,14 +200,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-emoji-neutral fs-1 mb-2"></i>
-                                <p>No tienes alumnos asignados como tutor docente en los proyectos activos.</p>
-                            </td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>

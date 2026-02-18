@@ -102,13 +102,18 @@
                     @error('tutor_nombre') <div class="text-danger">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="tutor_email" class="form-label">Email (Acceso Usuario)</label>
-                    <input type="email" class="form-control" id="tutor_email" name="tutor_email" value="{{ old('tutor_email') }}" required>
-                    @error('tutor_email') <div class="text-danger">{{ $message }}</div> @enderror
+                    <label for="tutor_dni" class="form-label">DNI</label>
+                    <input type="text" class="form-control" id="tutor_dni" name="tutor_dni" value="{{ old('tutor_dni') }}" required>
+                    @error('tutor_dni') <div class="text-danger">{{ $message }}</div> @enderror
                 </div>
             </div>
 
             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="tutor_email" class="form-label">Email (Acceso Usuario)</label>
+                    <input type="email" class="form-control" id="tutor_email" name="tutor_email" value="{{ old('tutor_email') }}" required>
+                    @error('tutor_email') <div class="text-danger">{{ $message }}</div> @enderror
+                </div>
                 <div class="col-md-6 mb-3">
                     <label for="password" class="form-label">Contraseña</label>
                     <input type="password" class="form-control" id="password" name="password" required>

@@ -6,7 +6,7 @@
         $('#tablaModulos').DataTable({
             "language": {
                 "decimal": ",",
-                "emptyTable": "No hay profesores registrados",
+                "emptyTable": "No hay módulos registrados",
                 "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
                 "infoEmpty": "",
                 "infoFiltered": "",

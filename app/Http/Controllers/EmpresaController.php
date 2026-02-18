@@ -47,6 +47,7 @@ class EmpresaController extends Controller
             // Datos del Tutor Principal (y del User)
             'tutor_nombre' => 'required|max:255',
             'tutor_email' => 'required|email|max:255|unique:users,email',
+            'tutor_dni' => 'required|max:9|unique:tutores_laborales,dni',
             'password' => 'required|string|min:8',
         ]);
 
@@ -64,6 +65,7 @@ class EmpresaController extends Controller
                 // Creamos el perfil Tutor Laboral y lo asociamos a la empresa
                 $tutor = TutorLaboral::create([
                     'nombre' => $request->tutor_nombre,
+                    'dni' => $request->tutor_dni,
                     'email' => $request->tutor_email,
                     'empresa_id' => $empresa->id_empresa, // Usamos la PK de la empresa creada
                 ]);
