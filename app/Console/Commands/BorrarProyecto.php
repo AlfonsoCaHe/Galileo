@@ -27,7 +27,7 @@ class BorrarProyecto extends Command
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error("ERROR al eliminar la base de datos '{$nombreBD}': " . $e->getMessage());
+            $this->error("ERROR: ERROR al eliminar la base de datos '{$nombreBD}': " . $e->getMessage());
             Log::error("Fallo al eliminar BD '{$nombreBD}'. Error: " . $e->getMessage());
             return Command::FAILURE;
         }

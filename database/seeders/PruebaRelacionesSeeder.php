@@ -21,7 +21,7 @@ class PruebaRelacionesSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info("🌱 Iniciando siembra estricta según esquema...");
+        $this->command->info("Iniciando...");
 
         // ==========================================
         // 1. BD PRINCIPAL (GALILEO)
@@ -79,7 +79,7 @@ class PruebaRelacionesSeeder extends Seeder
         $proyectos = Proyecto::all();
 
         if ($proyectos->isEmpty()) {
-            $this->command->error("⚠️ No hay proyectos. Ejecuta 'php artisan app:instalar' primero.");
+            $this->command->error("AVISO: No hay proyectos. Ejecuta 'php artisan app:instalar' primero.");
             return;
         }
 
@@ -90,7 +90,7 @@ class PruebaRelacionesSeeder extends Seeder
 
     private function poblarProyecto(Proyecto $proyecto, Profesor $profesor, TutorLaboral $tutorLaboral)
     {
-        $this->command->info("📂 Poblando Proyecto: {$proyecto->proyecto}");
+        $this->command->info("INFO: Poblando Proyecto: {$proyecto->proyecto}");
 
         // Configurar conexión dinámica
         $nombreConexion = 'temp_seeder_' . $proyecto->id_base_de_datos;
@@ -190,6 +190,6 @@ class PruebaRelacionesSeeder extends Seeder
             ['tarea_id' => $tarea2->id_tarea, 'criterio_id' => $criterioA->id_criterio]
         ]);
         
-        $this->command->info("   ✅ Datos insertados en {$proyecto->proyecto}");
+        $this->command->info("      INFO: Datos insertados en {$proyecto->proyecto}");
     }
 }
