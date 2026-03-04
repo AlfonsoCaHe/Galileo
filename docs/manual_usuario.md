@@ -4,7 +4,7 @@
 La plataforma **Galileo** es un Sistema de Gestión Educativa (SGE) especializado en la administración y seguimiento de la **Formación Dual**. El sistema centraliza la gestión de proyectos anuales, la vinculación con entidades colaboradoras y la monitorización operativa del alumnado mediante un flujo de trabajo basado en **Resultados de Aprendizaje (RAs)** y **Criterios de Evaluación**.
 
 ### Credenciales de Acceso (Administración)
-> [!IMPORTANT]
+> [!IMPORTANTE]
 > **Usuario:** `admin@dual.iesgalileoalmeria.es`  
 > **Contraseña:** `root`
 
@@ -55,6 +55,11 @@ Dentro de cada módulo, el profesor debe configurar la arquitectura de evaluaci�
 * **RAs:** Se definen mediante un código alfanumérico y una descripción técnica.
 * **Criterios de Evaluación:** Se desglosan a partir de cada RA, permitiendo una trazabilidad exacta de las competencias que el alumno registrará en sus tareas diarias.
 
+[!Importante]
+> Es posible realizar una **importación** mediante un archivo .csv, .xlsx.
+> Para ello será necesario que la columna A contenga los RAs, y en las filas posteriores, en la columna B deberá contener los criterios.
+> El sistema gestionará la importación hasta la primera fila que no contenga información en las columnas A y B.
+
 ### 3.3 Seguimiento y Evaluación de Actividad
 Desde el **Historial de Tareas** de cada alumno, el profesor supervisa los registros enviados. Para evaluar, se deben gestionar los siguientes campos:
 * **Calificación:** Campo numérico para la valoración de la tarea.
@@ -67,8 +72,8 @@ Desde el **Historial de Tareas** de cada alumno, el profesor supervisa los regis
 
 ### 4.1 Navegación y Control
 * **Inicio:** Vista de módulos y tutores asignados.
-* **Tareas Pendientes:** Registros en estado borrador (editables).
 * **Tareas Realizadas:** Historial de actividades ya bloqueadas por el profesorado.
+* **Tareas:** Registros en estado borrador (editables).
 
 ### 4.2 Creación de Tareas
 Al registrar una actividad, el alumno debe completar obligatoriamente:
