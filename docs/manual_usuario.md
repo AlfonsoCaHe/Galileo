@@ -4,7 +4,7 @@
 La plataforma **Galileo** es un Sistema de Gestión Educativa (SGE) especializado en la administración y seguimiento de la **Formación Dual**. El sistema centraliza la gestión de proyectos anuales, la vinculación con entidades colaboradoras y la monitorización operativa del alumnado mediante un flujo de trabajo basado en **Resultados de Aprendizaje (RAs)** y **Criterios de Evaluación**.
 
 ### Credenciales de Acceso (Administración)
-> [!IMPORTANTE]
+> [!IMPORTANT]
 > **Usuario:** `admin@dual.iesgalileoalmeria.es`  
 > **Contraseña:** `root`
 
@@ -55,7 +55,7 @@ Dentro de cada módulo, el profesor debe configurar la arquitectura de evaluaci�
 * **RAs:** Se definen mediante un código alfanumérico y una descripción técnica.
 * **Criterios de Evaluación:** Se desglosan a partir de cada RA, permitiendo una trazabilidad exacta de las competencias que el alumno registrará en sus tareas diarias.
 
-[!Importante]
+[!IMPORTANT]
 > Es posible realizar una **importación** mediante un archivo .csv, .xlsx.
 > Para ello será necesario que la columna A contenga los RAs, y en las filas posteriores, en la columna B deberá contener los criterios.
 > El sistema gestionará la importación hasta la primera fila que no contenga información en las columnas A y B.
