@@ -79,7 +79,7 @@ class Alumno extends Model
      */
     public function user(): MorphOne
     {
-        // 'rolable' es el nombre de la relación polimórfica en el modelo User (el dueño)
+        // 'rolable' es el UUID de la relación polimórfica en el modelo usuario (el dueño)
         // El segundo argumento es opcional si usas los valores por defecto (rolable_type, rolable_id)
         return $this->morphOne(User::class, 'rolable'); 
     }

@@ -12,6 +12,7 @@ use Throwable;
 
 class CrearGalileo extends Command
 {
+    // Nombre del comando y mensaje
     protected $signature = 'db:crear-galileo';
     protected $description = 'Instala o actualiza la base de datos principal (Galileo) para el despliegue automático.';
 
@@ -20,13 +21,13 @@ class CrearGalileo extends Command
         $dbName = config('database.connections.mysql.database');
         $this->info("INFO: Iniciando despliegue de la Base de Datos Principal: '{$dbName}'...");
 
-        // 1. CREACIÓN DE LA BASE DE DATOS (Física)
+        // 1. Creación física de la base de datos
         if (!$this->crearBaseDeDatos($dbName)) {
             return 1; // Error fatal
         }
 
-        // 2. MIGRACIONES (Estructura de tablas)
-        // Ejecutamos migraciones SIEMPRE. Laravel gestiona internamente cuáles faltan.
+        // 2. Migraciones (Estructura de las tablas)
+        // Ejecutamos migraciones. Laravel gestiona internamente cuáles faltan.
         $this->info("AVISO: Verificando estructura de tablas (Migraciones)...");
         $exitCode = Artisan::call('migrate', ['--force' => true], $this->output);
         
@@ -35,8 +36,8 @@ class CrearGalileo extends Command
             return 1;
         }
 
-        // 3. SEEDER (Datos iniciales / Admin)
-        // Solo sembramos si no hay usuarios, para evitar duplicar al admin en despliegues sucesivos.
+        // 3. Seeder Admin
+        // Solo sembramos si no hay usuarios para evitar duplicar al admin en caso de despliegues sucesivos.
         if (User::count() === 0) {
             $this->info("INFO: Base de datos vacía. Creando usuario Administrador por defecto...");
             $this->call(AdminUserSeeder::class);

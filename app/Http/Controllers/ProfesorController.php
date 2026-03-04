@@ -19,9 +19,48 @@ use Illuminate\Http\Request;
 
 class ProfesorController extends Controller
 {
+    /**
+     * Método para las conexiones dinámicas necesarias para las consultas
+     */ 
+    private function setDynamicConnection($proyecto_id)
+    {
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->firstOrFail();
+        $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
+        
+        $config = config('database.connections.' . config('database.default'));
+        $config['database'] = $proyecto->conexion;
+        
+        Config::set("database.connections.{$connectionName}", $config);
+
+        Modulo::getConnectionResolver()->setDefaultConnection($connectionName);
+        Alumno::getConnectionResolver()->setDefaultConnection($connectionName);
+        ProfesorModulo::getConnectionResolver()->setDefaultConnection($connectionName);
+        Ras::getConnectionResolver()->setDefaultConnection($connectionName); 
+        Tarea::getConnectionResolver()->setDefaultConnection($connectionName); 
+        Criterio::getConnectionResolver()->setDefaultConnection($connectionName); 
+        
+        return $connectionName;
+    }
+
+    /**
+     * Método para las restaurar las conexiones dinámicas
+     */
+    private function restoreConnection()
+    {   
+        Modulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        ProfesorModulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Ras::getConnectionResolver()->setDefaultConnection(config('database.default')); 
+        Tarea::getConnectionResolver()->setDefaultConnection(config('database.default')); 
+        Criterio::getConnectionResolver()->setDefaultConnection(config('database.default')); 
+    }
+
+    /**
+     * Método que redirige a la vista para mostrar los profesores
+     */
     public function indexProfesores()
     {
-        // El modelo Profesor usa la conexión principal (Galileo) por defecto
+        // El modelo Profesor usa la conexión Galileo por defecto
         $profesores = Profesor::all(); 
 
         return view('profesor.index', compact('profesores'));
@@ -29,33 +68,23 @@ class ProfesorController extends Controller
 
     public function mostrarAlumnos(Request $request, $profesor_id)
     {
-        // 1. Obtenemos el profesor central (BD Galileo)
+        // 1. Obtenemos el profesor de la BD Galileo
         $profesor = Profesor::findOrFail($profesor_id);
-        $filtro = $request->input('filtro', 'docente');
-        $alumnosGlobal = collect();
+        $filtro = $request->input('filtro', 'docente');// Fijamos la propiedad del filtro de la datatable
+        $alumnosGlobal = collect();// Colección de alumnos a mostrar
         
-        $config_base = config('database.connections.' . config('database.default'));
-        
-        // 2. Obtenemos todas las bases de datos de proyecto registradas y visibles
-        // $proyectos = Proyecto::all(); //Obtenemos todas las bases de datos de proyecto incluidos los finalizados
+        // 2. Obtenemos todas las bases de datos de proyecto activas
         $proyectos = Proyecto::where('finalizado', 0)->get();
 
-        foreach ($proyectos as $proyecto) {
-            // Aseguramos que id_base_de_datos es el nombre correcto de la PK de Proyecto
-            // Aunque ya lo comprobamos al crear la base de datos, se trata de una comprobación adicional
-            $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
+        foreach ($proyectos as $proyecto) {// Recorremos los proyectos
             
-            // 2.a. Configuramos la conexión dinámica para esta BD de proyecto
-            $config_base['database'] = $proyecto->conexion;
-            config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
-
-            // 2.b. Forzamos el modelo Alumno a usar la BD del proyecto actual
-            Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre); 
+            // Configuramos la conexión dinámica para esta BD de proyecto
+            $conexion_proyecto_nombre = $this->setDynamicConnection($proyecto->id_base_de_datos);
             
             // 3. Consulta de Alumnos en la BD actual
             $alumnosQuery = Alumno::query();
 
-            if ($filtro === 'todos') {
+            if ($filtro === 'todos') { // Si el filtro de la tabla es 'todos'
                 // --- Opción A: Alumnos de todos los módulos que imparte ---
                 
                 $moduloIds = DB::connection($conexion_proyecto_nombre)
@@ -64,16 +93,16 @@ class ProfesorController extends Controller
                                ->pluck('modulo_id');
 
                 $alumnosLocal = $alumnosQuery
-                                ->whereHas('modulos', function ($query) use ($moduloIds) {
-                                    $query->whereIn('modulo_id', $moduloIds);
-                                })->get();
+                                 ->whereHas('modulos', function ($query) use ($moduloIds) {
+                                     $query->whereIn('modulo_id', $moduloIds);
+                                 })->get();
 
             } else { // $filtro === 'docente'
                 // --- Opción B: Solo aquellos de los que es tutor docente ---
 
                 $alumnosLocal = $alumnosQuery
-                                ->where('tutor_docente_id', $profesor_id)
-                                ->get();
+                                 ->where('tutor_docente_id', $profesor_id)
+                                 ->get();
             }
 
             // Añadimos el nombre del proyecto a cada alumno para la vista
@@ -85,42 +114,10 @@ class ProfesorController extends Controller
             $alumnosGlobal = $alumnosGlobal->merge($alumnosLocal);
         }
 
-        // 5. Devolvemos la conexión de Alumno a la principal (limpieza de la conexión)
-        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        // 5. Devolvemos la conexión (limpieza de la conexión)
+        $this->restoreConnection();
 
-        return view('profesor.alumnos', [
-            'profesor' => $profesor, 
-            'alumnos' => $alumnosGlobal, 
-            'filtro' => $filtro
-        ]);
-    }
-    
-    //Métodos para las conexiones dinámicas necesarias para las consultas
-    private function setDynamicConnection($proyecto, $conexion_nombre)
-    {
-        $config_base = config('database.connections.' . config('database.default'));
-        $config_base['database'] = $proyecto->conexion;
-        config(["database.connections.{$conexion_nombre}" => $config_base]);
-
-        // Forzamos a los modelos dinámicos a usar esta conexión
-        Modulo::getConnectionResolver()->setDefaultConnection($conexion_nombre);
-        Alumno::getConnectionResolver()->setDefaultConnection($conexion_nombre);
-        ProfesorModulo::getConnectionResolver()->setDefaultConnection($conexion_nombre);
-        Ras::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-        Tarea::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-        Criterio::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-    }
-    
-    private function restoreConnection()
-    {
-        $default = config('database.default');
-        
-        Modulo::getConnectionResolver()->setDefaultConnection($default);
-        Alumno::getConnectionResolver()->setDefaultConnection($default);
-        ProfesorModulo::getConnectionResolver()->setDefaultConnection($default);
-        Ras::getConnectionResolver()->setDefaultConnection($default); 
-        Tarea::getConnectionResolver()->setDefaultConnection($default); 
-        Criterio::getConnectionResolver()->setDefaultConnection($default); 
+        return view('profesor.alumnos', ['profesor' => $profesor, 'alumnos' => $alumnosGlobal, 'filtro' => $filtro]);
     }
 
     /**
@@ -128,7 +125,7 @@ class ProfesorController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Capturamos el filtro de la URL (por defecto 'todos')
+        // 1. Capturamos el filtro, por defecto 'todos'
         $filtro = $request->get('estado', 'todos');
 
         // 2. Preparamos la consulta base
@@ -144,27 +141,22 @@ class ProfesorController extends Controller
         // Ejecutamos la consulta para obtener los profesores filtrados
         $profesores = $query->orderBy('nombre', 'asc')->get();
 
-        // --- A PARTIR DE AQUÍ, TODO IGUAL QUE ANTES ---
-        // Inicializamos colecciones...
+        // Inicializamos colecciones
         foreach ($profesores as $profesor) {
             $profesor->modulos_collection = collect(); 
             $profesor->alumnos_count = 0;
         }
 
-        // Obtener proyectos activos y recorrerlos (Mismo código que tenías)
+        // Obtener proyectos activos y los recorrermos
         $proyectos = Proyecto::where('finalizado', 0)->get();
-        $defaultConnection = config('database.default');
 
         foreach ($proyectos as $proyecto) {
-            $connectionName = 'dynamic_' . $proyecto->id_base_de_datos;
-            $config = config('database.connections.mysql');
-            $config['database'] = $proyecto->conexion;
-            Config::set("database.connections.{$connectionName}", $config);
+            $connectionName = $this->setDynamicConnection($proyecto->id_base_de_datos);
             DB::purge($connectionName);
 
             try {
                 foreach ($profesores as $profesor) {
-                    // A. Buscar MÓDULOS
+                    // Buscamos los módulos
                     $modulosData = DB::connection($connectionName)
                         ->table('modulos')
                         ->join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
@@ -176,7 +168,7 @@ class ProfesorController extends Controller
                         $profesor->modulos_collection->push($mod);
                     }
 
-                    // B. Contar ALUMNOS
+                    // Contamos los alumnos
                     if ($modulosData->isNotEmpty()) {
                         $idsModulos = $modulosData->pluck('id_modulo')->toArray();
                         
@@ -194,12 +186,12 @@ class ProfesorController extends Controller
             }
         }
 
-        // Asignar colección final
+        // Asignamos la colección final a los módulos del profesor
         foreach ($profesores as $profesor) {
             $profesor->modulos = $profesor->modulos_collection;
         }
 
-        DB::setDefaultConnection($defaultConnection);
+        $this->restoreConnection();
 
         // Pasamos también la variable $filtro a la vista para mantener el select seleccionado
         return view('gestion.profesores.index', compact('profesores', 'filtro'));
@@ -217,17 +209,17 @@ class ProfesorController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validación de los datos de entrada
+        // 1. Validamos los datos de entrada
          $validated = $request->validate([
             'nombre' => ['required', new ValidarTexto],
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8',
         ]);
 
-        // 2. Ejecutar la operación dentro de una transacción
+        // 2. Ejecutamos la operación dentro de una transacción
         try {
             DB::connection('mysql')->transaction(function () use ($validated) {                
-                // 3. Crear el registro de Profesor
+                // 3. Creamos el registro de Profesor
                 $profesor = Profesor::create([
                     'nombre' => $validated['nombre'],
                 ]);
@@ -244,8 +236,7 @@ class ProfesorController extends Controller
                 ]);
             });
 
-            return redirect()->route('gestion.profesores.index')
-                             ->with('success', 'Profesor ' . $validated['nombre'] . ' y su cuenta de usuario creados con éxito.');
+            return redirect()->route('gestion.profesores.index')->with('success', 'Profesor ' . $validated['nombre'] . ' y su cuenta de usuario creados con éxito.');
 
         } catch (\Exception $e) {
             // Logear el error para debugging
@@ -262,7 +253,6 @@ class ProfesorController extends Controller
     public function update(Request $request, $profesor_id)
     {
         // 1. Buscamos el profesor y su usuario asociado
-        // No necesitamos cambiar de conexión, ya estamos en la principal
         $profesor = Profesor::findOrFail($profesor_id);
         $user = $profesor->user; 
 
@@ -271,7 +261,7 @@ class ProfesorController extends Controller
         $userId = $user ? $user->id : 'NULL';
 
         $validated = $request->validate([
-            'nombre'   => ['required', new ValidarTexto], // Tu regla personalizada
+            'nombre'   => ['required', new ValidarTexto], // Validamos que es una cadena de texto
             'email'    => 'required|email|unique:users,email,' . $userId,
             'password' => 'nullable|min:8|confirmed',
         ]);
@@ -316,53 +306,47 @@ class ProfesorController extends Controller
 
     /**
      * Muestra la ficha detallada del profesor.
-     * Recolecta:
      * 1. Módulos donde imparte clase (Docente).
      * 2. Alumnos de los que es responsable (Tutor Docente).
      */
     public function show($profesor_id)
     {
-        // 1. Datos del profesor (BD Principal)
+        // 1. Obtenemos el profesor
         $profesor = Profesor::with('user')->findOrFail($profesor_id);
 
-        // 2. Colecciones para acumular datos de las distintas BDs
+        // 2. Creamos las colecciones para acumular los datos de las distintas BDs
         $modulosDocentes = collect();
         $alumnosTutorizados = collect();
 
-        // 3. Obtener proyectos activos
+        // 3. Obtenemos los proyectos activos
         $proyectos = Proyecto::where('finalizado', 0)->get();
 
         foreach ($proyectos as $proyecto) {
-            // Configurar conexión dinámica
-            $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
-            $config = config('database.connections.mysql');
-            $config['database'] = $proyecto->conexion;
-            config(["database.connections.{$nombreConexion}" => $config]);
-            \Illuminate\Support\Facades\DB::purge($nombreConexion);
+            // Configuramos la conexión dinámica para cada proyecto
+            $nombreConexion = $this->setDynamicConnection($proyecto->id_base_de_datos);
+            \Illuminate\Support\Facades\DB::purge($nombreConexion);// Verificamos que se ha limpiado
 
             try {
-                // A. BUSCAR MÓDULOS (Solución con JOIN manual)
-                // Esto busca directamente en la tabla 'profesores_modulos' que mencionaste
-                $mods = Modulo::on($nombreConexion)
-                    ->join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
+                // A. Buscamos los módulos en la tabla 'profesores_modulos'
+                $mods = Modulo::join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
                     ->where('profesor_modulo.profesor_id', $profesor_id)
-                    ->select('modulos.*') // Importante: Seleccionar solo campos del módulo para evitar conflictos de ID
+                    ->select('modulos.*') // Importante: Selecciona solo campos de módulos para evitar conflictos de ID con la pivote
                     ->withCount('alumnos') 
                     ->get();
 
                 foreach ($mods as $m) {
-                    // Inyectamos datos del proyecto para usarlos en la vista (rutas)
+                    // Añadimos los datos del proyecto para usarlos en las rutas de las vista
                     $m->proyecto_nombre = $proyecto->proyecto;
                     $m->proyecto_id = $proyecto->id_base_de_datos;
                     $modulosDocentes->push($m);
                 }
 
-                // B. BUSCAR ALUMNOS (Donde es Tutor Docente)
-                $alums = Alumno::on($nombreConexion)
-                    ->where('tutor_docente_id', $profesor_id)
+                // B. Buscamos los alumnos de los que es Tutor Docente
+                $alums = Alumno::where('tutor_docente_id', $profesor_id)
                     ->get();
 
                 foreach ($alums as $a) {
+                    // Añadimos los datos del proyecto para usarlos en las rutas de las vista
                     $a->proyecto_nombre = $proyecto->proyecto;
                     $a->proyecto_id = $proyecto->id_base_de_datos;
                     $alumnosTutorizados->push($a);
@@ -372,6 +356,9 @@ class ProfesorController extends Controller
                 continue;
             }
         }
+        
+        $this->restoreConnection();// Quitamos las conexiones dinámicas y volvemos a la general
+
         return view('gestion.profesores.show', compact('profesor', 'modulosDocentes', 'alumnosTutorizados'));
     }
 
@@ -380,15 +367,15 @@ class ProfesorController extends Controller
      */
     public function edit($profesor_id)
     {
-        // 1. Encontrar al Profesor en la BD principal (Galileo)
+        // 1. Encontramos al Profesor en la BD Galileo
         $profesor = Profesor::findOrFail($profesor_id);
 
-        // 2. Encontrar el registro de usuario asociado (para obtener el email)
+        // 2. Encontramos el registro de usuario asociado para obtener el email
         $user = User::where('rolable_id', $profesor->id_profesor)
                     ->where('rolable_type', Profesor::class)
                     ->firstOrFail();
 
-        $profesor->email = $user->email;
+        $profesor->email = $user->email;// Añadimos el email
 
         return view('gestion.profesores.edit', compact('profesor'));
     }
@@ -396,7 +383,6 @@ class ProfesorController extends Controller
     /**
      * Método que desactiva y activa los datos de un profesor en la base de datos para evitar el riesgo de pérdida de integridad referencial.
      */
-    // Asegúrate de importar esto arriba
     public function toggleActivo($id)
     {
         try {
@@ -404,12 +390,12 @@ class ProfesorController extends Controller
 
             $profesor = Profesor::findOrFail($id);
             
-            // 1. Invertir estado
+            // 1. Invertimos el estado
             $nuevoEstado = !$profesor->activo;
             $profesor->activo = $nuevoEstado;
             $profesor->save();
 
-            // 2. Buscar usuario asociado (incluso borrados)
+            // 2. Buscamos el usuario asociado (incluso borrados)
             $user = User::withTrashed()
                 ->where('rolable_id', $profesor->id_profesor)
                 ->where('rolable_type', Profesor::class)
@@ -418,7 +404,7 @@ class ProfesorController extends Controller
             $mensaje = '';
 
             if ($nuevoEstado) {
-                // --- ACTIVAR ---
+                // Comprobamos si hay usuario para activarlo
                 if ($user) {
                     if ($user->trashed()) {
                         $user->restore(); // Restaurar usuario existente
@@ -427,27 +413,28 @@ class ProfesorController extends Controller
                         $mensaje = 'Profesor activado (El usuario ya estaba activo).';
                     }
                 } else {
-                    // Crear Usuario Nuevo (Si no existía)
+                    // Si no existía o surge un error inesperado creamos usuario nuevo
                     $emailBase = strtolower(str_replace(' ', '.', $profesor->nombre));
                     $email = $emailBase . '@ies.galileo.com';
                     
-                    // Evitar duplicados simples
+                    // Evitamos los duplicados de correo por defecto
                     if(User::where('email', $email)->exists()) {
                         $email = $emailBase . rand(10,99) . '@ies.galileo.com';
                     }
 
+                    // Vinculamos el usuario al profesor
                     User::createRolableUser($profesor, [
                         'name' => $profesor->nombre,
                         'email' => $email,
-                        'password' => 'password', // Default
+                        'password' => 'password', // Por defecto la contraseña es 'password'
                         'rol' => 'profesor'
                     ]);
                     $mensaje = "Profesor activado. Usuario creado: $email";
                 }
             } else {
-                // --- DESACTIVAR ---
+                // Para desactivar el usuario
                 if ($user) {
-                    $user->delete(); // Soft Delete
+                    $user->delete(); // Realizamos un Soft Delete
                 }
                 $mensaje = 'Profesor desactivado. Acceso revocado.';
             }

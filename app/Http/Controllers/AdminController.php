@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Http\Request;
 use App\Models\Proyecto;
-//use App\Jobs\RunArtisanCommand; // Para creación de bases de datos mediante asincronía #DESACTIVADO
 
 class AdminController extends Controller
 {
@@ -17,30 +16,20 @@ class AdminController extends Controller
         $arguments = $yearStart ? ['year_start' => $yearStart] : [];
         
         try {
-            //EJECUCIÓN ASÍNCRONA (Recomendado para comandos largos o de inserción en bases de datos)
-            //No se utiliza por un problema en la retroalimentación, y dado que supuestamente solo se crearán las bases de datos en local, no debe haber problema
-            //Encola la ejecución del comando. Esto requiere tener configurada una cola (Queue).
-            /**
-             * RunArtisanCommand::dispatch('db:crear-proyecto', $arguments);
-             */
-
-            // EJECUCIÓN SÍNCRONA: Espera el resultado del comando
+            // EJECUCIÓN SÍNCRONA: Espera el resultado del comando para continuar
             $salida = Artisan::call('db:crear-proyecto', $arguments);
 
             if($salida === 1){
-                // Si el comando devolvió 1, significa que hubo un error lógico (ej. duplicidad).
+                // Si el comando devolvió 1, significa que hubo un error (ej. duplicidad).
                 // Recuperamos el mensaje que el comando Artisan escribió en la salida.
                 $errorMessage = Artisan::output();
-                // Limpiamos la salida para no contaminar futuras llamadas.
-
                 return redirect()->route('gestion.proyectos.index')->with('error', trim($errorMessage));
             }
             
-            // Si no hay duplicidad creamos la base de datos y volvemos a la vista:
+            // Si no hay duplicidad creamos la base de datos y volvemos a la vista
             return redirect()->route('gestion.proyectos.index')->with('success', 'La nueva base de datos del proyecto ha sido creada y migrada correctamente.');
 
         } catch (\Exception $e) {
-            // Error:
             $errorMessage = "Error al ejecutar el comando: " . $e->getMessage();
             
             return redirect()->route('gestion.proyectos.index')->with('error', $errorMessage);
@@ -49,6 +38,9 @@ class AdminController extends Controller
         return redirect()->route('gestion.proyectos.index')->with('success', 'La creación del proyecto ha sido iniciada en segundo plano...');
     }
 
+    /**
+     * Método para mostrar al administrador el listado de proyectos
+     */
     public function listadoProyectos()
     {
         $proyectos = Proyecto::orderBy('proyecto', 'asc')->get();

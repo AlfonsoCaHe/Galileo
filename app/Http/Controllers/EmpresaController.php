@@ -13,6 +13,29 @@ use Illuminate\Support\Facades\DB;
 
 class EmpresaController extends Controller
 {
+    // Método auxiliar para configurar la conexión dinámica
+    private function setDynamicConnection($proyecto_id)
+    {
+        $proyecto = Proyecto::findOrFail($proyecto_id);
+        $conexion_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos;
+        $config_base = config('database.connections.' . config('database.default'));
+        
+        $config_base['database'] = $proyecto->conexion;
+        config(["database.connections.{$conexion_nombre}" => $config_base]);
+
+        // Forzamos a los modelos dinámicos a usar esta conexión
+        Alumno::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+        
+        return $proyecto;
+    }
+    
+    // Método auxiliar para restaurar la conexión
+    private function restoreConnection()
+    {
+        // Restaurar la conexión predeterminada (Galileo)
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+    }
+
     /**
      * Obtiene el listado de tutores laborales y sus empresas para el index de DataTables.
      */
@@ -44,7 +67,7 @@ class EmpresaController extends Controller
             'nombre_gerente' => 'required|max:255',
             'nif_gerente' => 'required|max:15',
             
-            // Datos del Tutor Principal (y del User)
+            // Datos del tutor principal y del usuario asociado
             'tutor_nombre' => 'required|max:255',
             'tutor_email' => 'required|email|max:255|unique:users,email',
             'tutor_dni' => 'required|max:9|unique:tutores_laborales,dni',
@@ -52,6 +75,7 @@ class EmpresaController extends Controller
         ]);
 
         try {
+            // Por seguridad iniciamos una transacción
             DB::transaction(function () use ($request) {
                 
                 // Creamos la Empresa
@@ -67,18 +91,19 @@ class EmpresaController extends Controller
                     'nombre' => $request->tutor_nombre,
                     'dni' => $request->tutor_dni,
                     'email' => $request->tutor_email,
-                    'empresa_id' => $empresa->id_empresa, // Usamos la PK de la empresa creada
+                    'empresa_id' => $empresa->id_empresa, // Usamos la PK de la empresa creada como FK
                 ]);
 
-                // Creamos el Usuario asociado al Tutor mediante la relación polimórfica
+                // Creamos el usuario asociado al tutor mediante la relación polimórfica
                 User::createRolableUser($tutor, [
                     'name' => $request->tutor_nombre,
                     'email' => $request->tutor_email,
-                    'rol' => 'tutor_laboral',
+                    'rol' => 'tutor_laboral',// Por defecto para todos los tutores laborales
                     'password' => $request->password,
                 ]);
 
                 // Creamos los cupos, necesario para poder modificarlos luego. A 0 como valor inicial
+                // En los requisitos se establecía la necesidad de dos periodos de prácticas
                 CupoEmpresa::create([
                     'empresa_id' => $empresa->id_empresa,
                     'periodo' => '1',
@@ -126,7 +151,7 @@ class EmpresaController extends Controller
             'plazas' => 'array', // Validamos que llegue el array de plazas
         ]);
 
-        // 1. Actualizar datos de la empresa
+        // 1. Actualizamos los datos de la empresa
         $empresa->update([
             'cif_nif' => $request->cif_nif,
             'nombre' => $request->nombre,
@@ -134,7 +159,7 @@ class EmpresaController extends Controller
             'nif_gerente' => $request->nif_gerente,
         ]);
 
-        // 2. Actualizar Cupos (Periodos 1 y 2) desde el formulario principal
+        // 2. Actualiza los cupos (periodos 1 y 2) desde el formulario principal
         if ($request->has('plazas')) {
             foreach ($request->plazas as $periodo => $cantidad) {
                 \App\Models\CupoEmpresa::updateOrCreate(
@@ -194,42 +219,32 @@ class EmpresaController extends Controller
         // 2. Obtener todos los tutores asociados a esta empresa
         $tutores = $empresa->tutores;
 
-        // --- 3. VALIDACIÓN DE INTEGRIDAD REFERENCIAL ---
-        
+        // 3. VALIDACIÓN DE INTEGRIDAD REFERENCIAL
         // Si hay tutores, debemos verificar que ninguno tenga alumnos asociados
         if ($tutores->isNotEmpty()) {
             
             // Obtener TODOS los proyectos (finalizados o no) para la verificación completa
             $proyectos = Proyecto::all(); 
-            $config_base = config('database.connections.' . config('database.default'));
             
             $tutorConAlumno = null; 
             $proyectoConAlumno = null;
 
             foreach ($tutores as $tutor) {
-                $tutor_id = $tutor->id_tutor_laboral;
-
                 foreach ($proyectos as $proyecto) {
-                    $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
                     
-                    // Configurar la conexión dinámica temporal
-                    $config_base['database'] = $proyecto->conexion;
-                    config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
+                    // Configurar la conexión dinámica temporal usando el helper
+                    $this->setDynamicConnection($proyecto->id_base_de_datos);
 
-                    // Forzar el modelo Alumno a usar la conexión dinámica actual
-                    Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre);
-                    
                     // Buscar alumnos asociados en la BD del proyecto actual
-                    $alumnosCount = Alumno::query()
-                        ->where('tutor_laboral_id', $tutor_id)
-                        ->count();
+                    $alumnosCount = Alumno::where('tutor_laboral_id', $tutor->id_tutor_laboral)->count();
                     
+                    // Si algún tutor tiene al menos 1 alumno asociado
                     if ($alumnosCount > 0) {
                         $tutorConAlumno = $tutor;
                         $proyectoConAlumno = $proyecto;
                         
                         // Restaurar conexión de Alumno a la principal antes de salir
-                        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+                        $this->restoreConnection();
                         
                         // Salir de ambos bucles
                         break 2; 
@@ -239,22 +254,21 @@ class EmpresaController extends Controller
 
             // Si se encontró un tutor con alumnos, retornar error
             if ($tutorConAlumno) {
-                $nombre_tutor = $tutorConAlumno->nombre;
-                $nombre_proyecto = $proyectoConAlumno->proyecto;
-                
-                return redirect()->back()->withErrors("No se puede eliminar la empresa **{$empresa->nombre}**. El tutor **{$nombre_tutor}** aún tiene alumno(s) asociado(s) en el proyecto **{$nombre_proyecto}**. Desvincula o elimina al alumno primero.");
+                return redirect()->back()->withErrors("No se puede eliminar la empresa **{$empresa->nombre}**. El tutor **{$tutorConAlumno->nombre}** aún tiene alumno(s) asociado(s) en el proyecto **{$proyectoConAlumno->proyecto}**. Desvincula o elimina al alumno primero.");
             }
         }
         
-        // --- 4. ELIMINACIÓN SEGURA ---
+        // 4. ELIMINACIÓN SEGURA (Solo si no había alumnos asociados)
         try {
-            DB::connection(config('database.default'))->transaction(function () use ($empresa, $tutores) {
+            // Aseguramos que Alumno y otros modelos vuelvan a su conexión por defecto por si acaso
+            $this->restoreConnection();
+
+            DB::transaction(function () use ($empresa, $tutores) {
                 
                 // 4a. Eliminar los usuarios asociados a los tutores (MorphOne no tiene CASCADE)
                 foreach ($tutores as $tutor) {
-                    $user = $tutor->user;
-                    if ($user) {
-                        $user->delete();
+                    if ($tutor->user) {
+                        $tutor->user->delete();
                     }
                 }
                 

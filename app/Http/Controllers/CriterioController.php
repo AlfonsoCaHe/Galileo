@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Proyecto;
 use App\Models\Ras;
 use App\Models\Criterio;
-use App\Rules\ValidarTexto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +26,7 @@ class CriterioController extends Controller
     }
 
     /**
-     * Guarda un Criterio asociado a un RA específico.
+     * Guarda un criterio asociado a un RA específico.
      */
     public function store(Request $request, $proyecto_id, $ra_id)
     {
@@ -45,7 +44,7 @@ class CriterioController extends Controller
                 'ras_id' => $ra_id
             ]);
 
-            // Redirigimos con una variable de sesión para re-abrir el acordeón automáticamente (Truco de UX)
+            // Redirigimos con una variable de sesión para re-abrir el acordeón automáticamente
             return redirect()->back()
                 ->with('success', 'Criterio añadido correctamente.')
                 ->with('open_ra', $ra_id); // Enviamos el ID del RA para que JS lo abra
@@ -55,6 +54,9 @@ class CriterioController extends Controller
         }
     }
 
+    /**
+     * Método para eliminar un criterio de un RA
+     */
     public function destroy($proyecto_id, $criterio_id)
     {
         $this->setDynamicConnection($proyecto_id);

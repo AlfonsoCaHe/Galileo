@@ -30,6 +30,7 @@ class AlumnadoVistaController extends Controller
         Config::set("database.connections.{$connectionName}", $config);
         DB::purge($connectionName);
 
+        // Configuramos la conexión por defecto para los modelos relacionados con alumnos
         Tarea::getConnectionResolver()->setDefaultConnection($connectionName);
         Modulo::getConnectionResolver()->setDefaultConnection($connectionName);
         Actividad::getConnectionResolver()->setDefaultConnection($connectionName);
@@ -52,10 +53,10 @@ class AlumnadoVistaController extends Controller
         $connectionName = null;
 
         foreach ($proyectos as $pro) {
-            // Configuramos la conexión TEMPORALMENTE para comprobar
+            // Configuramos la conexión temporalmente para comprobar
             $tempConnectionName = $this->setDynamicConnection($pro->id_base_de_datos);
 
-            // Usamos 'on' para asegurar que buscamos en esa BD específica sin afectar globales
+            // Usamos 'on' para asegurar que buscamos en esa BD específica sin afectar globales (conexiones dinámicas)
             $existe = Alumno::on($tempConnectionName)
                         ->where('id_alumno', $userAlumno)
                         ->exists(); 
@@ -71,18 +72,16 @@ class AlumnadoVistaController extends Controller
             abort(404, 'No se ha encontrado matrícula activa para este alumno.');
         }
 
-        // A PARTIR DE AQUÍ USAMOS $connectionName PARA LA BD DINÁMICA
+        // Una vez configurada, usamos $connectionName para las conexiones dinámicas
 
         // 2. Recuperamos el alumno usando la conexión correcta
         $alumno = Alumno::on($connectionName)->find($userAlumno);
 
-        // 3. Recuperamos tutores
-        
+        // 3. Recuperamos tutores y profesores
         $tutorLaboral = TutorLaboral::find($alumno->tutor_laboral_id);
-
         $tutorDocente = Profesor::find($alumno->tutor_docente_id);
 
-        // 4. Obtenemos módulos (Usando Query Builder con la conexión explícita)
+        // 4. Obtenemos módulos usando una consulta explícita con la conexión dinámica
         $modulos = DB::connection($connectionName)
             ->table('modulos')
             ->join('alumno_modulo', 'modulos.id_modulo', '=', 'alumno_modulo.modulo_id')
@@ -91,7 +90,7 @@ class AlumnadoVistaController extends Controller
             ->select('modulos.id_modulo', 'modulos.nombre')
             ->get();
 
-        // 5. Asignamos nombres evitando errores si son null
+        // 5. Asignamos 'no asignado' evitando errores si son null
         $alumno->tutor_docente = $tutorDocente ? $tutorDocente->nombre : 'No asignado';
         $alumno->tutor_laboral = $tutorLaboral ? $tutorLaboral->nombre : 'No asignado';
 
@@ -99,12 +98,12 @@ class AlumnadoVistaController extends Controller
     }
 
     /**
-     * Método que devuelve a la vista de tareas realizadas (bloqueadas)
+     * Método que devuelve a la vista de tareas realizadas (bloqueadas por el profesor)
      */
     public function tareasRealizadas($proyecto_id){
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que busca sus tareas
 
-        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();// Buscamos el proyecto del alumno
 
         $this->setDynamicConnection($proyecto_id);
 
@@ -115,11 +114,11 @@ class AlumnadoVistaController extends Controller
         // Buscamos las tareas que están bloqueadas
         $tareasRealizadas = Tarea::with(['modulo', 'actividad']) // Cargamos relación para ver nombre real de actividad
             ->where('alumno_id', $userAlumno)
-            ->where('bloqueado', true)
+            ->where('bloqueado', true)// Bloqueado = true
             ->orderBy('fecha', 'desc')
             ->get()
             ->map(function($tarea) {
-                // Mapeo para ajustar a lo que espera tu vista si es necesario
+                // Mapeo para ajustar a lo que espera la vista para cada tupla
                 return (object) [
                     'id_tarea' => $tarea->id_tarea,
                     'nombre_tarea' => $tarea->tarea,
@@ -138,9 +137,9 @@ class AlumnadoVistaController extends Controller
      * Método que redirige a la vista de tareas pendientes (No bloqueadas)
      */
     public function tareasPendientes($proyecto_id){
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que busca sus tareas
 
-        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();// Buscamos el proyecto del alumno
 
         $this->setDynamicConnection($proyecto_id);
 
@@ -150,7 +149,7 @@ class AlumnadoVistaController extends Controller
         // Buscamos las tareas que no están bloqueadas
         $tareasNoRealizadas = Tarea::with(['modulo', 'actividad'])
             ->where('alumno_id', $userAlumno)
-            ->where('bloqueado', false)
+            ->where('bloqueado', false)// Bloqueado = false
             ->orderBy('fecha', 'desc')
             ->get()
             ->map(function($tarea) {
@@ -174,9 +173,9 @@ class AlumnadoVistaController extends Controller
      */
     public function crearTarea($proyecto_id)
     {
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que crea la tarea
         
-        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();// Buscamos el proyecto del alumno
 
         $this->setDynamicConnection($proyecto_id);
         
@@ -188,14 +187,13 @@ class AlumnadoVistaController extends Controller
     }
 
     /**
-     * Método para almacenar la tarea recién creada
-     * Permite múltiples registros para la misma actividad_id
+     * Método para almacenar la tarea recién creada. Permite múltiples registros para la misma actividad_id
      */
     public function storeTarea(Request $request, $proyecto_id)
     {
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que crea la tarea
 
-        $proyecto = Proyecto::findOrFail($proyecto_id);
+        $proyecto = Proyecto::findOrFail($proyecto_id);// Buscamos el proyecto del alumno, si no existe falla
         
         $request->validate([
             'actividad_id' => 'required|string', 
@@ -234,11 +232,11 @@ class AlumnadoVistaController extends Controller
      * Método que redirige a la vista de edición de la tarea (Solo si no está bloqueada)
      */
     public function editTarea($proyecto_id, $modulo_id, $tarea_id){
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que edita su tarea
         
         $this->setDynamicConnection($proyecto_id);
 
-        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();
+        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();// Buscamos el proyecto del alumno
         $modulo = Modulo::findOrFail($modulo_id);
         
         // Buscamos la tarea y verificamos que sea del alumno
@@ -258,7 +256,7 @@ class AlumnadoVistaController extends Controller
      */
     public function updateTarea(Request $request, $proyecto_id, $tarea_id)
     {
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que actualiza su tarea
 
         $request->validate([
             'notas_alumno' => 'required|string',
@@ -295,10 +293,10 @@ class AlumnadoVistaController extends Controller
      */
     public function destroyTarea($proyecto_id, $tarea_id)
     {
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Extraemos el alumno que elimina su tarea
 
         try {
-            $this->setDynamicConnection($proyecto_id);
+            $this->setDynamicConnection($proyecto_id);// Buscamos el proyecto del alumno
 
             // Buscamos la tarea del alumno
             $tarea = Tarea::where('id_tarea', $tarea_id)
@@ -321,21 +319,24 @@ class AlumnadoVistaController extends Controller
     }
 
     /**
-     * Métodos para actualizar la contraseña del alumno
+     * Método que redirige a la vista para actualizar la contraseña del alumno (el resto de datos solo los puede modificar el admin)
      */
     public function editar($proyecto_id){
-        $userAlumno = Auth::user()->rolable_id;
+        $userAlumno = Auth::user()->rolable_id;// Buscamos el usuario conectado, que debe ser el alumno que modifica sus datos
         $user = User::where('rolable_id',$userAlumno)->first();
 
         $this->setDynamicConnection($proyecto_id);
         
         $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->first();
-        $alumno = Alumno::find($userAlumno);
+        $alumno = Alumno::find($userAlumno);// Buscamos el alumno que modifica sus datos
         $alumno->email = $user->email;
 
         return view('gestion.alumnos.edit', compact('proyecto', 'alumno'));
     }
 
+    /**
+     * Método que guarda las modificación de la contraseña
+     */
     public function update(Request $request, $proyecto_id, $alumno_id)
     {
         $user = User::where('rolable_id', $alumno_id)->firstOrFail();

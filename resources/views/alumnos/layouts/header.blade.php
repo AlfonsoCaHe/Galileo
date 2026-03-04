@@ -33,7 +33,7 @@
                     <div class="col-lg-2">
                         <a href="{{ route('alumnado.tareas_pendientes', ['proyecto_id' => $proyecto->id_base_de_datos]) }}" class="btn btn-primary w-100 h-100 p-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
                             <i class="bi bi-clock-history fs-2 mb-1"></i>
-                            <span class="fw-bold text-uppercase small">Tareas Pendientes</span>
+                            <span class="fw-bold text-uppercase small">Tareas</span>
                         </a>
                     </div>
 

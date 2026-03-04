@@ -6,7 +6,6 @@ use App\Models\Proyecto;
 use App\Models\Modulo;
 use App\Models\Actividad;
 use App\Models\Tarea;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +25,7 @@ class ActividadesController extends Controller
         Config::set("database.connections.{$connectionName}", $config);
         DB::purge($connectionName);
 
-        // Configuramos la conexión por defecto para los modelos implicados
+        // Configuramos la conexión por defecto para los modelos relacionados con actividades
         Actividad::getConnectionResolver()->setDefaultConnection($connectionName);
         Modulo::getConnectionResolver()->setDefaultConnection($connectionName);
         Tarea::getConnectionResolver()->setDefaultConnection($connectionName);
@@ -73,11 +72,11 @@ class ActividadesController extends Controller
             // Ordenamos los criterios de este RA por el campo 'ce' (a), b), etc.)
             $criteriosOrdenados = $ra->criterios->sortBy('ce', SORT_NATURAL)->values();
             
-            // Sobrescribimos la relación en memoria para que la vista la reciba ordenada
+            // Ordenamos el listado
             $ra->setRelation('criterios', $criteriosOrdenados);
         });
 
-        // Sobrescribimos la relación principal en el objeto Módulo
+        // Sobrescribimos la relación principal en el objeto Módulo ya ordenado
         $modulo->setRelation('ras', $rasOrdenados);
         
         return view('gestion.actividades.create', compact('proyecto_id', 'modulo'));
@@ -91,11 +90,11 @@ class ActividadesController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'tarea' => 'nullable|string', // Texto del desplegable
+            'tarea' => 'nullable|string', // Texto del desplegable del alumno
             'criterios' => 'nullable|array'
         ]);
 
-        $this->setDynamicConnection($proyecto_id);
+        $this->setDynamicConnection($proyecto_id); // Establecemos las conexiones dinámicas
 
         try {
             DB::transaction(function () use ($request, $modulo_id) {
@@ -128,7 +127,7 @@ class ActividadesController extends Controller
     }
 
     /**
-     * FormMétodo que redirige al formulario de edición de la actividad
+     * Método que redirige al formulario de edición de la actividad
      */
     public function edit($proyecto_id, $modulo_id, $actividad_id)
     {
@@ -145,7 +144,7 @@ class ActividadesController extends Controller
 
         $actividad = Actividad::with('criterios')->findOrFail($actividad_id);
 
-        // Obtenemos los IDs de la tabla pivote para marcar los checkbox
+        // Obtenemos los IDs de la tabla pivote para marcar los checkbox dinámicamente en la vista
         $criteriosIds = $actividad->criterios->pluck('id_criterio')->toArray();
 
         return view('gestion.actividades.edit', compact('proyecto_id', 'modulo', 'actividad', 'criteriosIds'));
@@ -166,7 +165,7 @@ class ActividadesController extends Controller
         $this->setDynamicConnection($proyecto_id);
 
         try {
-            // Ahora sí, $actividad_id tiene el valor correcto
+            // Encuentra la actividad modificada en el proyecto
             $actividad = Actividad::findOrFail($actividad_id);
 
             $actividad->update([
@@ -175,7 +174,7 @@ class ActividadesController extends Controller
                 'tarea' => $request->tarea,
             ]);
 
-            // Sincronización con la tabla pivote
+            // Sincroniza con la tabla pivote
             if ($request->has('criterios')) {
                 $actividad->criterios()->sync($request->criterios);
             } else {
@@ -184,7 +183,7 @@ class ActividadesController extends Controller
 
             return redirect()->route('gestion.actividades.index', [
                 'proyecto_id' => $proyecto_id, 
-                'modulo_id' => $modulo_id // Podemos usar la variable directa
+                'modulo_id' => $modulo_id
             ])->with('success', 'Actividad actualizada correctamente.');
 
         } catch (\Exception $e) {
@@ -193,13 +192,13 @@ class ActividadesController extends Controller
     }
 
     /**
-     * Eliminar actividad.
+     * Eliminar una actividad
      */
-    public function destroy($proyecto_id, $modulo, $actividad_id)
+    public function destroy($proyecto_id, $actividad_id)
     {
         $this->setDynamicConnection($proyecto_id);
 
-        //Comprobamos que no haya tareas con esta actividad, si las hubiera, no podremos eliminarla sin eliminar primero las tareas
+        //Comprobamos que no haya tareas realizadas por alumnos con esta actividad, si las hubiera, no podremos eliminarla sin eliminar primero las tareas
         $actividad = Actividad::findOrFail($actividad_id);
          
          

@@ -33,9 +33,12 @@ class AlumnosModulosImport implements OnEachRow, WithHeadingRow
 
     public function headingRow(): int
     {
-        return 5; // Ajustado al EXCEL de Séneca
+        return 5; // Ajustado al EXCEL de Séneca (la información relevante comienza en la fila 5)
     }
 
+    /**
+     * Método que extrae la información de cada tupla en base a la información de Séneca y la inserta en sus tablas
+     */
     public function onRow(Row $row)
     {
         $data = $row->toArray(); 
@@ -88,7 +91,7 @@ class AlumnosModulosImport implements OnEachRow, WithHeadingRow
             );
         }
 
-        // 3. Crear/Vincular USER si era nuevo
+        // 3. Crear/Vincular usuario si era nuevo
         if ($email && !$usuarioExiste) {
             // Solo entramos aquí si el usuario NO existía previamente
             User::on('mysql')->create([
@@ -101,9 +104,8 @@ class AlumnosModulosImport implements OnEachRow, WithHeadingRow
             ]);
         }
 
-        // ---------------------------------------------------------
-        // PARTE C: Módulos y Matrícula (Igual que antes)
-        // ---------------------------------------------------------
+
+        // Módulos y Matrícula (Igual que antes)
         foreach ($data as $key => $valor) {
             if (in_array($key, ['alumnoa', 'cuenta_googlemicrosoft', '', 'unidad'])) continue;
 

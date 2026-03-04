@@ -13,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Builder; // Importar Builder de consultas (Extensor de coletillas)
 
 /**
- * Agregamos este DocBlock para que el IDE (Intelephense) reconozca los métodos personalizados que hemos añadido y no encuentra de otra forma.
+ * Agregamos este DocBlock para que el IDE Intelephense reconozca los métodos personalizados que hemos añadido y no encuentra de otra forma.
  * Si no se agregan da un falso error de identificación.
  * 
  * @property string $rol // Nombre del campo en español

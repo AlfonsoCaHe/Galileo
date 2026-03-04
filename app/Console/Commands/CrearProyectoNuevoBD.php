@@ -5,23 +5,23 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Artisan;
 use App\Models\Proyecto;
 use App\Support\ProjectSchemaManager;
 use Throwable;
 
 class CrearProyectoNuevoBD extends Command
 {
+    // Nombre del comando y mensaje, se pasa por parámetro el año del proyecto
     protected $signature = 'db:crear-proyecto {year_start?}';
-    protected $description = 'Crea una nueva base de datos dinámica para un proyecto escolar.';
+    protected $description = 'Crea una nueva base de datos dinámica para el proyecto formativo dual.';
 
     public function handle()
     {
-        // 1. CALCULAR NOMBRE DEL PROYECTO
+        // 1. Obtiene el nombre del proyecto, si no hay parámetro manual, se genera por defecto comenzando en el año actual.
         $yearStart = $this->argument('year_start') ?? now()->year;
         
         if (!is_numeric($yearStart) || strlen($yearStart) != 4) {
-            $this->error("El año debe ser un número de 4 dígitos.");
+            $this->error("ERROR: El año debe ser un número de 4 dígitos.");
             return 1;
         }
 
@@ -29,16 +29,16 @@ class CrearProyectoNuevoBD extends Command
         $dbName = "proyecto_{$yearStart}_{$yearEnd}";
         $nombreProyecto = "proyecto_{$yearStart}_{$yearEnd}";
 
-        $this->info("Iniciando creación del proyecto: '{$nombreProyecto}' (BD: {$dbName})...");
+        $this->info("INFO: Iniciando creación del proyecto: '{$nombreProyecto}' (BD: {$dbName})...");
 
-        // 2. CREAR LA BASE DE DATOS FÍSICA
-        // Usamos una conexión temporal sin seleccionar BD
+        // 2. Crear físicamente la base de datos
+        // Usamos una conexión temporal sin seleccionar BD, solo introducimos el nombre
         if (!$this->crearBaseDeDatosFisica($dbName)) {
             return 1;
         }
 
-        // 3. REGISTRAR EN LA TABLA 'PROYECTOS' (BD GALILEO)
-        // Esto asume que Galileo ya existe. Si falla aquí, es que Galileo no está instalado.
+        // 3. Registramos en la tabla 'PROYECTOS' de la BD GALILEO
+        // Esto asume que Galileo ya existe. Si falla aquí, es que Galileo no está creada.
         try {
             $proyecto = Proyecto::firstOrCreate(
                 ['conexion' => $dbName], // Buscamos por nombre de conexión única
@@ -47,7 +47,7 @@ class CrearProyectoNuevoBD extends Command
                     'finalizado' => false
                 ]
             );
-            $this->comment("📋 Proyecto registrado en Galileo (ID: {$proyecto->id_base_de_datos})");
+            $this->comment("INFO: Proyecto registrado en Galileo (ID: {$proyecto->id_base_de_datos})");
 
         } catch (Throwable $e) {
             $this->error("Error: No se pudo registrar el proyecto en Galileo.");
@@ -55,9 +55,9 @@ class CrearProyectoNuevoBD extends Command
             return 1;
         }
 
-        // 4. CREAR LAS TABLAS (SCHEMA) DENTRO DEL PROYECTO
+        // 4. Creación de las tablas del proyecto, usa el Schema ProjectSchemaManager.php
         if ($this->crearEsquemaTablas($dbName, $proyecto->id_base_de_datos)) {
-            $this->info("¡Proyecto '{$nombreProyecto}' desplegado correctamente!");
+            $this->info("INFO: Proyecto '{$nombreProyecto}' desplegado correctamente");
             return 0;
         }
 

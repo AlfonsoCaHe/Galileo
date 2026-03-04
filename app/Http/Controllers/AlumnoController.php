@@ -11,12 +11,8 @@ use App\Models\TutorLaboral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\AlumnosImport;
 
 use App\Rules\ValidarTexto;
 
@@ -34,7 +30,6 @@ class AlumnoController extends Controller
 
         // Forzamos a los modelos dinámicos a usar esta conexión
         Alumno::getConnectionResolver()->setDefaultConnection($conexion_nombre);
-        // [Añadir otros modelos locales: Ras::class, Tarea::class, etc.]
         
         return $proyecto;
     }
@@ -44,47 +39,29 @@ class AlumnoController extends Controller
     {
         // Restaurar la conexión predeterminada (Galileo)
         Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
-        // [Añadir otros modelos locales]
     }
 
     /**
-     * Listamos todos los alumnos de las bases de datos activas
+     * Listamos todos los alumnos de los proyectos activos
      */
     public function listadoVisibles()
     {
         $proyectos = Proyecto::where('finalizado', 0)->get();
-
-        $alumnos_totales = new Collection(); 
+        $alumnos = new Collection(); 
         
         foreach ($proyectos as $proyecto) {
-            $conexion = $proyecto->conexion;
-            $dbName = $proyecto->proyecto; // El campo 'proyecto' guarda el nombre de la BD
-            
             try {
-                // Configuramos la conexión dinámica
-                $baseConfig = config('database.connections.mysql');
-                $newConfig = $baseConfig;
-                $newConfig['database'] = $dbName; // Usamos el nombre de la BD del proyecto
-
-                // Sobrescribimos o añadir la conexión dinámica a la configuración
-                // Esto permite que 'Alumno::on($conexion)' funcione.
-                Config::set("database.connections.{$conexion}", $newConfig); 
+                $this->setDynamicConnection($proyecto->id_base_de_datos);
                 
-                $alumnos_proyecto = Alumno::on($conexion)->get();
-                
-                // Agregamos los resultados a la colección global
-                $alumnos_totales = $alumnos_totales->merge($alumnos_proyecto);
+                $alumnos_proyecto = Alumno::get();
+                $alumnos = $alumnos->merge($alumnos_proyecto);
 
             } catch (\Exception $e) {
                 // Si la conexión falla (BD no existe/credenciales erróneas), no detenemos la ejecución, sino que ignoramos este proyecto.
             } finally {
-                // Hay que limpiar la configuración dinámica después de usarla para no interferir con el resto de la aplicación.
-                Config::offsetUnset("database.connections.{$conexion}");
+                $this->restoreConnection();
             }
         }
-
-        // Renombramos la variable para el compact
-        $alumnos = $alumnos_totales;
 
         return view('alumno.index', compact('alumnos'));
     }
@@ -94,28 +71,13 @@ class AlumnoController extends Controller
      */
     public function listadoAlumnosProyecto(Request $request, $proyecto_id)
     {
-        $proyecto = Proyecto::where('id_base_de_datos', $proyecto_id)->get()->first();
-        
-        $conexion = $proyecto->conexion;
-        $dbName = $proyecto->proyecto; // El campo 'proyecto' guarda el nombre de la BD
-            
         try {
-            // Configuramos la conexión dinámica
-            $baseConfig = config('database.connections.mysql');
-            $newConfig = $baseConfig;
-            $newConfig['database'] = $dbName; // Usamos el nombre de la BD del proyecto
-
-            // Sobrescribimos o añadir la conexión dinámica a la configuración
-            // Esto permite que 'Alumno::on($conexion)' funcione.
-            Config::set("database.connections.{$conexion}", $newConfig); 
-                
-            $alumnos = Alumno::on($conexion)->get();
-
+            $this->setDynamicConnection($proyecto_id);
+            $alumnos = Alumno::get();
         } catch (\Exception $e) {
-            // Si la conexión falla (BD no existe/credenciales erróneas), no detenemos la ejecución, sino que ignoramos este proyecto.
+            $alumnos = new Collection();
         } finally {
-            // Hay que limpiar la configuración dinámica después de usarla para no interferir con el resto de la aplicación.
-            Config::offsetUnset("database.connections.{$conexion}");
+            $this->restoreConnection();
         }
 
         return view('alumno.index', compact('alumnos'));
@@ -129,56 +91,26 @@ class AlumnoController extends Controller
         $proyectos = Proyecto::where('finalizado', 0)->get(); 
         $alumno = null;
         $conexionEncontrada = null;
-        $conexionesConfiguradas = []; // Almacenamos las conexiones que se vamos a ir creando
 
-        try {
-            foreach ($proyectos as $proyecto) {
-                $conexion = trim($proyecto->conexion); 
-                $dbName = $proyecto->proyecto;
+        foreach ($proyectos as $proyecto) {
+            try {
+                $this->setDynamicConnection($proyecto->id_base_de_datos);
+                $conexion = Alumno::getActualConnectionName();
 
-                // 1. Configuración dinámica
-                $baseConfig = config('database.connections.mysql');
-                $newConfig = $baseConfig;
-                $newConfig['database'] = $dbName;
-                Config::set("database.connections.{$conexion}", $newConfig); 
-                $conexionesConfiguradas[] = $conexion; // Una vez establecida, la añadimos a la lista
-
-                DB::purge($conexion);
-                DB::connection($conexion);
-
-                // 2. Buscamos al alumno
-                $alumno = Alumno::on($conexion)
-                    ->where('id_alumno', $alumno_id)
+                $alumno = Alumno::where('id_alumno', $alumno_id)
                     ->with(['tutorLaboral', 'tutorDocente']) 
                     ->first();
                 
-                // 3. Si encontramos al alumno
                 if ($alumno) {
                     $conexionEncontrada = $conexion;
-                    $alumno->setConnection($conexionEncontrada); 
-                    
-                    // Cargamos sus Módulos y Tareas (usando la conexión asignada)
-                    $alumno->load(['modulos']); 
-                    $alumno->load([
-                        'tareas' => function ($query) {
-                            $query->with('criterios');
-                        }
-                    ]);
-                    
-                    break; // Rompemos el bucle. La conexión queda en Config::set().
-                }    
-            }
-
-        } catch (\Exception $e) {
-            // En caso de error inesperado, el finally manejará la limpieza
-            // throw $e; // Comentado para no detener la ejecución de la aplicación, si hay algún error descomentar
-        } finally {
-            // 4. Eliminamos las conexiones que no se usaron y por tanto no necesitaremos.
-            foreach ($conexionesConfiguradas as $conn) {
-                if ($conn !== $conexionEncontrada) {
-                    Config::offsetUnset("database.connections.{$conn}"); 
-                    DB::purge($conn);
+                    $alumno->load(['modulos', 'tareas.criterios']); 
+                    break; 
                 }
+                
+                $this->restoreConnection();
+
+            } catch (\Exception $e) {
+                $this->restoreConnection();
             }
         }
 
@@ -191,39 +123,27 @@ class AlumnoController extends Controller
     }
 
     /**
-     * Muestra el listado consolidado de todos los alumnos
-     * de todos los proyectos activos (index para el CRUD de Administrador).
+     * Muestra el listado consolidado de todos los alumnos de todos los proyectos activos (index para el CRUD de Administrador).
      */
     public function index()
     {
         // El listado de alumnos de las bases de datos activas se manejará aquí.
-        // Utilizaremos y adaptaremos la lógica de listadoVisibles().
-        
         $proyectos = Proyecto::where('finalizado', 0)->get();
-
         $alumnos_totales = new Collection(); 
         
         foreach ($proyectos as $proyecto) {
-            $conexion = $proyecto->conexion;
-            $dbName = $proyecto->proyecto; // El campo 'proyecto' guarda el nombre de la BD
-
             try {
                 // 1. Configuramos la conexión dinámica
-                $baseConfig = config('database.connections.mysql');
-                $newConfig = $baseConfig;
-                $newConfig['database'] = $dbName; 
-                
-                Config::set("database.connections.{$conexion}", $newConfig); 
+                $this->setDynamicConnection($proyecto->id_base_de_datos);
                 
                 // 2. Obtenemos los alumnos del proyecto actual, cargando sus tutores
-                //    Los tutores docente (Profesor) y laboral (TutorLaboral) están en la BD principal.
-                //    El ORM de Laravel debe manejar la conexión cruzada por defecto.
-                $alumnos_proyecto = Alumno::on($conexion)->with(['tutorDocente', 'tutorLaboral'])->get();
+                // Los tutores docente (Profesor) y laboral (TutorLaboral) están en la BD principal, por tantoLaravel debe manejar la conexión dinámica y estática a la vez
+                $alumnos_proyecto = Alumno::with(['tutorDocente', 'tutorLaboral'])->get();
 
                 // 3. Añadimos el nombre del proyecto a cada alumno para mostrarlo en la tabla.
-                $alumnos_proyecto = $alumnos_proyecto->map(function ($alumno) use ($dbName, $proyecto) {
+                $alumnos_proyecto = $alumnos_proyecto->map(function ($alumno) use ($proyecto) {
                     // Añadimos el nombre de la BD/Proyecto para la vista
-                    $alumno->proyecto_nombre = $dbName; 
+                    $alumno->proyecto_nombre = $proyecto->proyecto; 
                     // Necesitamos el ID del proyecto de GALILEO para las rutas
                     $alumno->proyecto_galileo_id = $proyecto->id_base_de_datos; 
                     return $alumno;
@@ -233,12 +153,10 @@ class AlumnoController extends Controller
                 $alumnos_totales = $alumnos_totales->merge($alumnos_proyecto);
 
             } catch (\Exception $e) {
-                // Loguear error, pero seguir con el siguiente proyecto
-                Log::error("Error al obtener alumnos del proyecto {$dbName}: " . $e->getMessage());
+                // Si falla logueamos el error y seguimos con el siguiente proyecto
+                Log::error("Error al obtener alumnos del proyecto {$proyecto->proyecto}: " . $e->getMessage());
             } finally {
-                // Limpiamos la conexión dinámica temporal
-                DB::purge($conexion);
-                Config::offsetUnset("database.connections.{$conexion}");
+                $this->restoreConnection();
             }
         }
         // Retornamos a la vista
@@ -271,11 +189,11 @@ class AlumnoController extends Controller
             'password' => 'required|min:8',
         ]);
 
-        // Usamos el id del proyecto para configurar la conexión
+        // Usamos el id del proyecto para configurar la conexión dinámica
         $proyecto = $this->setDynamicConnection($proyecto_id_galileo);
 
         try {
-            DB::connection((new Alumno())->getConnectionName())->transaction(function () use ($validated, $proyecto) {
+            DB::connection(Alumno::getActualConnectionName())->transaction(function () use ($validated, $proyecto) {
                 
                 // 1. Creamos el registro de Alumno en la BD del Proyecto
                 $alumno = Alumno::create([
@@ -284,7 +202,7 @@ class AlumnoController extends Controller
                     'tutor_docente_id' => $validated['profesores_id'] ?? null, 
                 ]);
 
-                // 2. Crear el registro de Usuario en la BD Principal (Galileo)
+                // 2. Creamos el registro de Usuario en la BD Principal (Galileo)
                 $user = User::createRolableUser($alumno, [
                     'name' => $validated['nombre'],
                     'email' => $validated['email'],
@@ -316,7 +234,7 @@ class AlumnoController extends Controller
 
         $user = User::where('rolable_id',$alumno_id)->first();
 
-        $alumno->email = $user->email ?? null;
+        $alumno->email = $user->email ?? null;// Si el usuario no tiene cuenta activa, no aparecerá un correo electrónico
 
         return view('gestion.alumnos.edit', compact('proyecto', 'alumno'));
     }
@@ -334,7 +252,7 @@ class AlumnoController extends Controller
         // 2. Validamos los campos del formulario
         $validated = $request->validate([
             'nombre' => ['required', new ValidarTexto],
-            'email' => 'required|email|unique:users,email,' . $user->id,// Evitamos el usuario actual, por si no se modifica
+            'email' => 'required|email|unique:users,email,' . $user->id,// Evitamos que revise el usuario actual, por si no se modifica
             'password' => 'nullable|min:8|confirmed',
         ]);
 
@@ -376,13 +294,12 @@ class AlumnoController extends Controller
     }
 
     /**
-     * Método para eliminar un módulo del proyecto. No se puede eliminar si tiene RAs o Tareas asociadas
-     * Con los alumnos solo rompe el enlace
+     * Método para eliminar un módulo del proyecto. No se puede eliminar si tiene RAs o Tareas asociadas. Con los alumnos solo rompe el enlace
      */
     public function destroy($proyecto_id, $alumno_id)
     {
         try {
-            // Buscamos el user (BD Galileo)
+            // Buscamos el user en la BD Galileo
             // Aseguramos la conexión principal para encontrar el User antes de cambiarla.
             $this->restoreConnection(); 
             $user = User::where('rolable_id', $alumno_id)->firstOrFail();
@@ -398,10 +315,9 @@ class AlumnoController extends Controller
 
             // 4. Restauramos la conexión y eliminamos user una vez hemos eliminado el alumno (BD Galileo)
             $this->restoreConnection();
-            $user->delete();
+            $user->delete();// Recordamos que en usuarios es soft delete
 
-            return redirect()->route('gestion.alumnos.index')
-                            ->with('success', 'Alumno ' . $alumno->nombre . ' eliminado con éxito.');
+            return redirect()->route('gestion.alumnos.index')->with('success', 'Alumno ' . $alumno->nombre . ' eliminado con éxito.');
 
         } catch (\Exception $e) {
             // Nos aseguramos de restaurar la conexión a Galileo en caso de fallo.
@@ -417,30 +333,20 @@ class AlumnoController extends Controller
     public function show($proyecto_id, $alumno_id)
     {
         // 1. Conexión Dinámica
-        $proyecto = Proyecto::findOrFail($proyecto_id);
-        $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
-        config(['database.connections.' . $nombreConexion => array_merge(
-            config('database.connections.mysql'),
-            ['database' => $proyecto->conexion]
-        )]);
+        $proyecto = $this->setDynamicConnection($proyecto_id);
         
-        // 2. Cargar Alumno con sus relaciones actuales
-        // Necesitamos el tutor laboral y docente actuales
-        $alumno = Alumno::on($nombreConexion)
-                    ->with(['modulos', 'tutorDocente', 'tutorLaboral.empresa', 'user', 'modulosBorrados'])
-                    ->findOrFail($alumno_id);
+        // 2. Cargamos el Alumno con sus relaciones actuales
+        $alumno = Alumno::with(['modulos', 'tutorDocente', 'tutorLaboral.empresa', 'user', 'modulosBorrados'])->findOrFail($alumno_id);
 
-        // 3. Cargar listas para los selectores
-        // A. Profesores (Docentes) - Estos están en la BD Principal (Galileo)
+        // 3. Cargamos listas para los selectores (BD Principal)
+        $this->restoreConnection();
         $profesores = Profesor::where('activo', true)->orderBy('nombre')->get();
-
-        // B. Empresas (Para el selector en cascada) - BD Principal
         $empresas = Empresa::orderBy('nombre')->get();
 
-        // C. Módulos Disponibles (Para el Modal de Matriculación)
-        // Son todos los módulos del proyecto MENOS los que ya tiene el alumno
+        // C. Módulos Disponibles (Para el modal de matriculación, solo módulos activos en el proyecto del alumno)
+        $this->setDynamicConnection($proyecto_id);
         $idsActuales = $alumno->modulos->pluck('id_modulo')->toArray();
-        $modulosDisponibles = Modulo::on($nombreConexion)
+        $modulosDisponibles = Modulo::where('proyecto_id', $proyecto_id)
                                 ->whereNotIn('id_modulo', $idsActuales)
                                 ->get();
 
@@ -452,7 +358,7 @@ class AlumnoController extends Controller
      */
     public function updateTutorDocente(Request $request, $proyecto_id, $alumno_id)
     {
-        $this->setDynamicConnection($proyecto_id); // Asumo que tienes este helper o usas la lógica de arriba
+        $this->setDynamicConnection($proyecto_id); 
         $alumno = Alumno::findOrFail($alumno_id);
         $alumno->tutor_docente_id = $request->tutor_id;
         $alumno->save();
@@ -472,11 +378,11 @@ class AlumnoController extends Controller
     }
 
     /**
-     * AJAX: Obtiene los tutores de una empresa (Para la cascada)
+     * AJAX: Obtiene los tutores de una empresa (para el desplegable)
      */
     public function getTutoresPorEmpresa($proyecto_id, $empresa_id)
     {
-        // Los tutores están en la BD Principal, no necesitamos conexión dinámica aquí
+        // Los tutores están en la BD Galileo, no necesitamos conexión dinámica aquí, solo la conexión por defecto
         $tutores = TutorLaboral::where('empresa_id', $empresa_id)->get(['id_tutor_laboral', 'nombre']);
         return response()->json($tutores);
     }
@@ -507,7 +413,7 @@ class AlumnoController extends Controller
     }
 
     /**
-     * Formulario: Matricula al alumno en nuevos módulos
+     * Modal de matriculación del alumno en nuevos módulos
      */
     public function matricular(Request $request, $proyecto_id, $alumno_id)
     {
@@ -523,7 +429,7 @@ class AlumnoController extends Controller
     }
 
     /**
-     * Función para quitar a un alumno de un módulo (Se realiza un softdelete, por lo que se puede deshacer el proceso)
+     * Función para quitar a un alumno de un módulo (se realiza un softdelete, por lo que se puede deshacer el proceso)
      */
     public function desmatricular($proyecto_id, $alumno_id, $modulo_id)
     {
@@ -539,10 +445,9 @@ class AlumnoController extends Controller
                     ->delete();
 
                 // 2. Soft Detach del MÓDULO
-                // En lugar de detach(), actualizamos la fila pivote
+                // En lugar de usar detach() directamente, solo actualizamos la tupla de la tabla pivote
+                // updateExistingPivot marca como borrado con soft delete
                 $alumno = Alumno::findOrFail($alumno_id);
-                
-                // Opción A: updateExistingPivot (Marca como borrado)
                 $alumno->modulos()->updateExistingPivot($modulo_id, [
                     'deleted_at' => now()
                 ]);
@@ -561,32 +466,28 @@ class AlumnoController extends Controller
      */
     public function restaurarMatricula($proyecto_id, $alumno_id, $modulo_id)
     {
-        // 1. Configuramos y OBTENEMOS el nombre de la conexión dinámica
-        $proyecto = Proyecto::findOrFail($proyecto_id);
-        $nombreConexion = 'proyecto_temp_' . $proyecto->id_base_de_datos;
-        
-        // (Tu lógica actual de setDynamicConnection replicada o llamada para asegurar config)
+        // 1. Configuramos y obtenemos el nombre de la conexión dinámica
         $this->setDynamicConnection($proyecto_id);
+        $nombreConexion = Alumno::getActualConnectionName();
 
         try {
-            // CORRECCIÓN CLAVE: La transacción debe correr sobre la conexión del proyecto
+            // Iniciamos una transacción por seguridad
             DB::connection($nombreConexion)->transaction(function () use ($nombreConexion, $alumno_id, $modulo_id) {
                 
-                // 1. Restaurar el MÓDULO (Tabla Pivote)
-                // Usamos DB::table directo para evitar que Eloquent filtre los borrados y no los encuentre
+                // 1. Restauramos el módulo de la tabla pivote
+                // Usamos DB::table directo para evitar que eloquent filtre los borrados (soft deletes) y no los encuentre
                 DB::connection($nombreConexion)->table('alumno_modulo')
                        ->where('alumno_id', $alumno_id)
                        ->where('modulo_id', $modulo_id)
-                       ->update(['deleted_at' => null]); // Ponemos NULL para "revivirlo"
+                       ->update(['deleted_at' => null]); // Ponemos NULL para restaurar
 
-                // 2. Restaurar TAREAS asociadas
+                // 2. Restaurar las tareas asociadas
                 // Aquí sí podemos usar el Modelo porque withTrashed() funciona bien en Modelos normales
                 // Aseguramos que el modelo use la conexión correcta
-                \App\Models\Tarea::on($nombreConexion)
-                    ->withTrashed() // Importante: incluir las borradas
+                \App\Models\Tarea::withTrashed() // Importante: incluir las borradas
                     ->where('alumno_id', $alumno_id)
                     ->where('modulo_id', $modulo_id)
-                    ->restore(); // Método mágico de SoftDeletes
+                    ->restore(); // Método propio de SoftDeletes
 
             });
 
@@ -594,6 +495,8 @@ class AlumnoController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()->withErrors('Error al restaurar: ' . $e->getMessage());
+        } finally {
+            $this->restoreConnection();
         }
     }
 }

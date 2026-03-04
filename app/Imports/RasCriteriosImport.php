@@ -41,11 +41,11 @@ class RasCriteriosImport implements ToCollection
             // Si la fila está vacía, la saltamos
             if ($colA === '' && $colB === '') continue;
 
-            // ---------------------------------------------------------
-            // DETECTAR RA (Patrón: "RA" seguido de números)
-            // ---------------------------------------------------------
-            // Al encontrar un RA, ignoramos las cabeceras del Excel (filas 1-10)
-            // porque no cumplen este patrón.
+            /**
+             *  Para detectar un RA, el texto debe ser "RA" seguido de números
+             *
+             *  Al encontrar un RA, ignoramos las cabeceras del Excel (filas 1-10) porque no cumplen este patrón.
+             */
             if (preg_match('/^RA\s*(\d+)[\.:\s]+(.*)$/i', $colA, $matches)) {
                 
                 $codigo = 'RA' . $matches[1]; // Ej: RA1
@@ -67,10 +67,10 @@ class RasCriteriosImport implements ToCollection
                 continue; // Pasamos a la siguiente fila
             }
 
-            // ---------------------------------------------------------
-            // DETECTAR CRITERIO (Patrón: letra + paréntesis "a)")
-            // ---------------------------------------------------------
-            // Buscamos en Columna B (prioridad) o Columna A
+            /**
+             * Para detectar un Criterio, el patrón es letra + paréntesis "a)"
+             * Lo buscamos en la columna B o A si no está en B
+             */
             $textoCriterio = $colB ?: $colA; 
 
             // Solo insertamos si ya hemos encontrado un RA ($currentRaId no es null)

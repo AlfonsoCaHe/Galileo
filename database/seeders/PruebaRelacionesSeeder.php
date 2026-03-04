@@ -17,6 +17,10 @@ use App\Models\Criterio;
 use App\Models\Alumno;
 use App\Models\Tarea;
 
+/**
+ * Este seeder se diseñó para reiniciar y poblar la base de datos
+ * Actualmente no funciona
+ */
 class PruebaRelacionesSeeder extends Seeder
 {
     public function run(): void

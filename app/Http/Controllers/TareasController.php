@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Auth;
 
 class TareasController extends Controller
 {
+    /**
+     * Establece la conexión dinámica con la base de datos del proyecto.
+     */
     private function setDynamicConnection($proyecto_id)
     {
         $proyecto = Proyecto::findOrFail($proyecto_id);
@@ -32,6 +35,18 @@ class TareasController extends Controller
     }
 
     /**
+     * Método auxiliar para restaurar la conexión
+     */
+    private function restoreConnection()
+    {
+        // Restaurar la conexión predeterminada (Galileo)
+        Tarea::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Modulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Ras::getConnectionResolver()->setDefaultConnection(config('database.default'));
+    }
+
+    /**
      * Método para redirigir a la vista de tareas de un alumno
      */
     public function tareasIndex($proyecto_id, $alumno_id){
@@ -41,8 +56,8 @@ class TareasController extends Controller
 
         $this->setDynamicConnection($proyecto_id);
 
-        $alumno = Alumno::where('id_alumno', $alumno_id)
-            ->with('tareas');
+        // Adjuntamos las tareas del alumno
+        $alumno = Alumno::where('id_alumno', $alumno_id)->with('tareas');
 
         return view(route('profesores.alumnos.tareas', compact('proyecto', 'alumno')));
     }
@@ -62,27 +77,24 @@ class TareasController extends Controller
         // 3. Buscamos la tarea
         $tarea = Tarea::findOrFail($tarea_id);
 
-        // 4. VALIDACIONES DE SEGURIDAD
-
+        // 4. Validaciones de seguridad
         // 4.1. ¿La tarea pertenece al alumno que intenta editarla?
         if ($tarea->alumno_id !== $alumno_id_logueado) {
             return redirect()->back()->withErrors('ERROR: No tienes permiso para modificar esta tarea.');
         }
 
-        // 4.2.) ¿La tarea está bloqueada por el profesor?
+        // 4.2. ¿La tarea está bloqueada por el profesor?
         if ($tarea->bloqueado) {
             return redirect()->back()->withErrors('ERROR: Esta tarea está bloqueada y ya no se puede modificar.');
         }
 
-        // 5. SI CORRECTO VALIDAMOS LOS DATOS ---
+        // 5. Si es correcto validamos y actualizamos ---
         
         $request->validate([
             'notas_alumno' => 'required|string|max:250',
             'fecha' => 'required|date',
             'duracion' => 'required|string|max:5',
         ]);
-
-        // --- ACTUALIZACIÓN ---
 
         try {
             $tarea->update([
@@ -91,7 +103,7 @@ class TareasController extends Controller
                 'duracion' => $request->duracion
             ]);
 
-            // Redirigimos atrás (back) con mensaje de éxito
+            // Redirigimos atrás con mensaje de éxito
             return redirect()->back()->with('success', 'Tarea actualizada correctamente.');
 
         } catch (\Exception $e) {
@@ -101,10 +113,9 @@ class TareasController extends Controller
         }
     }
 
-/* |--------------------------------------------------------------------------
-    | Métodos AJAX
-    |-------------------------------------------------------------------------- */
-
+    /**
+     * AJAX: Método para actulizar la fecha en caliente
+     */
     public function updateFecha(Request $request, $proyecto_id, $tarea_id)
     {
         $request->validate([
@@ -128,7 +139,7 @@ class TareasController extends Controller
     }
 
     /**
-     * Actualiza solo la DURACIÓN vía AJAX.
+     * AJAX: Actualiza la duración en caliente
      */
     public function updateDuracion(Request $request, $proyecto_id, $tarea_id)
     {
@@ -151,9 +162,9 @@ class TareasController extends Controller
     }
 
     /**
-     * Bloquea o Desbloquea todas las tareas hermanas a la vez (AJAX).
+     * AJAX: Bloquea o Desbloquea todas las tareas hermanas a la vez
      * 
-     * DEBE SER REVISADO SU FUNCIONAMIENTO
+     * OPCIÓN ELIMINADA DEL FORMULARIO
      */
     public function toggleBloqueoMasivo(Request $request, $proyecto_id, $tarea_id)
     {
@@ -164,9 +175,9 @@ class TareasController extends Controller
         try {
             $tareaOrigen = Tarea::findOrFail($tarea_id);
 
-            // ACTUALIZACIÓN: Usamos actividad_id para agrupar, es más seguro que el nombre string
+            // Usamos actividad_id para agrupar, es más seguro que el nombre string
             Tarea::where('modulo_id', $tareaOrigen->modulo_id)
-                 ->where('actividad_id', $tareaOrigen->actividad_id) // Mejor que 'nombre'
+                 ->where('actividad_id', $tareaOrigen->actividad_id)
                  ->update(['bloqueado' => $request->bloqueado]);
 
             return response()->json(['success' => true, 'message' => 'Estado actualizado para todos.']);
@@ -177,7 +188,7 @@ class TareasController extends Controller
     }
 
     /**
-     * Actualiza la calificación (APTO/NO APTO) vía AJAX.
+     * AJAX: Actualiza la calificación (APTO/NO APTO) en caliente
      */
     public function updateApto(Request $request, $proyecto_id, $tarea_id)
     {
@@ -205,29 +216,30 @@ class TareasController extends Controller
     }
 
     /**
-     * Actualiza la calificación y modifica el campo APTO
+     * AJAX: Actualiza la calificación y modifica el campo APTO en caliente
+     * Es para el selector de calificación del tutor
      */
     public function updateCalificacion(Request $request, $proyecto_id, $tarea_id)
     {
-        //Buscamos el proyecto para asegurarnos que es válido
+        // Buscamos el proyecto para asegurarnos que es válido
         $proyecto = Proyecto::findOrFail($proyecto_id);
-        //Establecemos la conexión
+        // Establecemos la conexión
         $this->setDynamicConnection($proyecto_id);
-        // 1. Buscamos la tarea
+        // Buscamos la tarea
         $tarea = Tarea::findOrFail($tarea_id);
 
-        // 2. Validamos que llegue un número de 0 a 10
+        // Validamos que llegue un número de 0 a 10
         $request->validate([
             'calificacion' => 'required|integer|min:0|max:10'
         ]);
 
-        // 3. Obtenemos el valor
+        // Obtenemos el valor
         $nota = $request->input('calificacion');
 
-        // 4. Si la nota >= 5 es APTO (1), si no, NO APTO (0)
+        // Si la nota >= 5 es APTO (1), si no, NO APTO (0)
         $esApto = $nota >= 5 ? 1 : 0;
 
-        // 5. Actualizamos AMBOS campos a la vez
+        // Actualizamos AMBOS campos a la vez
         $tarea->update([
             'calificacion' => $nota,
             'apto' => $esApto
@@ -241,7 +253,7 @@ class TareasController extends Controller
     }
 
     /**
-     * Actualiza el estado de BLOQUEO vía AJAX.
+     * AJAX: Actualiza el estado de bloque en caliente
      */
     public function updateBloqueo(Request $request, $proyecto_id, $tarea_id)
     {
@@ -267,11 +279,12 @@ class TareasController extends Controller
     }
 
     /**
-     * Método AJAX genérico para actualizar campos de texto (como notas_alumno).
+     * AJAX: Método AJAX genérico para actualizar campos de texto (como las notas_alumno).
+     * Finalmente solo se utiliza para las notas de los alumnos
      */
     public function updateNotas(Request $request, $proyecto_id, $tarea_id)
     {
-        // 1. Validación flexible
+        // Validación de texto
         $request->validate([
             'notas_alumno' => 'nullable|string|max:255',
         ]);
@@ -281,7 +294,7 @@ class TareasController extends Controller
         try {
             $tarea = Tarea::findOrFail($tarea_id);
 
-            // 2. Detectamos qué campo viene en el request y lo actualizamos
+            // Detectamos qué campo viene en el request y lo actualizamos
             if ($request->has('notas_alumno')) {
                 $tarea->notas_alumno = $request->notas_alumno;
             }

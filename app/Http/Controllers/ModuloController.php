@@ -17,74 +17,65 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ModuloController extends Controller
 {
-    // Método auxiliar para configurar la conexión dinámica
+    // Método auxiliar para configurar la conexión dinámica de forma masiva
     private function setDynamicConnection($proyecto_id)
     {
         $proyecto = Proyecto::findOrFail($proyecto_id);
         $conexion_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos;
         $config_base = config('database.connections.' . config('database.default'));
-        
+
         $config_base['database'] = $proyecto->conexion;
         config(["database.connections.{$conexion_nombre}" => $config_base]);
 
-        // Forzamos a TODOS los modelos dinámicos a usar esta conexión
         Modulo::getConnectionResolver()->setDefaultConnection($conexion_nombre);
         Alumno::getConnectionResolver()->setDefaultConnection($conexion_nombre);
-        Ras::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-        Tarea::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-        Criterio::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-        ProfesorModulo::getConnectionResolver()->setDefaultConnection($conexion_nombre); 
-        // ----------------------------------------------------------------------
-        
+        Ras::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+        Tarea::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+        Criterio::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+        ProfesorModulo::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+
         return $proyecto;
     }
-    
-    // Método auxiliar para restaurar la conexión
+
+    // Método auxiliar para restaurar la conexión masivamente
     private function restoreConnection()
     {
-        // Restaurar la conexión predeterminada (Galileo) para todos los modelos dinámicos
-        $default = config('database.default');
-        
-        Modulo::getConnectionResolver()->setDefaultConnection($default);
-        Alumno::getConnectionResolver()->setDefaultConnection($default);
-        Ras::getConnectionResolver()->setDefaultConnection($default); 
-        Tarea::getConnectionResolver()->setDefaultConnection($default); 
-        Criterio::getConnectionResolver()->setDefaultConnection($default); 
-        ProfesorModulo::getConnectionResolver()->setDefaultConnection($default); 
-        // ----------------------------------------------------------------------
+        Modulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Ras::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Tarea::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Criterio::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        ProfesorModulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
     }
 
     /**
-     * Método que redirige al listado de módulos de un proyecto
+     * Listado de módulos de un proyecto.
      */
     public function index($proyecto_id)
     {
         $proyecto = $this->setDynamicConnection($proyecto_id);
         $modulos = Modulo::all();
+
         $this->restoreConnection();
         return view('gestion.modulos.index', compact('modulos', 'proyecto'));
     }
 
     /**
-     * Método que redirige a la vista que gestiona la creación de un módulo
+     * Muestra formulario de creación.
      */
     public function create($proyecto_id)
     {
         $proyecto = $this->setDynamicConnection($proyecto_id);
-        
-        // Profesores de la BD principal
-        $profesores = Profesor::all(); 
-        
-        // Alumnos del proyecto actual
-        $alumnos = Alumno::all(); 
-        
-        $this->restoreConnection();
 
+        $profesores = Profesor::all(); // BD Principal
+        $alumnos = Alumno::all(); // BD Proyecto
+
+        $this->restoreConnection();
         return view('gestion.modulos.create', compact('proyecto', 'profesores', 'alumnos'));
     }
 
     /**
-     * Método que inserta el módulo en la base de datos
+     * Inserta el módulo en la base de datos del proyecto.
      */
     public function store(Request $request, $proyecto_id)
     {
@@ -93,45 +84,46 @@ class ModuloController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|max:70',
             'unidad' => 'required',
-            'profesores' => 'required|array', 
-            'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor', // Validamos que los UUIDs existan en la tabla profesores de la conexión 'mysql'
+            'profesores' => 'required|array',
+            'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor',
             'alumnos' => 'nullable|array',
-            'alumnos.*' => 'uuid|exists:alumnos,id_alumno', // Validamos que los UUIDs existan en la tabla alumnos de la conexión dinámica
+            'alumnos.*' => 'uuid|exists:alumnos,id_alumno',
         ]);
 
         try {
-            DB::connection((new Modulo())->getConnectionName())->transaction(function () use ($validated, $proyecto) {
-                
-                // 1. Crear el Módulo (sin profesor_id)
+            // Usamos el nombre de conexión ya configurado en el modelo Modulo
+            DB::connection(Modulo::getActualConnectionName())->transaction(function () use ($validated, $proyecto) {
+
                 $modulo = Modulo::create([
                     'nombre' => $validated['nombre'],
                     'unidad' => $validated['unidad'],
-                    'proyecto_id' => $proyecto->id_base_de_datos, 
+                    'proyecto_id' => $proyecto->id_base_de_datos,
                 ]);
-                // 2. Asociar Profesores (Many-to-Many)
+
                 $modulo->profesores()->attach($validated['profesores']);
-                
-                // 3. Asociar Alumnos (Many-to-Many)
-                if (isset($validated['alumnos'])) {
+
+                if (!empty($validated['alumnos'])) {
                     $modulo->alumnos()->attach($validated['alumnos']);
                 }
             });
 
-            return redirect()->route('gestion.modulos.index', ['proyecto_id' => $proyecto_id])
-                            ->with('success', 'Módulo creado con éxito.');
-
+            return redirect()->route('gestion.modulos.index', $proyecto_id)
+                ->with('success', 'Módulo creado con éxito.');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->withErrors('Error al crear el módulo: ' . $e->getMessage());
+        } finally {
+            $this->restoreConnection();
         }
     }
 
     /**
-     * Método que redirige a la vista de edición del módulo del proyecto en cuestión
+     * Muestra formulario de edición.
      */
     public function edit($proyecto_id, $modulo_id)
     {
         $proyecto = $this->setDynamicConnection($proyecto_id);
         
+        // Extraemos los datos del módulo a mostrar
         $modulo = Modulo::findOrFail($modulo_id);
         $profesores = Profesor::all();
         $alumnos = Alumno::all();
@@ -144,107 +136,90 @@ class ModuloController extends Controller
 
         return view('gestion.modulos.edit', compact('proyecto', 'modulo', 'profesores', 'alumnos', 'alumnos_asignados', 'profesores_asignados'));
     }
-    
+
     /**
-     * Método para almacenar los cambios en el módulo
+     * Actualiza los datos y relaciones del módulo.
      */
     public function update(Request $request, $proyecto_id, $modulo_id)
     {
-        $proyecto = $this->setDynamicConnection($proyecto_id);
+        $this->setDynamicConnection($proyecto_id);
         $modulo = Modulo::findOrFail($modulo_id);
-        
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:70',
             'unidad' => 'required',
             'profesores' => 'required|array',
-            'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor', // Validamos que los UUIDs existan en la tabla profesores de la conexión 'mysql'
+            'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor',
             'alumnos' => 'nullable|array',
-            'alumnos.*' => 'uuid|exists:alumnos,id_alumno', // Validamos que los UUIDs existan en la tabla alumnos de la conexión dinámica
+            'alumnos.*' => 'uuid|exists:alumnos,id_alumno',
         ]);
 
         try {
-            DB::connection($modulo->getConnectionName())->transaction(function () use ($validated, $modulo) {
-                
-                // 1. Actualizar datos del Módulo (sin profesor_id)
+            DB::connection(Modulo::getActualConnectionName())->transaction(function () use ($validated, $modulo) {
                 $modulo->update([
                     'nombre' => $validated['nombre'],
                     'unidad' => $validated['unidad'],
                 ]);
 
-                // 2. Sincronizar Profesores (añadir/eliminar relaciones)
                 $modulo->profesores()->sync($validated['profesores']);
-                
-                // 3. Sincronizar Alumnos
                 $modulo->alumnos()->sync($validated['alumnos'] ?? []);
             });
 
-            return redirect()->route('gestion.modulos.index', ['proyecto_id' => $proyecto_id])
-                            ->with('success', 'Módulo actualizado con éxito.');
-
+            return redirect()->route('gestion.modulos.index', $proyecto_id)
+                ->with('success', 'Módulo actualizado con éxito.');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->withErrors('Error al actualizar el módulo: ' . $e->getMessage());
+        } finally {
+            $this->restoreConnection();
         }
     }
 
     /**
-     * Método para eliminar un módulo del proyecto. No se puede eliminar si tiene RAs o Tareas asociadas
-     * Con los alumnos solo rompe el enlace
+     * Elimina el módulo validando integridad.
      */
     public function destroy($proyecto_id, $modulo_id)
     {
-        $proyecto = $this->setDynamicConnection($proyecto_id);
+        $this->setDynamicConnection($proyecto_id);
         $modulo = Modulo::findOrFail($modulo_id);
-        
-        // Comprobamos la integridad referencial de los datos
+
         // 1. Verificar si tiene RAS asociados
-        if ($modulo->ras()->count() > 0) {
+        if ($modulo->ras()->exists()) {
             $this->restoreConnection();
-            return redirect()->back()->withErrors('No se puede eliminar el módulo **' . $modulo->nombre . '**. Tiene Resultados de Aprendizaje (RAS) asociados. Elimínalos primero.');
+            return redirect()->back()->withErrors("No se puede eliminar el módulo **{$modulo->nombre}**. Tiene RAS asociados.");
         }
 
-        // 2. Verificar si hay tareas asociadas a este módulo
-        if (\App\Models\Tarea::on(Modulo::getConnectionName())->where('modulo_id', $modulo->id_modulo)->count() > 0) {
-             $this->restoreConnection();
-             return redirect()->back()->withErrors('No se puede eliminar el módulo **' . $modulo->nombre . '**. Tiene tareas asociadas. Elimínalas o desvinculalas primero.');
+        // 2. Verificar si hay tareas asociadas
+        if (Tarea::where('modulo_id', $modulo->id_modulo)->exists()) {
+            $this->restoreConnection();
+            return redirect()->back()->withErrors("No se puede eliminar el módulo **{$modulo->nombre}**. Tiene tareas asociadas.");
         }
 
         try {
-            DB::connection(Modulo::getConnectionName())->transaction(function () use ($modulo) {
-                // Desvinculamos los alumnos (borra los registros de la tabla pivote)
-                $modulo->alumnos()->detach(); 
-                
-                // Eliminamos el módulo
+            DB::connection(Modulo::getActualConnectionName())->transaction(function () use ($modulo) {
+                $modulo->profesores()->detach(); // Importante desvincular también profesores
+                $modulo->alumnos()->detach();
                 $modulo->delete();
             });
-
         } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error al eliminar: ' . $e->getMessage());
+        } finally {
             $this->restoreConnection();
-            return redirect()->back()->withErrors('Error al eliminar el módulo: ' . $e->getMessage());
         }
 
-        $this->restoreConnection();
-        return redirect()->route('gestion.modulos.index', $proyecto_id)
-                         ->with('success', 'Módulo eliminado con éxito.');
+        return redirect()->route('gestion.modulos.index', $proyecto_id)->with('success', 'Módulo eliminado.');
     }
 
     /**
-     * Método para realizar la importación de RAs y criterios a un módulo
+     * Importación de RAs y criterios desde csv, xlsx y xls
      */
     public function importarRas(Request $request, $proyecto_id, $modulo_id)
     {
-        $request->validate([
-            'archivo_ras' => 'required|mimes:csv,xlsx,xls'
-        ]);
+        $request->validate(['archivo_ras' => 'required|mimes:csv,xlsx,xls']);
 
         try {
-            // 1. Buscamos el proyecto (necesario para saber la BD)
             $proyecto = Proyecto::findOrFail($proyecto_id);
-
-            // 2. Lanzamos el importador pasando Proyecto y ID del Módulo
             Excel::import(new RasCriteriosImport($proyecto, $modulo_id), $request->file('archivo_ras'));
-
-            return back()->with('success', 'RAs y Criterios importados correctamente al módulo.');
-
+            return back()->with('success', 'RAs e importación completada.');
         } catch (\Exception $e) {
             return back()->with('error', 'Error al importar: ' . $e->getMessage());
         }

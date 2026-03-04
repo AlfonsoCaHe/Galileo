@@ -32,13 +32,24 @@ class RaController extends Controller
     }
 
     /**
-     * Muestra el listado de RAs y Criterios en formato acordeón.
+     * Método auxiliar para restaurar la conexión
+     */
+    private function restoreConnection()
+    {
+        // Restaurar la conexión predeterminada (Galileo)
+        Modulo::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Ras::getConnectionResolver()->setDefaultConnection(config('database.default'));
+    }
+
+    /**
+     * Método para mostrar el listado de RAs y Criterios en formato acordeón.
      */
     public function index($proyecto_id, $modulo_id)
     {
 
         $this->setDynamicConnection($proyecto_id);
 
+        // Adjuntamos los RAs y criterios al módulo
         $modulo = Modulo::with('ras.criterios')->findOrFail($modulo_id);
 
         // Ordenamos los RAs
@@ -73,9 +84,9 @@ class RaController extends Controller
 
         try {
             Ras::create([
-                'codigo' => $validated['codigo'],        // Guardamos RA1
+                'codigo' => $validated['codigo'], // Guardamos RA1
                 'descripcion' => $validated['descripcion'], // Guardamos la definición
-                'modulo_id' => $modulo_id
+                'modulo_id' => $modulo_id // Guardamos el módulo al que está asociado
             ]);
 
             return redirect()->back()->with('success', 'Resultado de Aprendizaje creado correctamente.');

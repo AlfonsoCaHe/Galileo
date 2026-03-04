@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class BorrarProyecto extends Command
 {
+    // Nombre del comando y mensaje
     protected $signature = 'db:eliminar-proyecto {nombre_proyecto}';
-
     protected $description = 'Elimina físicamente la base de datos de un proyecto.';
 
     public function handle()
@@ -17,7 +17,7 @@ class BorrarProyecto extends Command
         $nombreBD = $this->argument('nombre_proyecto');
 
         try {
-            // 1. Ejecutar DROP DATABASE
+            // 1. Ejecuta DROP DATABASE
             // Usamos la conexión por defecto (Galileo) para ejecutar la sentencia DDL.
             DB::connection(config('database.default'))->statement("DROP DATABASE IF EXISTS `{$nombreBD}`");
 

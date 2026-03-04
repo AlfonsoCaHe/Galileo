@@ -9,7 +9,7 @@ class ProjectSchemaManager
 {
     /**
      * Define y crea todas las tablas necesarias para la base de datos de un proyecto.
-     * * @param string $connectionName El nombre de la conexión dinámica (ej. 'proyecto_2025_2027').
+     * @param string $connectionName El nombre de la conexión dinámica (ej. 'proyecto_2025_2027').
      * @param string $proyectoId El UUID del proyecto de la BD principal (Galileo).
      * @return void
      */
@@ -129,7 +129,7 @@ class ProjectSchemaManager
     }
     
     /**
-     * Método auxiliar para el Seeder de pruebas (opcional)
+     * Método auxiliar para el Seeder de pruebas (inactivo si no hay pruebas)
      */
     public static function dropAllTables(array $tables, string $connectionName): void
     {

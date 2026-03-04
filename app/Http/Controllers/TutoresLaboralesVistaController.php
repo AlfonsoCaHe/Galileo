@@ -39,13 +39,25 @@ class TutoresLaboralesVistaController extends Controller
     }
 
     /**
+     * Método auxiliar para restaurar la conexión
+     */
+    private function restoreConnection()
+    {
+        // Restaurar la conexión predeterminada (Galileo)
+        Tarea::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Actividad::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+    }
+
+    /**
      * Método para redirigir a la vista de alumnos de los que es tutor laboral
      */
     public function tutorizados()
     {
+        // Obtenemos el tutor laboral logueado
         $tutor_laboral = Auth::user()->rolable->id_tutor_laboral;
         
-        // Obtenemos proyectos activos
+        // Obtenemos todos los proyectos activos
         $proyectos = Proyecto::where('finalizado', false)->get();
         
         $alumnosTutorizados = collect();
@@ -54,38 +66,37 @@ class TutoresLaboralesVistaController extends Controller
             try {
                 $this->setDynamicConnection($proyecto->id_base_de_datos);
 
-                $alumnos = Alumno::with('modulos')
+                $alumnos = Alumno::with('modulos')// Obtenemos los alumnos del proyecto que son tutorizados por el tutor laboral logueado
                     ->where('tutor_laboral_id', $tutor_laboral)
                     ->whereHas('modulos', function($q) {
-                        $q->whereNull('alumno_modulo.deleted_at');//Solo para alumnos activos
+                        $q->whereNull('alumno_modulo.deleted_at');// Solo para alumnos activos
                     })
                     ->get();
 
                 // Para obtener el mail desde galileo
                 foreach ($alumnos as $alumno) {
-                    // 1. Buscamos el USUARIO en la BD Principal
+                    // Buscamos el USUARIO en la BD Galileo
                     $user = User::where('rolable_id',$alumno->id_alumno)
                         ->first();
 
-                    // 2. Buscamos el TUTOR LABORAL en la BD Principal
+                    // Buscamos el TUTOR LABORAL en la BD Galileo
                     $tutor = TutorLaboral::find($alumno->tutor_laboral_id);
                     
-                    // 3. Asignamos los datos al alumno
+                    // Asignamos los datos al alumno
                     $alumno->email = $user ? $user->email : 'Sin email asociado';
                     
                     // Pasamos el objeto completo del tutor (o null si no tiene)
-                    // Esto te permitirá acceder en la vista a $alumno->tutor_laboral->nombre, ->email, etc.
+                    // Esto permite acceder en la vista a $alumno->tutor_laboral->nombre, ->email, etc.
                     $alumno->tutor_laboral = $tutor; 
                     
-                    // 4. Metadatos del proyecto (para las rutas y el badge de la vista)
+                    // Datos de la conexión del proyecto para las rutas
                     $alumno->proyecto_id = $proyecto->id_base_de_datos;
                     $alumno->proyecto_nombre = $proyecto->proyecto;
 
-                    // 5. Añadimos el profesor docente del centro
-                    $alumno->profesor = Profesor::where('id_profesor', $alumno->tutor_docente_id)
-                        ->value('nombre');
+                    // Añadimos el nombre del profesor docente del centro
+                    $alumno->profesor = Profesor::where('id_profesor', $alumno->tutor_docente_id)->value('nombre');
 
-                    // 6. Añadimos a la colección final
+                    // Añadimos a la colección final
                     $alumnosTutorizados->push($alumno);
                 }
 
@@ -111,7 +122,7 @@ class TutoresLaboralesVistaController extends Controller
 
         if (!$alumno) abort(404, 'Alumno no encontrado');
 
-        // Obtenemos las tareas del alumno
+        // Obtenemos todas las tareas del alumno
         $tareas = Tarea::join('modulos', 'tareas.modulo_id', '=', 'modulos.id_modulo')
             ->where('tareas.alumno_id', $alumno_id)
             ->select(
@@ -122,6 +133,7 @@ class TutoresLaboralesVistaController extends Controller
             ->orderBy('tareas.created_at', 'desc')
             ->get();
 
+        // Rellenamos el resto de información de la vista desde Actividades
         foreach($tareas as $tarea){
             $actividad = Actividad::where('id_actividad', $tarea->actividad_id)->first();
             $tarea->actividadNombre = $actividad->nombre;
@@ -138,15 +150,15 @@ class TutoresLaboralesVistaController extends Controller
      */
     public function editar($tutor_laboral_id)
     {
-        // 1. Encontrar al Profesor en la BD principal (Galileo)
+        // Encontramos al tutor laboral en la BD Galileo
         $tutor = TutorLaboral::findOrFail($tutor_laboral_id);
 
-        // 2. Encontrar el registro de usuario asociado (para obtener el email)
+        // Encontramos el registro de usuario asociado para obtener su email
         $user = User::where('rolable_id', $tutor->id_tutor_laboral)
             ->where('rolable_type', TutorLaboral::class)
             ->firstOrFail();
 
-        // 3. Obtenemos el email de User
+        // Añadimos su email
         $tutor->email = $user->email;
 
         return view('tutores_laborales.editar', compact('tutor'));
@@ -160,13 +172,13 @@ class TutoresLaboralesVistaController extends Controller
         $tutor_laboral = TutorLaboral::findOrFail($tutor_laboral_id);
         $user = $tutor_laboral->user;
 
-        // 2. Validamos los campos
+        // Validamos los campos
         $validated = $request->validate([
             'password' => 'nullable|min:8|confirmed',
         ]);
 
         try {
-            // 3. Transacción
+            // Transacción
             DB::beginTransaction();
 
             if ($user) {
@@ -176,7 +188,7 @@ class TutoresLaboralesVistaController extends Controller
                 }
                 $user->save();
             } else {
-                // Si por alguna corrupción de datos antigua no tiene usuario, lo logueamos
+                // Si por algún motivo no tiene usuario, lo logueamos
                 Log::warning("Tutor {$tutor_laboral->id_tutor_laboral} actualizado sin usuario asociado.");
             }
 

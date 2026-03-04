@@ -11,8 +11,8 @@ class Profesor extends Model
     use HasUuids;
 
     /**
-     * Define la conexión a la base de datos principal (Galileo). Se usa en los modelos de la base de datos principal
-     * @var string
+     * Define la conexión a la base de datos Galileo. Se usa en los modelos de la base de datos principal
+     * Así aseguramos que nunca se cambie su conexión a la dinámica
      */
     protected $connection = 'mysql';
 

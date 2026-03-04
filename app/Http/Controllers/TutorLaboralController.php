@@ -13,99 +13,63 @@ use Illuminate\Support\Facades\DB;
 
 class TutorLaboralController extends Controller
 {
+    /**
+     * Método auxiliar para configurar la conexión dinámica
+     */
+    private function setDynamicConnection($proyecto_id)
+    {
+        $proyecto = Proyecto::findOrFail($proyecto_id);
+        $conexion_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos;
+        $config_base = config('database.connections.' . config('database.default'));
+        
+        $config_base['database'] = $proyecto->conexion;
+        config(["database.connections.{$conexion_nombre}" => $config_base]);
+
+        // Forzamos el modelo Alumno a usar esta conexión
+        Alumno::getConnectionResolver()->setDefaultConnection($conexion_nombre);
+
+        return $conexion_nombre;
+    }
+
+    /**
+     * Método para restaurar la conexión
+     */
+    private function restoreConnection()
+    {
+        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+    }
+
     public function indexTutoresLaborales()
     {
-        // El modelo TutorLaboral usa la conexión principal (Galileo) por defecto
+        // El modelo TutorLaboral usa la conexión Galileo por defecto
         $tutores = TutorLaboral::all(); 
 
         return view('tutores.index', compact('tutores'));
     }
 
+    /**
+     * Método que redirige a la vista del listado de alumnos
+     */
     public function mostrarAlumnos()
     {
-        // 1. Obtenemos el tutor laboral central (BD Galileo)
+        // Obtenemos el tutor laboral logueado de la BD Galileo
         $tutorLaboral_id = Auth::id();
-
         $tutor = TutorLaboral::findOrFail($tutorLaboral_id);
         
         $alumnosTotales = collect();
         
-        $config_base = config('database.connections.' . config('database.default'));
-        
-        // 2. Obtenemos todas las bases de datos de proyecto registradas y visibles
+        // Obtenemos todas las bases de datos de proyecto activas
         $proyectos = Proyecto::where('finalizado', 0)->get();
 
+        // La recorremos y almacenamos los alumnos que son suyos
         foreach ($proyectos as $proyecto) {
-            // Aseguramos que id_base_de_datos es el nombre correcto de la PK de Proyecto
-            // Aunque ya lo comprobamos al crear la base de datos, se trata de una comprobación adicional
-            $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
-            
-            // 2.a. Configuramos la conexión dinámica para esta BD de proyecto
-            $config_base['database'] = $proyecto->conexion;
-            config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
-
-            // 2.b. Forzamos el modelo Alumno a usar la BD del proyecto actual
-            Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre); 
-            
-            // 3. Consulta de Alumnos en la BD actual
-            $alumnos = Alumno::query()
-                ->where('tutor_laboral_id', $tutorLaboral_id)->get();
-            
-            // 4. Agregamos los resultados a la colección global
+            $this->setDynamicConnection($proyecto->id_base_de_datos);
+            $alumnos = Alumno::query()->where('tutor_laboral_id', $tutorLaboral_id)->get();
             $alumnosTotales = $alumnosTotales->merge($alumnos);
         }
 
-        // 5. Devolvemos la conexión de Alumno a la principal (limpieza de la conexión)
-        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+        $this->restoreConnection();
 
-        return view('alumno.index', [
-            'tutor' => $tutor, 
-            'alumnos' => $alumnosTotales
-        ]);
-    }
-
-    /**
-     * Obtenemos el listado de alumnos del tutor laboral
-     */
-    public function indexAlumnosTutorizados()
-    {
-        // 1. Obtener el ID del tutor laboral actualmente autenticado.
-        $tutorLaboral_id = Auth::id();
-
-        // 2. Obtenemos el objeto TutorLaboral para pasarlo a la vista si es necesario
-        $tutor = TutorLaboral::findOrFail($tutorLaboral_id);
-
-        $alumnosTotales = collect();
-        
-        // Configuraciones base para las conexiones dinámicas
-        $config_base = config('database.connections.' . config('database.default'));
-        
-        // 3. Obtenemos todas las bases de datos de proyecto registradas
-        $proyectos = Proyecto::where('finalizado', 0)->get(); //
-
-        foreach ($proyectos as $proyecto) {
-            $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
-            
-            // 4. Configurar y forzar la conexión dinámica para el proyecto actual
-            $config_base['database'] = $proyecto->conexion;
-            config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
-
-            Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre); //
-            
-            // 5. Filtramos los alumnos por el ID del tutor laboral logueado
-            // La consulta se ejecuta en la base de datos del proyecto actual
-            $alumnos = Alumno::query()
-                ->where('tutor_laboral_id', $tutorLaboral_id)
-                ->get();
-            
-            // 6. Agregamos los resultados a la colección global
-            $alumnosTotales = $alumnosTotales->merge($alumnos); //
-        }
-
-        // 7. Devolver la conexión de Alumno a la principal (limpieza)
-        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
-
-        // 8. Retornar la vista con los alumnos filtrados
         return view('alumno.index', [
             'tutor' => $tutor, 
             'alumnos' => $alumnosTotales
@@ -117,7 +81,7 @@ class TutorLaboralController extends Controller
      */
     public function storeTutor(Request $request, $empresa_id)
     {
-        // 1. Validación de datos (Sin cambios)
+        // Validamos los datos (Sin cambios)
         $request->validate([
             'nombre' => 'required|max:255',
             'dni' => 'required|string|max:9',
@@ -158,11 +122,11 @@ class TutorLaboralController extends Controller
      */
     public function updateTutor(Request $request, $tutor_id)
     {
-        // 1. Buscar el perfil de Tutor Laboral y su Usuario
+        // Buscamos el Tutor Laboral y su Usuario
         $tutor = TutorLaboral::findOrFail($tutor_id);
         $user = $tutor->user;
 
-        // Reglas de Validación: El email debe ser único en la tabla 'users', pero ignorando al usuario actual ($user->id).
+        // Validamos el email, que debe ser único en la tabla 'usuarios', pero ignorando al usuario actual ($user->id).
         $request->validate([
             'nombre' => 'required|string|max:255',
             'dni' => 'required|string|max:9',
@@ -173,20 +137,20 @@ class TutorLaboralController extends Controller
         try {
             DB::connection(config('database.default'))->transaction(function () use ($request, $tutor, $user) {
                 
-                // 2. Actualizar el perfil TutorLaboral
+                // Actualizamos el perfil TutorLaboral
                 $tutor->update([
                     'nombre' => $request->nombre,
                     'dni' => $request->dni,
                     'email' => $request->email,
                 ]);
 
-                // 3. Actualizar el registro en la tabla USERS
+                // Actualizar el registro en la tabla usuarios
                 $userData = [
                     'name' => $request->nombre,
                     'email' => $request->email,
                 ];
                 
-                // Solo si el campo 'password' fue rellenado, lo incluimos (Laravel lo hashea automáticamente si se usa 'update')
+                // Solo si el campo 'password' fue rellenado, lo incluimos
                 if ($request->filled('password')) {
                     $userData['password'] = $request->password;
                 }
@@ -218,58 +182,44 @@ class TutorLaboralController extends Controller
      */
     public function destroyTutor($tutor_id)
     {
-        // 1. Encontrar el perfil del Tutor Laboral (BD Galileo)
+        // Encontramos el Tutor Laboral desde la BD Galileo
         $tutor = TutorLaboral::findOrFail($tutor_id);
         $tutor_laboral_id = $tutor->id_tutor_laboral;
-        
-        $alumnosTotales = collect();
-        $config_base = config('database.connections.' . config('database.default'));
-        
-        // --- 2. VALIDACIÓN DE REFERENCIAS CRUZADAS EN PROYECTOS ---
         
         // Obtenemos todas las bases de datos de proyecto registradas
         $proyectos = Proyecto::where('finalizado', 0)->get(); 
 
+        // Recorremos y buscamos los alumnos del tutor, si hay alguno en algún proyecto, no se puede eliminar
         foreach ($proyectos as $proyecto) {
-            $conexion_proyecto_nombre = 'proyecto_temp_' . $proyecto->id_base_de_datos; 
+            // Realizamos una conexión por proyecto
+            $this->setDynamicConnection($proyecto->id_base_de_datos);
             
-            // Configurar y forzar la conexión dinámica
-            $config_base['database'] = $proyecto->conexion;
-            config(["database.connections.{$conexion_proyecto_nombre}" => $config_base]);
-
-            // Establecer temporalmente la conexión para los modelos locales
-            Alumno::getConnectionResolver()->setDefaultConnection($conexion_proyecto_nombre);
-            
-            // 2a. Buscar alumnos asociados en la BD actual
+            // Buscamos alumnos asociados al tutor en la BD actual
             $alumnos = Alumno::query()
                 ->where('tutor_laboral_id', $tutor_laboral_id)
                 ->get();
             
             if ($alumnos->isNotEmpty()) {
-                // Devolver la conexión de Alumno a la principal (limpieza)
-                Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
+                // Si hay algún alumno, devolvemos la conexión de Alumno y salimos
+                $this->restoreConnection();
 
                 return redirect()->back()->withErrors("No se puede eliminar al tutor **{$tutor->nombre}**. Tiene **{$alumnos->count()} alumno(s)** asociado(s) en el proyecto **{$proyecto->proyecto}**.");
             }
-            
-            // 2b. Opcional: Podrías añadir una comprobación de Tareas aquí si el modelo Tarea tiene una FK directa a TutorLaboral.
-            // Actualmente, Tarea solo tiene FK a Alumno (y Modulo/Criterio), por lo que si el alumno está bien, la tarea también lo está.
         }
         
-        // Devolver la conexión de Alumno a la principal (limpieza)
-        Alumno::getConnectionResolver()->setDefaultConnection(config('database.default'));
-
-        // --- 3. ELIMINACIÓN SEGURA (Si pasa la validación) ---
-        
+        // Si no había alumnos
+        // Devolvemos la conexión de Alumno
+        $this->restoreConnection();
+        // Buscamos su usuario
         $user = $tutor->user;
 
         try {
             DB::connection(config('database.default'))->transaction(function () use ($tutor, $user) {
                 
-                // Eliminar el Tutor Laboral (perfil)
+                // Eliminamos el Tutor Laboral (perfil)
                 $tutor->delete();
 
-                // Eliminar el registro de Usuario (cuenta de acceso)
+                // Eliminamos el registro de Usuario (cuenta de acceso)
                 if ($user) {
                     $user->delete();
                 }
@@ -282,21 +232,18 @@ class TutorLaboralController extends Controller
         return redirect()->back()->with('success', 'Tutor Laboral y Usuario eliminados con éxito.');
     }
 
-    
     /**
      * Muestra el formulario para editar un Tutor Laboral existente.
      */
     public function editTutor($tutor_id)
     {
-        // 1. Busca el perfil de Tutor Laboral (BD Galileo)
+        // Buscamos el perfil de Tutor Laboral en la BD Galileo
         $tutor = TutorLaboral::findOrFail($tutor_id);
         
-        // 2. Obtiene el usuario asociado a través de la relación polimórfica inversa
+        // Obtenemos el usuario asociado a través de la relación polimórfica
         $user = $tutor->user; 
         
         // Retornamos la vista con el perfil del tutor y su usuario
         return view('gestion.tutores.edit', ['tutor' => $tutor, 'user' => $user,]);
     }
-
-    
 }

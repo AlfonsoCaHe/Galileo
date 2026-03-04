@@ -133,7 +133,7 @@
                 </div>
                 <div class="col-md-6">
                     <label for="cif_nif" class="form-label fw-bold">CIF/NIF</label>
-                    <input type="text" name="cif_nif" class="form-control bg-light" value="{{ $empresa->cif_nif }}" readonly>
+                    <input type="text" name="cif_nif" class="form-control bg-light" value="{{ $empresa->cif_nif }}" required>
                 </div>
                 <div class="col-md-6">
                     <label for="nombre_gerente" class="form-label fw-bold">Nombre del Gerente</label>

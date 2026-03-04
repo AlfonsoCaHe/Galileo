@@ -10,6 +10,7 @@ class Proyecto extends Model
 {
     use HasUuids;
 
+    // Forzamos la conexión con Galileo
     protected $connection = 'mysql';
 
     protected $table = "bases_de_datos";

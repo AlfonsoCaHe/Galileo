@@ -11,13 +11,12 @@ use App\Rules\ValidarTexto;
 use App\Models\User;
 use App\Models\Profesor;
 use App\Models\Alumno;
-use App\Models\TutorLaboral;
 use Yajra\DataTables\Facades\DataTables;
 
 class UsuariosController extends Controller
 {
     /**
-     * Redirige al usuario al panel correcto basado en su rol. Este método se usa después del login para acceder a la ruta '/panel de cada rol'.
+     * Redirige al usuario al panel correcto basado en su rol. Este método se usa después del login para acceder a la ruta '/panel' de cada rol.
      * @method bool isAdmin()
      * @method bool isAlumno()
      * @method bool isProfesor()
@@ -25,10 +24,10 @@ class UsuariosController extends Controller
      */
     public function redirectToPanel()
     {
-        // 1. Obtener el usuario autenticado
+        // 1. Obtenemos el usuario autenticado
         $user = Auth::user();
 
-        // 2. Redireccionar en base al rol
+        // 2. Redireccionamos en base al rol
         if ($user->isAdmin()) {
             return redirect()->route('admin.panel');
         }
@@ -48,9 +47,8 @@ class UsuariosController extends Controller
             return redirect()->route('tutores_laborales.panel');
         }
 
-        // Si el rol no estuviera definido en la bd (debería ser imposible si el Enum funciona bien)
-        // Redirigir a la raíz con un error.
-        return redirect('/')->withErrors('No se pudo determinar tu rol. Contacta a soporte.');
+        // Si el rol no estuviera definido en la bd redirigiría de nuevo a la raíz con un error.
+        return redirect('/')->withErrors('Acceso no permitido. Contacta con el administrador.');
     }
 
     /**
@@ -58,7 +56,7 @@ class UsuariosController extends Controller
      */
     public function showLoginForm()
     {
-        // Si el usuario ya está autenticado, redirigir al dashboard
+        // Si el usuario ya está autenticado, redirige a su panel
         if (Auth::check()) {
             return redirect()->route('home');
         }
@@ -71,23 +69,23 @@ class UsuariosController extends Controller
      */
     public function login(Request $request)
     {
-        // 1. Validar los datos del formulario
+        // 1. Validamos los datos del formulario
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // 2. Intentar autenticar al usuario
+        // 2. Intentamos autenticar al usuario
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             
-            // Regenerar la sesión para prevenir ataques de fijación de sesión
+            // Si se autentica correctamente, regeneramos la sesión para prevenir ataques de fijación de sesión
             $request->session()->regenerate();
 
-            // Redirige a red
+            // Redirigimos a la red
             return redirect()->route('home');
         }
 
-        // 3. Si la autenticación falla, lanzar una excepción de validación
+        // 3. Si la autenticación falla, se lanza una excepción de validación
         throw ValidationException::withMessages([
             'email' => [trans('auth.failed')],
         ]);
@@ -178,7 +176,6 @@ class UsuariosController extends Controller
                 ]);
 
             }
-            // TODO: Se pueden añadir aquí bloques 'else if' para 'alumno', 'tutor_laboral', etc.
 
             // 5. Confirmar la transacción
             DB::commit();
@@ -194,7 +191,7 @@ class UsuariosController extends Controller
     }
 
     /**
-     * Procesa la petición AJAX de DataTables.
+     * AJAX: Procesa la petición de DataTables de la tabla de gestión de usuarios
      */
     public function showDataTable(Request $request)
     {
@@ -207,20 +204,20 @@ class UsuariosController extends Controller
             $query = User::query(); 
         }
 
+        // Generamos cada tupla para poder controlar qué aparece en ellas
         return DataTables::of($query)
             ->addColumn('estado', function ($usuario) {
-                // PROTECCIÓN ADMIN: No mostramos el switch para el Admin principal
+                // Protegemos al admin de un borrado accidental no mostrando su switch
                 if ($usuario->rol === 'admin') {
                     return '<span> </span>';
                 }
 
-                // PROTECCIÓN AUTO-BORRADO: No puedes desactivarte a ti mismo
+                // Protección de auto-borrado: No puedes desactivarte a ti mismo, pensado por si en el futuro se añaden otros administradores
                 if (Auth::id() === $usuario->id) {
                     return '<span class="badge bg-success">TU USUARIO</span>';
                 }
 
-                // LÓGICA DEL SWITCH
-                // Si está borrado (trashed), el switch está apagado. Si no, encendido.
+                // Si está borrado con Soft Delete (trashed) el switch está apagado. Si no, encendido.
                 $estaActivo = !$usuario->trashed();
                 $checked = $estaActivo ? 'checked' : '';
                 $texto = $estaActivo ? 'ACTIVO' : 'INACTIVO';
@@ -250,7 +247,7 @@ class UsuariosController extends Controller
                     'alumno' => 'info text-dark',
                     'tutor_laboral' => 'success'
                 ];
-                // Si por alguna razón el rol no coincide, usa 'secondary'
+                // Si por alguna razón el rol no coincide, usa el color 'secondary'
                 $color = $colors[$usuario->rol] ?? 'secondary';
                 
                 // Retornamos el HTML
@@ -270,7 +267,7 @@ class UsuariosController extends Controller
     }
 
     /**
-     * Método Toggle: Si existe, lo borra (Soft). Si está borrado, lo restaura.
+     * Método Toggle: Si existe, lo borra (Soft Delete). Si está borrado, lo restaura.
      */
     public function toggleEstado($id)
     {
@@ -289,11 +286,11 @@ class UsuariosController extends Controller
 
         try {
             if ($usuario->trashed()) {
-                // Si estaba borrado -> Restaurar (Activar)
+                // Si estaba borrado -> Restauramos (Activar)
                 $usuario->restore();
                 $mensaje = "Usuario activado correctamente.";
             } else {
-                // Si estaba activo -> Borrar (Desactivar)
+                // Si estaba activo -> Borramos (Desactivar)
                 $usuario->delete();
                 $mensaje = "Usuario desactivado correctamente.";
             }
@@ -312,6 +309,7 @@ class UsuariosController extends Controller
     {
         $usuario = User::findOrFail($id);
 
+        // No se puede borrar al admin ni tampoco a uno mismo
         if ($usuario->rol === 'admin') {
             return response()->json(['error' => 'No está permitido eliminar al Administrador principal.'], 403);
         }
@@ -334,6 +332,7 @@ class UsuariosController extends Controller
     {
         try {
             $usuario = User::onlyTrashed()->findOrFail($id);
+            // Función que deshace el Soft Delete
             $usuario->restore();
             return response()->json(['success' => 'Usuario restaurado correctamente.'], 200);
         } catch (\Exception $e) {
@@ -365,20 +364,20 @@ class UsuariosController extends Controller
             'email' => 'required|email|unique:users,email,' . $id
         ];
 
-        // 2. Agregar la regla de contraseña si se proporciona
+        // 2. Agregar la regla para comprobar la contraseña si se proporciona una nueva
         if (!empty($request->password)) {
             $rules['password'] = 'nullable|min:8|confirmed';
         }
 
         $datos = $request->validate($rules);
 
-        // 3. Preparar los datos para la actualización
+        // 3. Prepara los datos para la actualización
         $updateData = [
             'name' => $datos['name'],
             'email' => $datos['email']
         ];
 
-        // 4. Incluir la contraseña solo si se proporcionó un valor nuevo
+        // 4. Incluimos la contraseña solo si se proporcionó un valor nuevo
         if (!empty($request->password)) {
             $updateData['password'] = $datos['password']; 
         }

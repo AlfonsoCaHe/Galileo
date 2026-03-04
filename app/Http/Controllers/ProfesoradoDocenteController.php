@@ -15,7 +15,6 @@ use App\Models\Alumno;
 use App\Models\Tarea;
 use App\Models\TutorLaboral;
 use App\Models\Actividad;
-use Illuminate\Notifications\Action;
 
 class ProfesoradoDocenteController extends Controller
 {
@@ -45,7 +44,7 @@ class ProfesoradoDocenteController extends Controller
      */
     public function indexModulos()
     {
-        $profesor = Auth::user()->rolable;
+        $profesor = Auth::user()->rolable;// Extraemos el profesor logueado
         
         // 1. Obtenemos todos los proyectos activos
         $proyectos = Proyecto::where('finalizado', false)->get();
@@ -59,7 +58,7 @@ class ProfesoradoDocenteController extends Controller
                 $modulosData = Modulo::join('profesor_modulo', 'modulos.id_modulo', '=', 'profesor_modulo.modulo_id')
                     ->where('profesor_modulo.profesor_id', $profesor->id_profesor)
                     ->select('modulos.id_modulo', 'modulos.nombre', 'modulos.unidad')
-                    ->selectRaw('(SELECT COUNT(*) FROM alumno_modulo WHERE alumno_modulo.modulo_id = modulos.id_modulo AND alumno_modulo.deleted_at IS NULL) as alumnos_count')
+                    ->selectRaw('(SELECT COUNT(*) FROM alumno_modulo WHERE alumno_modulo.modulo_id = modulos.id_modulo AND alumno_modulo.deleted_at IS NULL) as alumnos_count')// Añadimos los alumnos matriculados y activos del módulo
                     ->get();
 
                 // Añadimos los datos que necesitamos para la vista
@@ -85,50 +84,49 @@ class ProfesoradoDocenteController extends Controller
         $proyecto = Proyecto::findOrFail($proyecto_id);
         $this->setDynamicConnection($proyecto_id);
 
-        $modulo = Modulo::where('id_modulo', $modulo_id)->first();
+        $modulo = Modulo::where('id_modulo', $modulo_id)->first();// Buscamos el módulo
 
         if (!$modulo) {
             abort(404, 'Módulo no encontrado en este proyecto.');
         }
 
+        // Listado de alumnos matriculados en el módulo
         $alumnos = Alumno::join('alumno_modulo', 'alumnos.id_alumno', '=', 'alumno_modulo.alumno_id')
             ->where('alumno_modulo.modulo_id', $modulo_id)
-            ->whereNull('alumno_modulo.deleted_at')
+            ->whereNull('alumno_modulo.deleted_at') // Comprobamos que estén matriculados (deleted_at = null)
             ->select('alumnos.id_alumno', 'alumnos.nombre', 'alumnos.periodo')
             ->selectRaw("(SELECT COUNT(*) 
                         FROM tareas 
-                        WHERE tareas.alumno_id = alumnos.id_alumno AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
+                        WHERE tareas.alumno_id = alumnos.id_alumno AND tareas.modulo_id = '{$modulo_id}') as tareas_count")// Contamos las tareas del alumno
             ->get();
 
-        $mainDb = config('database.connections.mysql.database'); 
+        $mainDb = config('database.connections.mysql.database'); // Conexión con la BD Galileo, la necesitamos para los usuarios
 
         $alumnos = Alumno::join('alumno_modulo', 'alumnos.id_alumno', '=', 'alumno_modulo.alumno_id')
-            // AQUÍ EL TRUCO: Concatenamos el nombre de la BD principal + punto + tabla
-            ->leftJoin("$mainDb.users as u", function($join) {
+            ->leftJoin("$mainDb.users as u", function($join) {//Conectamos con la BD Galileo y con su tabla usuarios
                 $join->on('u.rolable_id', '=', 'alumnos.id_alumno')
                     ->where('u.rolable_type', '=', Alumno::class);
             })
             ->where('alumno_modulo.modulo_id', $modulo_id)
-            ->whereNull('alumno_modulo.deleted_at')
-            // Seleccionamos también el email
-            ->select(
+            ->whereNull('alumno_modulo.deleted_at')// Si está matriculado en el módulo
+            ->select(// Extraemos los datos del alumno
                 'alumnos.id_alumno', 
                 'alumnos.nombre', 
                 'alumnos.periodo',
-                'u.email' // <--- Traemos el email directamente
+                'u.email' // Importamos el email directamente del usuario
             )
-            ->selectRaw("(SELECT COUNT(*) 
+            ->selectRaw("(SELECT COUNT(*)
                         FROM tareas 
                         WHERE tareas.alumno_id = alumnos.id_alumno 
-                        AND tareas.modulo_id = '{$modulo_id}') as tareas_count")
+                        AND tareas.modulo_id = '{$modulo_id}') as tareas_count") // Contamos las tareas de alumnos en el módulo
             ->get();
 
-        $actividades = Actividad::where('modulo_id', $modulo_id)
+        $actividades = Actividad::where('modulo_id', $modulo_id)// Añadimos las actividades formativas creadas por el profesor
             ->orderBy('nombre', 'asc')
             ->select('actividades.*')
             ->selectRaw("(SELECT COUNT(*) 
                         FROM tareas, actividades 
-                        WHERE tareas.actividad_id = actividades.id_actividad AND tareas.modulo_id = '{$modulo_id}') as actividades_count")
+                        WHERE tareas.actividad_id = actividades.id_actividad AND tareas.modulo_id = '{$modulo_id}') as actividades_count") // Contamos el total de tareas de esta actividad formativa que los alumnos han realizado
             ->get();
 
         return view('profesores.alumnos', compact('alumnos', 'modulo', 'proyecto', 'actividades'));
@@ -170,7 +168,7 @@ class ProfesoradoDocenteController extends Controller
     {
         $this->setDynamicConnection($proyecto_id);
 
-        $modulo = Modulo::where('id_modulo', $modulo_id)
+        $modulo = Modulo::where('id_modulo', $modulo_id)// Añadimos los RAs del módulo para poder seleccionarlos en la actividad
             ->with('ras')
             ->first();
 
@@ -195,10 +193,9 @@ class ProfesoradoDocenteController extends Controller
      */
     public function tutorizados()
     {
-        $profesor = Auth::user()->rolable->id_profesor;
+        $profesor = Auth::user()->rolable->id_profesor; // Extraemos el profesor logueado
         
-        // Obtenemos proyectos activos
-        $proyectos = Proyecto::where('finalizado', false)->get();
+        $proyectos = Proyecto::where('finalizado', false)->get(); // Obtenemos proyectos activos
         
         $alumnosTutorizados = collect();
 
@@ -209,26 +206,26 @@ class ProfesoradoDocenteController extends Controller
                 $alumnos = Alumno::with('modulos')
                     ->where('tutor_docente_id', $profesor)
                     ->whereHas('modulos', function($q) {
-                        $q->whereNull('alumno_modulo.deleted_at');//Solo para alumnos activos
+                        $q->whereNull('alumno_modulo.deleted_at');// Solo para alumnos activos
                     })
                     ->get();
 
-                // Para obtener el mail desde galileo
+                // Rellenamos los datos de los alumnos
                 foreach ($alumnos as $alumno) {
-                    // 1. Buscamos el USUARIO en la BD Principal
+                    // 1. Buscamos su USUARIO en la BD Galileo
                     $user = User::find($alumno->usuario_id);
                     
-                    // 2. Buscamos el TUTOR LABORAL en la BD Principal
+                    // 2. Buscamos su TUTOR LABORAL en la BD Galileo
                     $tutor = TutorLaboral::find($alumno->tutor_laboral_id);
                     
                     // 3. Asignamos los datos al alumno
-                    $alumno->alumno_email = $user ? $user->email : 'Sin email asociado';
+                    $alumno->alumno_email = $user ? $user->email : 'Sin email asociado'; // Solo será 'Sin email asociado' si no tiene usuario activo
                     
                     // Pasamos el objeto completo del tutor (o null si no tiene)
-                    // Esto te permitirá acceder en la vista a $alumno->tutor_laboral->nombre, ->email, etc.
+                    // Esto nos permite acceder en la vista a $alumno->tutor_laboral->nombre, ->email, etc.
                     $alumno->tutor_laboral = $tutor; 
                     
-                    // 4. Metadatos del proyecto (para las rutas y el badge de la vista)
+                    // 4. Datos del proyecto para las rutas de la vista
                     $alumno->proyecto_id = $proyecto->id_base_de_datos;
                     $alumno->proyecto_nombre = $proyecto->proyecto;
 
@@ -269,6 +266,7 @@ class ProfesoradoDocenteController extends Controller
             ->orderBy('tareas.created_at', 'desc')
             ->get();
 
+        //Recorremos las tareas y las añadimos los datos faltantes de la actividad al array
         foreach($tareas as $tarea){
             $actividad = Actividad::where('id_actividad', $tarea->actividad_id)->first();
             $tarea->actividadNombre = $actividad->nombre;
@@ -285,15 +283,15 @@ class ProfesoradoDocenteController extends Controller
      */
     public function editar($profesor_id)
     {
-        // 1. Encontrar al Profesor en la BD principal (Galileo)
+        // 1. Encontramos al Profesor en la BD Galileo
         $profesor = Profesor::findOrFail($profesor_id);
 
-        // 2. Encontrar el registro de usuario asociado (para obtener el email)
+        // 2. Encontramos el usuario asociado para obtener el email
         $user = User::where('rolable_id', $profesor->id_profesor)
             ->where('rolable_type', Profesor::class)
             ->firstOrFail();
 
-        // 3. Obtenemos el email de User
+        // 3. Añadimos el email de usuario
         $profesor->email = $user->email;
 
         return view('profesores.edit', compact('profesor'));
