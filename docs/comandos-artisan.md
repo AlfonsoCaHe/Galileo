@@ -14,9 +14,7 @@ Añade el usuario administrador.
 El comando se ejecuta sin argumentos.
 
 ```bash
-
 php artisan app:instalar
-
 
 ```
 
