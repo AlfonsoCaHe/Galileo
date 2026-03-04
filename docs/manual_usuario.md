@@ -55,7 +55,7 @@ Dentro de cada módulo, el profesor debe configurar la arquitectura de evaluaci�
 * **RAs:** Se definen mediante un código alfanumérico y una descripción técnica.
 * **Criterios de Evaluación:** Se desglosan a partir de cada RA, permitiendo una trazabilidad exacta de las competencias que el alumno registrará en sus tareas diarias.
 
-[!IMPORTANT]
+> [!IMPORTANT]
 > Es posible realizar una **importación** mediante un archivo .csv, .xlsx.
 > Para ello será necesario que la columna A contenga los RAs, y en las filas posteriores, en la columna B deberá contener los criterios.
 > El sistema gestionará la importación hasta la primera fila que no contenga información en las columnas A y B.
