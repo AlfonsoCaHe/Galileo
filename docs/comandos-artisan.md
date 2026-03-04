@@ -4,7 +4,25 @@ Este documento detalla los comandos Artisan específicos de la aplicación Galil
 
 ---
 
-## 1. db:crear-curso
+## 1. app:instalar
+
+### Propósito
+Automatiza la creación de la base de datos principal y su estructura de tablas (migraciones).
+Añade el usuario administrador.
+
+### Uso
+El comando se ejecuta sin argumentos.
+
+```bash
+
+php artisan app:instalar
+
+
+```
+
+---
+
+## 2. db:crear-proyecto {year_start?}
 
 ### Propósito
 Automatizar la creación de una nueva base de datos y su estructura de tablas (migraciones) para cada nuevo ciclo académico bianual. Esto permite que la aplicación trabaje con múltiples bases de datos de cursos simultáneamente.
@@ -23,7 +41,7 @@ php artisan db:crear-proyecto 2026
 
 ---
 
-## 2. db:seed --class=PruebaRelacionesSeeder
+## 3. db:seed --class=PruebaRelacionesSeeder
 
 ### Propósito
 Automatizar la creación y populación de las tablas de los elementos que se insertarán en la base de datos para poder generar pruebas a partir de ellos.
@@ -39,7 +57,7 @@ php artisan db:seed --class=PruebaRelacionesSeeder
 
 ---
 
-## 3. db:test-prueba
+## 4. db:test-prueba
 
 ### Propósito
 Automatizar el proceso de creación de las bases de datos y la inclusión de los elementos en las tablas para preparar un entorno de pruebas completo y realista.
@@ -61,7 +79,7 @@ php artisan db:test-prueba
 
 ```
 
-## 4. db:borrar-test
+## 5. db:borrar-test
 
 ### Propósito
 Eliminar el contenido del entorno de pruebas generado anteriormente. Se debe extremar la precaución al utilizar el comando, si el contenido de la base de datos no es de prueba, lo eliminará igualmente.
