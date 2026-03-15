@@ -14,7 +14,7 @@
                 "loadingRecords": "Cargando...",
                 "processing": "Procesando...",
                 "search": "Buscar:",
-                "zeroRecords": "No hay coincidencias",
+                "zeroRecords": "No hay tareas registradas.",
                 "paginate": {
                     "first": "Primero",
                     "last": "Último",
@@ -342,7 +342,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($tareas as $tarea)
+                        @foreach($tareas as $tarea)
                         <tr>
                             {{-- 0. Notas del alumno --}}
                             <td>
@@ -418,14 +418,7 @@
                                 <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No hay tareas registradas.
-                            </td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>

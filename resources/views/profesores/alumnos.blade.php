@@ -14,7 +14,7 @@
                 "loadingRecords": "Cargando...",
                 "processing": "Procesando...",
                 "search": "Buscar:",
-                "zeroRecords": "No hay coincidencias",
+                "zeroRecords": "No hay alumnos matriculados en este módulo.",
                 "paginate": {
                     "first": "First",
                     "last": "Last",
@@ -61,7 +61,7 @@
                 "loadingRecords": "Cargando...",
                 "processing": "Procesando...",
                 "search": "Buscar:",
-                "zeroRecords": "No hay coincidencias",
+                "zeroRecords": "No hay tareas realizadas en este módulo.",
                 "paginate": {
                     "first": "First",
                     "last": "Last",
@@ -138,7 +138,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($alumnos as $alumno)
+                        @foreach($alumnos as $alumno)
                         <tr>
                             {{-- 0. Alumno --}}
                             <td class="fw-bold">{{ $alumno->nombre }}</td>
@@ -167,13 +167,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">
-                                No hay alumnos matriculados en este módulo.
-                            </td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
@@ -196,7 +190,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($actividades as $actividad)
+                        @foreach($actividades as $actividad)
                         <tr>
                             {{-- Nombre de la actividad --}}
                             <td class="fw-bold">{{ $actividad->nombre }}</td>
@@ -230,13 +224,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">
-                                No hay actividades en este módulo.
-                            </td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>

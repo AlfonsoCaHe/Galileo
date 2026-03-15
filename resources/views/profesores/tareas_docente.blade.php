@@ -29,7 +29,7 @@
             autoWidth: false,
             columnDefs: [{
                     orderable: false,
-                    targets: [1, 4, 5, 6, 7, 8]
+                    targets: [1, 4, 5, 6, 7]
                 },
                 {
                     className: "align-middle",
@@ -40,7 +40,7 @@
                 // 2 = Alta prioridad (Acciones)
                 {
                     responsivePriority: 1,
-                    targets: [0, 1, 8]
+                    targets: [0, 1]
                 },
                 {
                     responsivePriority: 2,
@@ -182,7 +182,7 @@
             });
         });
 
-         // AJAX - Cambiar Calificación
+        // AJAX - Cambiar Calificación
         $('body').on('change', '.input-calificacion-ajax', function() {
             var input = $(this);
             var url = input.data('url');
@@ -237,7 +237,7 @@
                         // Quitamos el grosor extra del borde pero mantenemos el color semántico
                         // para que el profesor vea rápido cuáles están rojas/verdes
                         input.css('border-width', '1px');
-                        
+
                         // Ocultamos el texto "Guardado"
                         indicator.fadeOut(500, function() {
                             $(this).html('').show();
@@ -248,9 +248,9 @@
                     // --- E) ERROR ---
                     input.removeClass('border-warning border-success').addClass('border-danger');
                     indicator.html('<span class="text-danger fw-bold">Error</span>');
-                    
+
                     var msg = 'Error al guardar.';
-                    if(xhr.responseJSON && xhr.responseJSON.message) {
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
                         msg = xhr.responseJSON.message;
                     }
                     alert(msg);
@@ -264,7 +264,9 @@
             var url = input.data('url');
             var bloqueado = input.is(':checked') ? 1 : 0;
 
-            // Buscamos el indicador subiendo al td padre
+            // Localizamos la fila actual para encontrar el input de calificación
+            var row = input.closest('tr');
+            var inputCalificacion = row.find('.input-calificacion-ajax');
             var indicator = input.closest('td').find('.status-indicator');
 
             // 1. Visual: Procesando
@@ -280,11 +282,11 @@
                     bloqueado: bloqueado
                 },
                 success: function(response) {
-                    // 2. Éxito
-                    // Feedback visual diferente si bloqueamos o desbloqueamos
                     if (bloqueado) {
+                        inputCalificacion.prop('disabled', true); // Bloquea el input
                         indicator.html('<span class="text-danger fw-bold"><i class="bi bi-lock-fill"></i> Bloqueado</span>');
                     } else {
+                        inputCalificacion.prop('disabled', false); // Desbloquea el input
                         indicator.html('<span class="text-success fw-bold"><i class="bi bi-unlock-fill"></i> Abierto</span>');
                     }
 
@@ -295,8 +297,8 @@
                     }, 2000);
                 },
                 error: function(xhr) {
-                    // 3. Error
-                    input.prop('checked', !bloqueado); // Revertir cambio
+                    // Revertir cambio en el switch si falla
+                    input.prop('checked', !bloqueado);
                     indicator.html('<span class="text-danger fw-bold">Error</span>');
                 }
             });
@@ -308,7 +310,7 @@
             var btn = $(this);
             var row = btn.closest('tr');
             var url = btn.data('url');
-            
+
             // Recopilamos los datos de los inputs de la fila
             var data = {
                 nombre: row.find('input[name="nombre"]').val(),
@@ -324,13 +326,15 @@
             $.ajax({
                 url: url,
                 method: 'PUT',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
                 data: data,
                 success: function(response) {
                     // Éxito
                     btn.removeClass('btn-success').addClass('btn-dark')
-                       .html('<i class="bi bi-check-lg"></i> Guardado');
-                    
+                        .html('<i class="bi bi-check-lg"></i> Guardado');
+
                     // Volver al estado original tras 2 seg
                     setTimeout(function() {
                         btn.prop('disabled', false).removeClass('btn-dark').addClass('btn-success').html(originalContent);
@@ -348,7 +352,7 @@
 
 @section('content')
 @if(auth()->user()->isProfesor())
-    @include('profesores.layouts.header')
+@include('profesores.layouts.header')
 @endif
 
 <div class="container-fluid py-4">
@@ -369,16 +373,16 @@
 
     {{-- Alertas --}}
     @if ($errors->any())
-        <div class="alert alert-danger">{{ $errors->first() }}</div>
+    <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif
 
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 border-bottom">
             <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-journal-text me-2"></i>Tareas Realizadas</h6>
         </div>
-        
+
         {{-- p-0 en el body para ganar espacio en móvil --}}
-        <div class="card-body p-0 p-md-3"> 
+        <div class="card-body p-0 p-md-3">
             <div class="table-responsive">
                 <table id="tablaTareas" class="table table-hover align-middle w-100">
                     <thead class="table-light">
@@ -391,11 +395,10 @@
                             <th>Duración</th>
                             <th class="text-center">Calif.</th>
                             <th class="text-center">Bloq.</th>
-                            <th class="text-center">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($tareas as $tarea)
+                        @foreach($tareas as $tarea)
                         <tr>
                             {{-- 0. Nombre (Actividad) --}}
                             <td>
@@ -406,8 +409,8 @@
 
                             {{-- 1. Notas del alumno --}}
                             <td>
-                                <input name="notas_alumno" class="form-control form-control-sm text-muted" 
-                                       value="{{ $tarea->notas_alumno }}">
+                                <input name="notas_alumno" class="form-control form-control-sm text-muted"
+                                    value="{{ $tarea->notas_alumno }}">
                             </td>
 
                             {{-- 2. Tarea --}}
@@ -429,12 +432,12 @@
                                         class="form-control form-control-sm text-center input-fecha-ajax"
                                         value="{{ $tarea->fecha ? \Carbon\Carbon::parse($tarea->fecha)->format('Y-m-d') : '' }}"
                                         data-url="{{ route('gestion.tareas.updateFecha', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}">
-                                    
+
                                     <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -18px;"></div>
                                 </div>
                             </td>
 
-                            {{-- 5. Duración (CORREGIDO) --}}
+                            {{-- 5. Duración --}}
                             <td class="text-center">
                                 <div style="min-width: 100px;">
                                     <x-duration-select
@@ -442,23 +445,23 @@
                                         :selected="$tarea->duracion ? \Carbon\Carbon::parse($tarea->duracion)->format('H:i') : ''"
                                         :url="route('gestion.tareas.updateDuracion', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea])"
                                         :disabled="false" />
-                                     <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
+                                    <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
                                 </div>
                             </td>
 
                             {{-- 6. Calificación (Numérica 0-10) --}}
                             <td class="text-center position-relative">
                                 <div style="max-width: 100px; margin: 0 auto;">
-                                    <input type="number" 
+                                    <input type="number"
                                         class="form-control form-control-sm text-center input-calificacion-ajax"
-                                        min="0" 
-                                        max="10" 
+                                        min="0"
+                                        max="10"
                                         step="1"
                                         placeholder="-"
                                         value="{{ $tarea->calificacion ?? '' }}"
                                         data-url="{{ route('gestion.tareas.updateCalificacion', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}"
                                         {{ $tarea->bloqueado ? 'disabled' : '' }}>
-                                    
+
                                     {{-- Indicador de estado (guardando/error) --}}
                                     <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -18px;"></div>
                                 </div>
@@ -476,24 +479,8 @@
                                 </div>
                                 <div class="status-indicator small position-absolute w-100 start-0" style="bottom: -5px;"></div>
                             </td>
-
-                            {{-- 8. Acciones (Botón AJAX) --}}
-                            <td class="text-center">
-                                <button type="button" 
-                                        class="btn btn-success btn-sm fw-bold btn-guardar-fila"
-                                        data-url="{{ route('gestion.tareas.update', ['proyecto_id' => $proyecto->id_base_de_datos, 'tarea_id' => $tarea->id_tarea]) }}">
-                                    <i class="bi bi-save"></i> <span class="d-md-inline">Guardar</span>
-                                </button>
-                            </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No hay tareas registradas.
-                            </td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
