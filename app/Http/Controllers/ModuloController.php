@@ -85,21 +85,24 @@ class ModuloController extends Controller
             'nombre' => 'required|string|max:70',
             'unidad' => 'required',
             'profesores' => 'required|array',
-            'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor',
+            'profesores.*' => 'uuid|exists:mysql.profesores,id_profesor', // Forzamos BD Galileo
             'alumnos' => 'nullable|array',
-            'alumnos.*' => 'uuid|exists:alumnos,id_alumno',
+            'alumnos.*' => 'uuid|exists:alumnos,id_alumno', // Valida en la dinámica
         ]);
 
         try {
-            // Usamos el nombre de conexión ya configurado en el modelo Modulo
-            DB::connection(Modulo::getActualConnectionName())->transaction(function () use ($validated, $proyecto) {
+            // Obtenemos el nombre de la conexión que configuramos en setDynamicConnection
+            $dynamicConn = Modulo::getConnectionResolver()->getDefaultConnection();
 
+            DB::connection($dynamicConn)->transaction(function () use ($validated, $proyecto) {
+                // Al crear el módulo, Eloquent usará la conexión por defecto del Resolver
                 $modulo = Modulo::create([
                     'nombre' => $validated['nombre'],
                     'unidad' => $validated['unidad'],
                     'proyecto_id' => $proyecto->id_base_de_datos,
                 ]);
 
+                // Las relaciones usarán la lógica de conexión que definimos en el modelo
                 $modulo->profesores()->attach($validated['profesores']);
 
                 if (!empty($validated['alumnos'])) {
@@ -110,6 +113,7 @@ class ModuloController extends Controller
             return redirect()->route('gestion.modulos.index', $proyecto_id)
                 ->with('success', 'Módulo creado con éxito.');
         } catch (\Exception $e) {
+            // Log::error($e->getMessage()); // Útil para debuggear
             return redirect()->back()->withInput()->withErrors('Error al crear el módulo: ' . $e->getMessage());
         } finally {
             $this->restoreConnection();
@@ -122,14 +126,14 @@ class ModuloController extends Controller
     public function edit($proyecto_id, $modulo_id)
     {
         $proyecto = $this->setDynamicConnection($proyecto_id);
-        
+
         // Extraemos los datos del módulo a mostrar
         $modulo = Modulo::findOrFail($modulo_id);
         $profesores = Profesor::all();
         $alumnos = Alumno::all();
-        
-        $alumnos_asignados = $modulo->alumnos->pluck('id_alumno')->toArray();// Añadimos los alumnos del módulo
-        
+
+        $alumnos_asignados = $modulo->alumnos->pluck('id_alumno')->toArray(); // Añadimos los alumnos del módulo
+
         $profesores_asignados = $modulo->profesores->pluck('id_profesor')->toArray(); // Añadimos los profesores del módulo
 
         $this->restoreConnection();
@@ -155,7 +159,9 @@ class ModuloController extends Controller
         ]);
 
         try {
-            DB::connection(Modulo::getActualConnectionName())->transaction(function () use ($validated, $modulo) {
+            $dynamicConn = Modulo::getConnectionResolver()->getDefaultConnection();
+
+            DB::connection($dynamicConn)->transaction(function () use ($validated, $modulo) {
                 $modulo->update([
                     'nombre' => $validated['nombre'],
                     'unidad' => $validated['unidad'],
@@ -195,7 +201,9 @@ class ModuloController extends Controller
         }
 
         try {
-            DB::connection(Modulo::getActualConnectionName())->transaction(function () use ($modulo) {
+            $dynamicConn = Modulo::getConnectionResolver()->getDefaultConnection();
+
+            DB::connection($dynamicConn)->transaction(function () use ($modulo) {
                 $modulo->profesores()->detach(); // Importante desvincular también profesores
                 $modulo->alumnos()->detach();
                 $modulo->delete();

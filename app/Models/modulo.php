@@ -58,22 +58,21 @@ class Modulo extends Model
      */
     public function profesores(): BelongsToMany
     {
-        // 1. Obtener el nombre de la conexión temporal configurada (e.g., 'proyecto_temp')
         $dynamicConnectionName = $this->getConnectionName();
-        
-        // 2. OBTENER EL NOMBRE REAL DE LA BASE DE DATOS (e.g., 'proyecto_2025_2027')
-        //    Consultamos la configuración para obtener el valor del campo 'database' de la conexión temporal.
         $dbName = config("database.connections.{$dynamicConnectionName}.database");
 
-        // 3. Crear el nombre de tabla totalmente cualificado: DATABASE_NAME.nombre_de_tabla_pivote
-        //    Esto es lo que MySQL necesita para el join entre bases de datos.
-        $fullyQualifiedPivotTable = $dbName . '.profesor_modulo';
+        // Validación de seguridad
+        if (empty($dbName)) {
+            throw new \Exception("No se ha podido determinar la base de datos para la conexión: {$dynamicConnectionName}");
+        }
+
+        $fullyQualifiedPivotTable = "{$dbName}.profesor_modulo";
         
         return $this->belongsToMany(
-            Profesor::class,                // Target: Profesor (usa la conexión 'mysql' por defecto)
-            $fullyQualifiedPivotTable,      // Ahora usa el NOMBRE REAL DE LA BD para el join
-            'modulo_id',                    // FK de este modelo en la pivote
-            'profesor_id'                   // FK del modelo relacionado en la pivote
-        )->using(ProfesorModulo::class);    // Mantenemos el modelo pivote
+            Profesor::class,
+            $fullyQualifiedPivotTable,
+            'modulo_id',
+            'profesor_id'
+        )->using(ProfesorModulo::class);
     }
 }
