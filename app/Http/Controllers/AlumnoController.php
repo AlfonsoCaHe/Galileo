@@ -345,9 +345,13 @@ class AlumnoController extends Controller
 
         // C. Módulos Disponibles (Para el modal de matriculación, solo módulos activos en el proyecto del alumno)
         $this->setDynamicConnection($proyecto_id);
-        $idsActuales = $alumno->modulos->pluck('id_modulo')->toArray();
+        $idsActuales = $alumno->modulos->pluck('id_modulo');
+        $idsBorrados = $alumno->modulosBorrados->pluck('id_modulo');
+
+        // Unimos ambas colecciones y convertimos a array
+        $idsAExcluir = $idsActuales->merge($idsBorrados)->unique()->toArray();
         $modulosDisponibles = Modulo::where('proyecto_id', $proyecto_id)
-                                ->whereNotIn('id_modulo', $idsActuales)
+                                ->whereNotIn('id_modulo', $idsAExcluir)
                                 ->get();
 
         return view('gestion.alumnos.show', compact('proyecto', 'alumno', 'profesores', 'empresas', 'modulosDisponibles', 'proyecto_id'));
@@ -468,7 +472,7 @@ class AlumnoController extends Controller
     {
         // 1. Configuramos y obtenemos el nombre de la conexión dinámica
         $this->setDynamicConnection($proyecto_id);
-        $nombreConexion = Alumno::getActualConnectionName();
+        $nombreConexion = Modulo::getConnectionResolver()->getDefaultConnection();
 
         try {
             // Iniciamos una transacción por seguridad
